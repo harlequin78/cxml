@@ -1,4 +1,22 @@
-<html>
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+  <head>
+    <title>Closure XML</title>
+    <style type="text/css">
+      body { 
+        color: #000000;
+        background-color: #ffffff;
+        margin-bottom: 10%;
+      }
+      pre {
+        background-color: #eeeeee;
+        border: solid 1px #d0d0d0;
+        padding: 1em;
+        margin-right: 10%;
+      }
+    </style>
+  </head>
   <body>
     <h1>Closure XML Parser</h1>
 
@@ -68,33 +86,47 @@
       <tt>RUNE-IS-CHARACTER</tt> to select an alternative
       <tt>DOMString</tt> implementatation, which uses real characters
       instead of characters codes.
-      <pre>  * (pushnew :rune-is-character *features*)</pre>
+      <pre>* (pushnew :rune-is-character *features*)</pre>
     </p>
 
     <p>
       <b>Compiling and loading CXML.</b>
       Register the .asd file, e.g. by symlinking it:
-      <pre>  $ ln -sf `pwd`/cxms.asd /path/to/your/registry</pre>
+      <pre>$ ln -sf `pwd`/cxms.asd /path/to/your/registry</pre>
       Compile CXML using:
-      <pre>  * (asdf:operate 'asdf:load-op :cxml)</pre>
+      <pre>* (asdf:operate 'asdf:load-op :cxml)</pre>
     </p>
 
     <p>
       <h2>Tests</h2>
 
       Check out the XML and DOM testsuites:
-      <pre>  $ export CVSROOT=:pserver:anonymous@dev.w3.org:/sources/public
-  $ cvs login    # password is "anonymous"
-  $ cvs co 2001/XML-Test-Suite/xmlconf
-  $ cvs co 2001/DOM-Test-Suite</pre>
+      <pre>$ export CVSROOT=:pserver:anonymous@dev.w3.org:/sources/public
+$ cvs login    # password is "anonymous"
+$ cvs co 2001/XML-Test-Suite/xmlconf
+$ cvs co 2001/DOM-Test-Suite</pre>
       Run all applicable tests using:
-      <pre>  * (xmlconf:run-all-tests "/path/to/2001/XML-Test-Suite/xmlconf/")
-  * (domtest:run-all-tests "/path/to/2001/2001/DOM-Test-Suite/")</pre>
+      <pre>* (xmlconf:run-all-tests "/path/to/2001/XML-Test-Suite/xmlconf/")
+* (domtest:run-all-tests "/path/to/2001/2001/DOM-Test-Suite/")</pre>
       (As always in Lisp, the trailing slash is significant.)
     <p>
 
     </p>
       <i>fixme</i>: Add an explanation of xml/sax-tests here.
+    </p>
+
+    <p>
+      <h3>fixme</h3> My parser does not understand the current testsuite
+      anymore.&nbsp; To fix this problem, revert the affected files
+      manually after check-out:
+
+      <pre>$ cd 2001/XML-Test-Suite/xmlconf/
+xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
+
+      The log message for the changes reads "<i>Removed unnecessary
+      xml:base attribute</i>".&nbsp; I don't understand where I am
+      supposed to get the base directory from if not from this
+      attribute.
     </p>
   </body>
 </html>
