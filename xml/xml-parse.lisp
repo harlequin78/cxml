@@ -826,14 +826,15 @@
 (defun validate-entity (value)
   (unless (valid-name-p value)
     (validity-error "(12) Entity Name: not a name: ~S" (rod-string value)))
-  (unless (let ((*validate*
-                 ;; Similarly the entity refs are internal and
-                 ;; don't need normalization ... the unparsed
-                 ;; entities (and entities) aren't "references"
-                 ;;   -- sun/valid/sa03.xml
-                 nil))
-            (get-entity-definition value :general *ctx*))
-    (validity-error "(12) Entity Name: ~S" (rod-string value))))
+  (let ((def (let ((*validate*
+                    ;; Similarly the entity refs are internal and
+                    ;; don't need normalization ... the unparsed
+                    ;; entities (and entities) aren't "references"
+                    ;;   -- sun/valid/sa03.xml
+                    nil))
+               (get-entity-definition value :general *ctx*))))
+    (unless (and def (third def))       ;unparsed entity
+      (validity-error "(12) Entity Name: ~S" (rod-string value)))))
 
 (defun split-names (rod)
   (flet ((whitespacep (x)
@@ -870,7 +871,7 @@
 (defun define-entity (source-stream name kind def)
   (when (eq (car def) :EXTERNAL)
     (setf def
-      (list (car def) (absolute-extid source-stream (cadr def)))))
+      (list (car def) (absolute-extid source-stream (cadr def)) (third def))))
   (setf name (intern-name name))
   (unless (gethash (list kind name) (entities *ctx*))
     (setf (gethash (list kind name) (entities *ctx*))
