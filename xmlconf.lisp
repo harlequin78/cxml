@@ -49,38 +49,48 @@
       result)))
 
 (defun test-xml-conformance (directory)
-  (let ((xmlconf (xml:parse-file (merge-pathnames "xmlconf.xml" directory))))
+  (let ((xmlconf (xml:parse-file (merge-pathnames "xmlconf.xml" directory)))
+        (ntried 0)
+        (nfailed 0)
+        (nskipped 0))
     (dom:do-node-list (test (dom:get-elements-by-tag-name xmlconf "TEST"))
-      (when (relevant-test-p test)
-        (multiple-value-bind (pathname output)
-            (test-pathnames directory test)
-          (princ pathname)
-          (unless (probe-file pathname)
-            (error "file not found: ~A" pathname))
-          (with-simple-restart (skip-test "Skip this test")
-            (handler-case
-                (progn
-                  (mp:with-timeout (60)
-                    (let ((document (xml:parse-file pathname)))
-                      (cond
-                        ((null output)
-                          (format t " ok (output not checked)~%"))
-                        ((equalp (file-contents output)
-                                 (serialize-document document))
-                          (format t " ok~%"))
-                        (t
-                          (let ((error-output
-                                 (make-pathname :type "error" :defaults output)))
-                            (with-open-file (s error-output
-                                             :direction :output
-                                             :if-exists :supersede)
-                              (write-sequence (serialize-document document) s))
-                            (error "well-formed, but output ~S not the expected ~S~%"
-                                   error-output output)))))))
-              ((and serious-condition (not excl:interrupt-signal)) (c)
-                (format t " FAILED:~%  ~A~%[~A]~%"
-                        c
-                        (dom:data (dom:item (dom:child-nodes test) 0)))))))))))
+      (cond
+        ((relevant-test-p test)
+          (incf ntried)
+          (multiple-value-bind (pathname output)
+              (test-pathnames directory test)
+            (princ pathname)
+            (unless (probe-file pathname)
+              (error "file not found: ~A" pathname))
+            (with-simple-restart (skip-test "Skip this test")
+              (handler-case
+                  (progn
+                    (mp:with-timeout (60)
+                      (let ((document (xml:parse-file pathname)))
+                        (cond
+                          ((null output)
+                            (format t " ok (output not checked)~%"))
+                          ((equalp (file-contents output)
+                                   (serialize-document document))
+                            (format t " ok~%"))
+                          (t
+                            (let ((error-output
+                                   (make-pathname :type "error" :defaults output)))
+                              (with-open-file (s error-output
+                                               :direction :output
+                                               :if-exists :supersede)
+                                (write-sequence (serialize-document document) s))
+                              (error "well-formed, but output ~S not the expected ~S~%"
+                                     error-output output)))))))
+                ((and serious-condition (not excl:interrupt-signal)) (c)
+                  (incf nfailed)
+                  (format t " FAILED:~%  ~A~%[~A]~%"
+                          c
+                          (dom:data (dom:item (dom:child-nodes test) 0))))))))
+        (t
+          (incf nskipped))))
+    (format t "~&~D/~D tests failed; ~D test~:P were skipped"
+            nfailed ntried nskipped)))
 
 #+(or)
 (xmlconf::test-xml-conformance "/mnt/debian/space/xmlconf/")
