@@ -245,11 +245,10 @@
 (defstruct (context (:conc-name nil))
   handler
   (namespace-bindings *default-namespace-bindings*)
-  (entities (make-hash-table :test 'equalp))
   (dtd (make-dtd))
   model-stack
   (referenced-notations '())
-  (id-table (make-hash-table :test 'equalp))
+  (id-table (%make-rod-hash-table))
   (standalone-p nil))
 
 (defvar *expand-pe-p*)
@@ -832,7 +831,7 @@
                     ;; entities (and entities) aren't "references"
                     ;;   -- sun/valid/sa03.xml
                     nil))
-               (get-entity-definition value :general *ctx*))))
+               (get-entity-definition value :general (dtd *ctx*)))))
     (unless (and def (third def))       ;unparsed entity
       (validity-error "(12) Entity Name: ~S" (rod-string value)))))
 
@@ -873,13 +872,21 @@
     (setf def
       (list (car def) (absolute-extid source-stream (cadr def)) (third def))))
   (setf name (intern-name name))
-  (unless (gethash (list kind name) (entities *ctx*))
-    (setf (gethash (list kind name) (entities *ctx*))
-          (cons *markup-declaration-external-p* def))))
+  (let ((table
+         (ecase kind
+           (:general (dtd-gentities (dtd *ctx*)))
+           (:parameter (dtd-pentities (dtd *ctx*))))))
+    (unless (gethash name table)
+      (setf (gethash name table)
+            (cons *markup-declaration-external-p* def)))))
 
-(defun get-entity-definition (entity-name kind ctx)
+(defun get-entity-definition (entity-name kind dtd)
   (destructuring-bind (extp &rest def)
-      (gethash (list kind entity-name) (entities ctx) '(nil))
+      (gethash entity-name
+               (ecase kind
+                 (:general (dtd-gentities dtd))
+                 (:parameter (dtd-pentities dtd)))
+               '(nil))
     (when (and *validate* (standalone-p *ctx*) extp)
       (validity-error "(02) Standalone Document Declaration: entity reference: ~S"
                       (rod-string entity-name)))
@@ -887,7 +894,7 @@
 
 (defun entity->xstream (entity-name kind &optional zstream)
   ;; `zstream' is for error messages
-  (let ((def (get-entity-definition entity-name kind *ctx*)))
+  (let ((def (get-entity-definition entity-name kind (dtd *ctx*))))
     (unless def
       (if zstream 
           (perror zstream "Entity '~A' is not defined." (rod-string entity-name))
@@ -907,7 +914,7 @@
       r)))
 
 (defun entity-source-kind (name type)
-  (let ((def (get-entity-definition name type *ctx*)))
+  (let ((def (get-entity-definition name type (dtd *ctx*))))
     (unless def
       (error "Entity '~A' is not defined." (rod-string name)))
     (car def)))
@@ -980,12 +987,22 @@
 ;; element was actually defined.  It is NIL until set to a content model
 ;; when the element type declaration is processed.
 
+(defun %make-rod-hash-table ()
+  ;; XXX with portable hash tables, this is the only way to case-sensitively
+  ;; use rods.  However, EQUALP often has horrible performance!  Most Lisps
+  ;; provide extensions for user-defined equality, we should use them!  There
+  ;; is also a home-made hash table for rods defined below, written by
+  ;; Gilbert (I think).  We could also use that one, but I would prefer the
+  ;; first method, even if it's unportable.
+  (make-hash-table :test
+                   #+rune-is-character 'equal
+                   #-rune-is-character 'equalp))
+
 (defstruct dtd
-  (elements                             ;maps element names to elmdefs
-   (make-hash-table :test 'equal))
-  gentities     ;general entities        XXX wird nicht benutzt!
-  pentities     ;parameter entities      XXX wird nicht benutzt!
-  (notations (make-hash-table :test 'equalp))
+  (elements (%make-rod-hash-table))     ;elmdefs
+  (gentities (%make-rod-hash-table))    ;general entities
+  (pentities (%make-rod-hash-table))    ;parameter entities
+  (notations (%make-rod-hash-table))
   )
 
 ;;;;
@@ -2337,8 +2354,6 @@
   (unless (eq (peek-token input) :eof)
     (error "Trailing garbage - ~S." (peek-token input))))
 
-(defvar *ugly-hack* nil)
-
 (defun p/doctype-decl (input)
   (let ((*expand-pe-p* nil))
     (let (name extid)
@@ -2372,11 +2387,12 @@
                                         (p/ext-subset-decl input)))
                                      (unless (eq :eof (peek-token input))
                                        (error "Trailing garbage.")))))
-            (p/markup-decl input)))
+            (let ((*expand-pe-p* t))
+              (p/markup-decl input))))
         (consume-token input)
         (p/S? input))
       (expect input :>)
-      (when (and extid (not *ugly-hack*))
+      (when extid
         ;; can we make this conditional on *validate*?
         ;; (What about entity references then?)
         (let* ((xi2 (open-extid (absolute-extid input extid)))
@@ -3000,7 +3016,7 @@
                        res))))
 
 (defun internal-entity-expansion (name)
-  (let ((def (get-entity-definition name :general *ctx*)))
+  (let ((def (get-entity-definition name :general (dtd *ctx*))))
     (unless def
       (error "Entity '~A' is not defined." (rod-string name)))
     (unless (eq :INTERNAL (car def))
@@ -3070,10 +3086,11 @@
              (error "Trailing garbage. - ~S" (peek-token input)))))))))
 
 ;;; XXX FIXME FIXME FIXME
-(defun resolve-entity (name entities)
-  (if (gethash (list :general name) entities) ;XXX
+(defun resolve-entity (name dtd)
+  (if (let ((*validate* nil))
+        (get-entity-definition name :general dtd))
       (let* ((handler (funcall (find-symbol (symbol-name '#:make-dom-builder) :dom)))
-             (*ctx* (make-context :handler handler :entities entities))
+             (*ctx* (make-context :handler handler :dtd dtd))
              (*validate* nil))          ;XXX
         (sax:start-document handler)
         (ff (rod name))

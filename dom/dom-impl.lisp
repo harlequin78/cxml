@@ -26,7 +26,7 @@
 
 (defclass document (node)
   ((doc-type    :initarg :doc-type     :reader dom:doctype)
-   (entities    :initform nil          :reader entities)))
+   (dtd         :initform nil          :reader dtd)))
 
 (defclass document-fragment (node)
   ())
@@ -817,8 +817,8 @@
 
 (defmethod initialize-instance :after ((instance entity-reference) &key)
   (let* ((owner (dom:owner-document instance))
-         (entities (or (entities owner) cxml::*entities*))
-         (children (cxml::resolve-entity (dom:name instance) entities)))
+         (dtd (or (dtd owner) (cxml::dtd cxml::*ctx*)))
+         (children (cxml::resolve-entity (dom:name instance) dtd)))
     (setf (slot-value instance 'children)
           (make-node-list
            (map 'vector

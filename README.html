@@ -82,6 +82,7 @@
     <ul>
       <li>Renamed package <tt>XML</tt> to <tt>CXML</tt>.</li>
       <li>The unparse functions support non-canonical output now.</li>
+      <li>Fixed a long-standing case-sensitivity bug triggered by the XHTML DTD.</li>
     </ul>
 
     <a name="modules"/>
@@ -203,6 +204,11 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       </li>
       <li>
         Validation!
+      </li>
+      <li>
+        Unless <tt>rune-is-character</tt> is enabled, rod hashing
+        currently uses <tt>equalp</tt> hash tables, which is idiotic.
+        (See <tt>%make-rod-hash-table</tt>.)
       </li>
     </ul>
     <p>

@@ -22,7 +22,7 @@
     (push document (element-stack handler))))
 
 (defmethod sax:end-document ((handler dom-builder))
-  (setf (slot-value (document handler) 'entities) (cxml::entities cxml::*ctx*))
+  (setf (slot-value (document handler) 'dtd) (cxml::dtd cxml::*ctx*))
   (let ((doctype (dom:doctype (document handler))))
     (when doctype
       (setf (slot-value (dom:entities doctype) 'read-only-p) t)
