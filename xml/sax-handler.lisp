@@ -68,7 +68,9 @@
 	   #:end-document
 	   #:comment
 	   #:start-cdata
-	   #:end-cdata))
+	   #:end-cdata
+	   #:start-dtd
+	   #:end-dtd))
 
 (in-package :sax)
 
@@ -228,4 +230,14 @@ Handlers only have to implement this if they are interested in the
 lexical structure of the parsed document. The content of the CDATA
 section is reported via the `characters' generic function like all
 other textual content.")
+  (:method ((handler t)) nil))
+
+(defgeneric start-dtd (handler name public-id system-id)
+  (:documentation "Called at the beginning of parsing a DTD.")
+  (:method ((handler t) name public-id system-id)
+    (declare (ignore name public-id system-id))
+    nil))
+
+(defgeneric end-dtd (handler)
+  (:documentation "Called at the end of parsing a DTD.")
   (:method ((handler t)) nil))

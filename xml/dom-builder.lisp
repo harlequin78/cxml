@@ -7,11 +7,9 @@
    (element-stack :initform '() :accessor element-stack)))
 
 (defmethod sax:start-document ((handler dom-builder))
-  (let ((document (make-instance 'dom-impl::document))
-	(doctype (make-instance 'dom-impl::document-type
-				:notations (make-hash-table :test #'equalp))))
+  (let ((document (make-instance 'dom-impl::document)))
     (setf (slot-value document 'dom-impl::owner) document
-	  (slot-value document 'dom-impl::doc-type) doctype)
+	  (slot-value document 'dom-impl::doc-type) nil)
     (setf (document handler) document)
     (push document (element-stack handler))))
 
@@ -20,6 +18,15 @@
 	(nreverse (slot-value (document handler) 'children)))
   (setf (slot-value (document handler) 'entities) xml::*entities*)
   (document handler))
+
+(defmethod sax:start-dtd ((handler dom-builder) name publicid systemid)
+  (declare (ignore publicid systemid))
+  (let ((document (document handler))
+	(doctype (make-instance 'dom-impl::document-type
+                   :name name
+                   :notations (make-hash-table :test #'equalp))))
+    (setf (slot-value doctype 'dom-impl::owner) document
+	  (slot-value document 'dom-impl::doc-type) doctype)))
 
 (defmethod sax:start-element ((handler dom-builder) namespace-uri local-name qname attributes)
   (with-slots (document element-stack) handler

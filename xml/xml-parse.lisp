@@ -1902,11 +1902,15 @@
         (consume-token input)
         (p/S? input))
       (expect input :>)
+      (ecase (car extid)
+        (:PUBLIC (sax:start-dtd *handler* name (cadr extid) (caddr extid)))
+        (:SYSTEM (sax:start-dtd *handler* name nil (cadr extid))))
       (when extid
         (let* ((xi2 (open-extid (absolute-extid input extid)))
                (zi2 (make-zstream :input-stack (list xi2))))
           (let ()
             (p/ext-subset zi2))))
+      (sax:end-dtd *handler*)
       (list :DOCTYPE name extid))))
 
 (defun p/misc*-2 (input)
