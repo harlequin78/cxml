@@ -202,10 +202,10 @@
               ((< (+ (column sink) next (- pos)) (width sink))
                 (write-rune-0 32 sink))
               (t
-                (sink-fresh-line sink)))
-            (loop
-                for i from pos below next do
-                  (unparse-datachar-readable (elt data i) sink)))
+                (sink-fresh-line sink))))
+          (loop
+              for i from pos below next do
+                (unparse-datachar-readable (elt data i) sink))
           (setf pos (1+ next)))))))
 
 (defun unparse-datachar (c sink)
