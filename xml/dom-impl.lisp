@@ -457,7 +457,8 @@
     (values)))
 
 (defmethod dom:remove-attribute-node ((element element) (old-attr attribute))
-  (let ((res (dom:remove-named-item element (dom:name old-attr))))
+  (let ((res (dom:remove-named-item (dom:attributes element)
+                                    (dom:name old-attr))))
     (if res
         res
       ;; NOT_FOUND_ERR
