@@ -466,7 +466,7 @@
 (defmethod dom:delete-data ((node character-data) offset count)
   (assert-writeable node)
   (with-slots (value) node
-    (unless (< -1 offset (length value))
+    (unless (<= 0 offset (length value))
       (dom-error :INDEX_SIZE_ERR "offset is invalid"))
     (when (minusp count)
       (dom-error :INDEX_SIZE_ERR "count is negative"))
@@ -488,7 +488,7 @@
   (assert-writeable node)
   (setf arg (rod arg))
   (with-slots (value) node
-    (unless (< -1 offset (length value))
+    (unless (<= 0 offset (length value))
       (dom-error :INDEX_SIZE_ERR "offset is invalid"))
     (when (minusp count)
       (dom-error :INDEX_SIZE_ERR "count is negative"))
