@@ -110,6 +110,40 @@ patch-76, patch-77
     implemented DOM:SPLIT-TEXT
 patch-80
     noch unfertig: initialisiere dom:enitities richtig, erzeuge Entity-Knoten
+patch-82
+    dom:notations fuellen
+patch-85
+    WRONG_DOCUMENT_ERR auch in set-attribute-node
+patch-86
+    WRONG_DOCUMENT_ERR nicht nur in set-attribute-node, sondern prinzipiell in set-named-item
+patch-91
+    :NOT_FOUND_ERR in remove-named-item
+patch-94
+    can-adopt-p implementiert
+patch-95
+    ENSURE-VALID-INSERTION-REQUEST korrigiert
+patch-96
+    normalize korrigiert: cdata-section nicht beruehren
+patch-98
+    DOCUMENTs have owner NIL
+patch-101
+    (setf dom:data) fuer PI korrigiert
+patch-102
+    NOT_FOUND_ERR in REMOVE-CHILD
+patch-104
+    oops, split-text korrigiert
+patch-106
+    NOT_FOUND_ERROR in removeAttributeNode sucht das Objekt, nicht seinen Namen
+patch-107, patch-113
+    Defaultwert fuer fehlende Attribute ist der leere Rod-String, nicht NIL
+patch-118
+    entity und notation maps sind read-only
+patch-119
+    dom:item liefert NIL bei ungueltigem index
+patch-120, patch-122, patch-124
+    NodeList reimplementiert
+patch-121
+    NAMED-NODE-MAP muss auch auf HIERARCHY_REQUEST_ERR pruefen...
 
 xml-parse.lisp changes
 ----------------
@@ -123,7 +157,11 @@ patch-41
     Warnung ueber (nicht) redefinierte Attribute abschalten koennen
 patch-54
     call sax:comment; create comment nodes
-(See also: patch-58, patch-80)
+patch-89
+    public-id und system-id der Entities uebergeben
+patch-100
+    Die XML Deklaration ist keine Processing Instruction.
+(See also: patch-58, patch-80, patch-82)
 
 
 String-Handling
@@ -132,6 +170,12 @@ patch-4
     renamed dom to cdom, added string-dom
 patch-38
     diverse setter nachgetragen
+patch-87
+    public-id und system-id in string-dom aufgenommen
+patch-90
+    notation-name in string-dom aufgenommen
+patch-103
+    target im string-dom ergaenzt
 
 
 Misc.
@@ -148,15 +192,25 @@ patch-10
 patch-12
     REVERT patch-10
 
+patch-114
+    (reverted by patch-115)
+patch-115
+    REVERT patch-114, das war ein Versehen
 
-SAX
+patch-109, patch-110, patch-111
+    (empty commits due to arch problem)
+
+
+DOM-Builder und SAX-Interface
 ----------------
 patch-57
     Warnungen beseitigt ("undefined variable")
 patch-75
     fixed PARENT slot initialization and added a rant about the current implementation
+patch-97
+    CDATA sections bauen
 
-(See also: patch-58, patch-80)
+(See also: patch-58, patch-80, patch-82, patch-86, patch-118, patch-120)
 
 
 domtest.cl
@@ -189,6 +243,30 @@ patch-78
     named-node-map-hack auch fuer assertSize
 patch-79
     ignore element order in <equals>
+patch-83
+    featuretest auf ("XML", "") verstehen
+patch-84
+    featuretest case insensitive
+patch-88
+    URI-Vergleich
+patch-92
+    instanceOf korrekt uebersetzen
+patch-93
+    <or>
+patch-99
+    s/assert-true/assert-false/
+patch-105
+    hc_elementnormalize2 ist komisch, den lassen wir aus
+patch-108
+    mit leeren Strings umgehen koennen (*seufz*)
+patch-111
+    oh je, jetzt "" statt NIL
+patch-116
+    noch "" statt NIL (diesmal wirklich)
+patch-117
+    <try> richtig uebersetzen
+patch-123
+    hc_nodereplacechildnewchildexists sehe ich nicht ein; ignorieren
 
 
 xmlconf.cl
