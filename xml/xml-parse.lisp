@@ -3395,7 +3395,8 @@
 (macrolet ((with-context ((validator) &body body)
              `(let ((*ctx* (context ,validator))
                     (*validate* t))
-                ,@body)))
+                (with-scratch-pads ()   ;nicht schoen
+                  ,@body))))
   (defmethod sax:start-element ((handler validator) uri lname qname attributes)
     uri lname
     (with-context (handler)
