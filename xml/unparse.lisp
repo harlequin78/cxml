@@ -79,6 +79,7 @@
      (notations :initform (make-buffer :element-type t) :accessor notations)
      (name-for-dtd :accessor name-for-dtd)
      (previous-notation :initform nil :accessor previous-notation)
+     (have-doctype :initform nil :accessor have-doctype)
      (stack :initform nil :accessor stack)))
 
 (defmethod initialize-instance :after ((instance sink) &key)
@@ -157,8 +158,26 @@
 ;;;; doctype and notations
 
 (defmethod sax:start-dtd ((sink sink) name public-id system-id)
-  (declare (ignore public-id system-id))
+  (unless (canonical sink)
+    (ensure-doctype sink public-id system-id))
   (setf (name-for-dtd sink) name))
+
+(defun ensure-doctype (sink &optional public-id system-id)
+  (unless (have-doctype sink)
+    (setf (have-doctype sink) t)
+    (write-rod #"<!DOCTYPE " sink)
+    (write-rod (name-for-dtd sink) sink)
+    (cond
+      (public-id
+        (write-rod #" PUBLIC \"" sink)
+        (unparse-string public-id sink)
+        (write-rod #"\" \"" sink)
+        (unparse-string system-id sink)
+        (write-rod #"\"" sink))
+      (system-id
+        (write-rod #" SYSTEM \"" sink)
+        (unparse-string public-id sink)
+        (write-rod #"\"" sink)))))
 
 (defmethod sax:notation-declaration ((sink sink) name public-id system-id)
   (when (and (canonical sink) (>= (canonical sink) 2))
@@ -168,9 +187,7 @@
           (unless (rod< prev name)
             (error "misordered notations; cannot unparse canonically")))
         (t
-          ;; need a doctype declaration
-          (write-rod #"<!DOCTYPE " sink)
-          (write-rod (name-for-dtd sink) sink)
+          (ensure-doctype sink)
           (write-rod #" [" sink)
           (write-rune #/U+000A sink)))
       (setf (previous-notation sink) name)) 
@@ -195,7 +212,7 @@
     (write-rune #/U+000A sink)))
 
 (defmethod sax:end-dtd ((sink sink))
-  (when (previous-notation sink)
+  (when (have-doctype sink)
     (write-rod #"]>" sink)
     (write-rune #/U+000A sink)))
 
@@ -313,6 +330,9 @@
               (setf pos next))))
         (t
           (write-rune-0 32 sink))))))
+
+(defun unparse-string (str sink)
+  (map nil (lambda (c) (unparse-datachar c sink)) str))
 
 (defun unparse-datachar (c sink)
   (cond ((rune= c #/&) (write-rod '#.(string-rod "&amp;") sink))
