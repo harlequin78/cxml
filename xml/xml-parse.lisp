@@ -195,7 +195,7 @@
 
 ;;;; Validity constraints:
 ;;;; (00) Root Element Type                     like (03), c.f. MAKE-ROOT-MODEL
-;;;; (01) Proper Declaration/PE Nesting
+;;;; (01) Proper Declaration/PE Nesting         P/MARKUP-DECL
 ;;;; (02) Standalone Document Declaration       all over the place [*]
 ;;;; (03) Element Valid                         VALIDATE-*-ELEMENT, -CHARACTERS
 ;;;; (04) Attribute Value Type                  VALIDATE-ATTRIBUTE
@@ -2279,6 +2279,15 @@
       (otherwise (return)))) )
 
 (defun p/markup-decl (input)
+  (peek-token input)
+  (let ((stream (car (zstream-input-stack input))))
+    (multiple-value-prog1
+        (p/markup-decl-unsafe input)
+      (when *validate*
+        (unless (eq stream (car (zstream-input-stack input)))
+          (validity-error "(01) Proper Declaration/PE Nesting"))))))
+
+(defun p/markup-decl-unsafe (input)
   ;; markupdecl ::= elementdecl | AttlistDecl       /* VC: Proper Declaration/PE Nesting */
   ;;              | EntityDecl | NotationDecl 
   ;;              | PI | Comment               /* WFC: PEs in Internal Subset */
