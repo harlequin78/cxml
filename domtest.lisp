@@ -223,16 +223,33 @@
        |scheme| |path| |host| |file| |name| |query| |fragment| |isAbsolute|)
       element
     |isAbsolute|
-   `(let ((uri ,(%intern |actual|)))
-      (and (string-equal ,|scheme| (net.uri:uri-scheme uri))
-           (equal ,|host| (net.uri:uri-host uri))
-           (equal ,|path| (net.uri:uri-path uri))
-           (equal ,|file| "???")
-           (equal ,|name| "???")
-           (equal ,|query| (net.uri:uri-query uri))
-           (equal ,|fragment| (net.uri:uri-fragment uri))
-           ;; isabsolute
-           nil))))
+   `(let ((uri (net.uri:parse-uri ,(%intern |actual|))))
+      (flet ((uri-directory (path)
+               (namestring
+                (make-pathname :directory (pathname-directory path))))
+             (uri-file (path)
+               (namestring (make-pathname :name (pathname-name path)
+                                          :type (pathname-type path))))
+             (uri-name (path)
+               (pathname-name path))
+             (maybe-equal (expected actual)
+               (if expected
+                   (equal expected actual)
+                   t)))
+        (and (string-equal ,(parse-java-literal |scheme|)
+                           (net.uri:uri-scheme uri))
+             (maybe-equal ,(parse-java-literal |host|)
+                          (net.uri:uri-host uri))
+             (maybe-equal ,(parse-java-literal |path|)
+                          (uri-directory (net.uri:uri-path uri)))
+             (maybe-equal ,(parse-java-literal |file|)
+                          (uri-file (net.uri:uri-path uri)))
+             (maybe-equal ,(parse-java-literal |name|)
+                          (uri-name (net.uri:uri-path uri)))
+             (maybe-equal ,(parse-java-literal |query|)
+                          (net.uri:uri-query uri))
+             (maybe-equal ,(parse-java-literal |fragment|)
+                          (net.uri:uri-fragment uri)))))))
 
 
 ;;;; Statements uebersetzen
