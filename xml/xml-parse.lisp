@@ -119,6 +119,8 @@
 ;; o the *scratch-pad* hack should become something much more
 ;;   reentrant, we could either define a system-wide resource
 ;;   or allocate some scratch-pads per context.
+;;   [for thread-safety reasons the array are allocated per context now,
+;;   reentrancy is still open]
 
 ;; o only parse the DTD on an option
 
