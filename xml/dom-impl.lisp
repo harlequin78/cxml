@@ -456,6 +456,9 @@
                :specified-p t))
     (values)))
 
+(defmethod dom:remove-attribute ((element element) name)
+  (dom:remove-attribute-node element (dom:get-attribute-node element name)))
+
 (defmethod dom:remove-attribute-node ((element element) (old-attr attribute))
   (let ((res (dom:remove-named-item (dom:attributes element)
                                     (dom:name old-attr))))
