@@ -26,44 +26,52 @@
       Closure XML was written by <a
       href="http://www.stud.uni-karlsruhe.de/~unk6/">Gilbert Baumann</a>
       (unk6 at rz.uni-karlsruhe.de) as part of the Closure web
-      browser.<br>
+      browser.<br/>
       Contributions to the parser by
-      <ul>
-        <li>
-          Henrik Motakef (hmot at henrik-motakef.de)<br>
-          (SAX layer; namespace support)
-        </li>
-        <li>
-          David Lichteblau at knowledgeTools (david at knowledgetools.de)<br>
-          (conversion into an independent package; DOM bug fixing)
-        </li>
-      </ul>
     </p>
+    <ul>
+      <li>
+        Henrik Motakef (hmot at henrik-motakef.de)<br/>
+        (SAX layer; namespace support)
+      </li>
+      <li>
+        David Lichteblau at knowledgeTools (david at knowledgetools.de)<br/>
+        (conversion into an independent package; DOM bug fixing)
+      </li>
+    </ul>
 
     <p>
-      <h2>CXML Modules</h2>
-
-      CXML provides three packages:
-      <ul>
-        <li>
-          <tt>RUNES</tt>, a portable implementation of Unicode strings.
-        </li>
-        <li>
-          <tt>XML</tt>, a namespace-aware SAX parser implementing the <a
-          href="http://www.w3.org/TR/2000/REC-xml-20001006">XML 1.0
-          specification</a>.
-        </li> 
-        <li>
-          <tt>DOM</tt>, an implementation of the <a
-          href="http://www.w3.org/TR/REC-DOM-Level-1/level-one-core.html">DOM
-          Level 1 Core</a> interfaces.
-        </li> 
-      </ul>
+      <b>Contents</b>
     </p>
+    <ul>
+      <li><a href="#modules">CXML modules</a></li>
+      <li><a href="#installation">Installation</a></li>
+      <li><a href="#tests">Tests</a></li>
+      <li><a href="#todo">To do</a></li>
+    </ul>
 
+    <a name="modules"/>
+    <h2>CXML Modules</h2>
+    <p>CXML provides three packages:</p>
+    <ul>
+      <li>
+        <tt>RUNES</tt>, a portable implementation of Unicode strings.
+      </li>
+      <li>
+        <tt>XML</tt>, a namespace-aware SAX parser implementing the <a
+        href="http://www.w3.org/TR/2000/REC-xml-20001006">XML 1.0
+        specification</a>.
+      </li> 
+      <li>
+        <tt>DOM</tt>, an implementation of the <a
+        href="http://www.w3.org/TR/REC-DOM-Level-1/level-one-core.html">DOM
+        Level 1 Core</a> interfaces.
+      </li> 
+    </ul>
+
+    <a name="installation"/>
+    <h2>Installation</h2>
     <p>
-      <h2>Installation</h2>
-
       CXML is written in Common Lisp and should be portable to all
       Common Lisp implementations.&nbsp; Currently known to work are
       ACL, SBCL, CMUCL, and CLISP.  (CLISP needs some <tt>-E</tt> option
@@ -85,31 +93,29 @@
       <tt>RUNE-IS-CHARACTER</tt> to select an alternative
       <tt>DOMString</tt> implementatation, which uses real characters
       instead of characters codes.
-      <pre>* (pushnew :rune-is-character *features*)</pre>
     </p>
+    <pre>* (pushnew :rune-is-character *features*)</pre>
 
     <p>
       <b>Compiling and loading CXML.</b>
       Register the .asd file, e.g. by symlinking it:
-      <pre>$ ln -sf `pwd`/cxms.asd /path/to/your/registry</pre>
-      Then compile CXML using:
-      <pre>* (asdf:operate 'asdf:load-op :cxml)</pre>
     </p>
+    <pre>$ ln -sf `pwd`/cxms.asd /path/to/your/registry</pre>
+    <p>Then compile CXML using:</p>
+    <pre>* (asdf:operate 'asdf:load-op :cxml)</pre>
 
-    <p>
-      <h2>Tests</h2>
-
-      Check out the XML and DOM testsuites:
-      <pre>$ export CVSROOT=:pserver:anonymous@dev.w3.org:/sources/public
+    <a name="tests"/>
+    <h2>Tests</h2>
+    <p>Check out the XML and DOM testsuites:</p>
+    <pre>$ export CVSROOT=:pserver:anonymous@dev.w3.org:/sources/public
 $ cvs login    # password is "anonymous"
 $ cvs co 2001/XML-Test-Suite/xmlconf
 $ cvs co 2001/DOM-Test-Suite</pre>
-      Usage and expected output:
-      <pre>* (xmlconf:run-all-tests "/path/to/2001/XML-Test-Suite/xmlconf/")
+    <p>Usage and expected output:</p>
+    <pre>* (xmlconf:run-all-tests "/path/to/2001/XML-Test-Suite/xmlconf/")
 22/389 tests failed; 1773 tests were skipped
 * (domtest:run-all-tests "/path/to/2001/2001/DOM-Test-Suite/")
 0/440 tests failed; 81 tests were skipped</pre>
-    <p>
 
     <p>
       Most XML testsuite failures are due to document type declarations
@@ -117,23 +123,55 @@ $ cvs co 2001/DOM-Test-Suite</pre>
       serialized again.&nbsp; This needs work.
     </p>
 
-    </p>
+    <p>
       <i>fixme</i>: Add an explanation of xml/sax-tests here.
     </p>
 
     <p>
-      <h3>fixme</h3> My parser does not understand the current testsuite
+      <b>fixme</b> My parser does not understand the current testsuite
       anymore.&nbsp; To fix this problem, revert the affected files
       manually after check-out:
+    </p>
 
-      <pre>$ cd 2001/XML-Test-Suite/xmlconf/
+    <pre>$ cd 2001/XML-Test-Suite/xmlconf/
 xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
 
+    <p>
       The log message for the changes reads "<i>Removed unnecessary
       xml:base attribute</i>".&nbsp; If I understand correctly, only
       DOM&nbsp;3 parsers provide the baseURI attribute necessary for
       understanding <tt>xmlconf.xml</tt> now.&nbsp; We don't have that
       yet.
     </p>
+
+    <a name="todo"/>
+    <h2>To do</h2>
+    <ul>
+      <li>
+        David's changes might have affected performance.&nbsp; Some
+        benchmarking needs to be done here.
+      </li>
+      <li>
+        DOM in general is pretty heavyweight.&nbsp; There is/was a
+        "simple-dom" which should be faster.&nbsp; This might be worth
+        reviving.
+      </li>
+      <li>
+        For those who don't like DOM at all, it would be a very simple
+        exercise to write a SAX handler for "Lisp-XML" output instead of
+        DOM.&nbsp; Other ideas include Erik Naggum's <a
+        href="http://groups.google.com/groups?hl=en&amp;lr=&amp;ie=UTF-8&amp;selm=3283503882585065KL2065E_-_%40naggum.no">quad</a>s.
+      </li>
+      <li>
+        The serializer supports only <a
+        href="http://www.w3.org/TR/2001/REC-xml-c14n-20010315">Canonical
+        XML</a> right now.&nbsp; In the future we want support for:
+        Including doctype declarations in the output, ordinary output
+        with less entity noise, optional indentation, etc.
+      </li>
+      <li>
+        Validation!
+      </li>
+    </ul>
   </body>
 </html>
