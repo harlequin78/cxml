@@ -326,10 +326,7 @@
     (let ((i (position old-child children)))
       (unless i
         (dom-error :NOT_FOUND_ERR "~S is no child of ~S." old-child node))
-      (print children)
-      (setf (elt children i) new-child)
-      (print children)
-      ) 
+      (setf (elt children i) new-child)) 
     (setf (slot-value new-child 'parent) node)
     (setf (slot-value old-child 'parent) nil)
     old-child))
