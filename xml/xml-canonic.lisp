@@ -99,6 +99,7 @@
          (let ((*quux* nil))
            (map nil (lambda (c) (unparse-datachar c sink))
                 (dom:data node))))
+        ((dom:comment-p node))
         (t
          (error "Oops in unparse: ~S." node))))
 
