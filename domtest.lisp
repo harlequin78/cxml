@@ -287,8 +287,15 @@
                   `(,(intern-dom name) ,(%intern |obj|) ,@args)))))
 
 (defun translate-get (call name)
-  (with-attributes (|var| |obj|) call
-    (maybe-setf (%intern |var|) `(,(intern-dom name) ,(%intern |obj|)))))
+  (with-attributes (|var| |value| |obj|) call
+    (cond
+      (|var|                            ;get
+        (maybe-setf (%intern |var|) `(,(intern-dom name) ,(%intern |obj|))))
+      (|value|                          ;set
+        `(setf (,(intern-dom name) ,(%intern |obj|))
+               ,(parse-java-literal |value|)))
+      (t
+        (error "oops")))))
 
 (defun translate-has-feature (element)
   (with-attributes (|var| |feature| |version|) element
