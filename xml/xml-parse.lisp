@@ -2465,21 +2465,47 @@
         (let* ((merged-extid (absolute-extid input extid))
                (sysid (extid-system merged-extid))
                (fresh-dtd-p (null (dtd *ctx*)))
-               (cached-dtd (and fresh-dtd-p (getdtd sysid *dtd-cache*))))
-          (if cached-dtd
+               (cached-dtd
+                (and fresh-dtd-p
+                     (not (standalone-p *ctx*))
+                     (getdtd sysid *dtd-cache*))))
+          (cond
+            (cached-dtd
               (setf (dtd *ctx*) cached-dtd)
+              (report-cached-dtd cached-dtd))
+            (t
               (let* ((xi2 (xstream-open-extid merged-extid))
                      (zi2 (make-zstream :input-stack (list xi2))))
                 (ensure-dtd)
                 (p/ext-subset zi2)
-                (when (and fresh-dtd-p *cache-all-dtds*)
-                  (setf (getdtd sysid *dtd-cache*) (dtd *ctx*)))))))
+                (when (and fresh-dtd-p
+                           *cache-all-dtds*
+                           *validate*
+                           (not (standalone-p *ctx*)))
+                  (setf (getdtd sysid *dtd-cache*) (dtd *ctx*))))))))
       (sax:end-dtd (handler *ctx*))
       (let ((dtd (dtd *ctx*)))
         (sax:entity-resolver
          (handler *ctx*)
          (lambda (name handler) (resolve-entity name handler dtd))))
       (list :DOCTYPE name extid))))
+
+(defun report-cached-dtd (dtd)
+  (maphash (lambda (k v)
+             (report-entity (handler *ctx*) :general k (cdr v)))
+           (dtd-gentities dtd))
+  (maphash (lambda (k v)
+             (report-entity (handler *ctx*) :parameter k (cdr v)))
+           (dtd-pentities dtd))
+  (maphash (lambda (k v)
+             (sax:notation-declaration
+              (handler *ctx*)
+              k
+              (if (extid-public v)
+                  (normalize-public-id (extid-public v))
+                  nil)
+              (uri-rod (extid-system v))))
+           (dtd-notations dtd)))
 
 (defun p/misc*-2 (input)
   ;; Misc*
