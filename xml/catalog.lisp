@@ -25,6 +25,7 @@
 
 (defstruct (catalog (:constructor %make-catalog ()))
   main-files
+  (dtd-cache (make-dtd-cache))
   (file-table (puri:make-uri-space)))
 
 (defstruct (entry-file (:conc-name ""))
@@ -198,7 +199,9 @@
 
 (defun find-catalog-file (uri catalog)
   (setf uri (if (stringp uri) (safe-parse-uri uri) uri))
-  (let ((file (parse-catalog-file uri)))
+  (let* ((*dtd-cache* (catalog-dtd-cache catalog))
+         (*cache-all-dtds* t)
+         (file (parse-catalog-file uri)))
     (when file
       (let ((interned (puri:intern-uri uri (catalog-file-table catalog))))
         (setf (getf (puri:uri-plist interned) 'catalog) file)))
