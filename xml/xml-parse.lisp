@@ -197,7 +197,7 @@
 ;;;; (00) Root Element Type
 ;;;; (01) Proper Declaration/PE Nesting
 ;;;; (02) Standalone Document Declaration
-;;;; (03) Element Valid
+;;;; (03) Element Valid                         VALIDATE-***
 ;;;; (04) Attribute Value Type
 ;;;; (05) Unique Element Type Declaration       DEFINE-ELEMENT
 ;;;; (06) Proper Group/PE Nesting
@@ -230,7 +230,16 @@
   ;;(defparameter *fast* '(optimize (speed 2) (safety 3)))
   )
 
-(defvar *ctx*)                          ;parser context
+;;; parser context
+
+(defvar *ctx*)
+
+(defstruct (context (:conc-name nil))
+  handler
+  (namespace-bindings *default-namespace-bindings*)
+  (entities nil)
+  (dtd (make-dtd))
+  model-stack)
 
 (defvar *expand-pe-p*)
 
@@ -657,6 +666,36 @@
 
 (defvar *validate* t)
 
+(defun validate-start-element (ctx name)
+  (when *validate*
+    (let* ((pair (car (model-stack ctx)))
+           (newval (funcall (car pair) name)))
+      (unless newval
+        (validity-error "(03) Element Valid: ~A" (rod-string name)))
+      (setf (car pair) newval)
+      (let ((e (find-element name (dtd ctx))))
+        (unless e
+          (validity-error "(03) Element Valid: no definition for ~A"
+                          (rod-string (elmdef-name e))))
+        (maybe-compile-cspec e)
+        (push (copy-cons (elmdef-compiled-cspec e)) (model-stack ctx))))))
+
+(defun copy-cons (x)
+  (cons (car x) (cdr x)))
+
+(defun validate-end-element (ctx name)
+  (when *validate*
+    (let ((pair (car (model-stack ctx))))
+      (unless (eq (funcall (car pair) nil) t)
+        (validity-error "(03) Element Valid: ~A" (rod-string name)))
+      (pop (model-stack ctx)))))
+
+(defun validate-characters (ctx rod)
+  (when *validate*
+    (let ((pair (car (model-stack ctx))))
+      (unless (funcall (cdr pair) rod)
+        (validity-error "(03) Element Valid: unexpected PCDATA")))))
+
 (defun absolute-uri (sysid source-stream)
   (setq sysid (rod-string sysid))
   (let ((base-sysid
@@ -769,6 +808,7 @@
   name          ;name of the element
   content       ;content model            [*]
   attributes    ;list of defined attributes
+  compiled-cspec ;cons of validation function for contentspec
   )
 
 ;; [*] in XML it is possible to define attributes before the element
@@ -1744,6 +1784,113 @@
       (define-element (dtd *ctx*) name content))
     (list :element name content)))
 
+(defun maybe-compile-cspec (e)
+  (or (elmdef-compiled-cspec e)
+      (setf (elmdef-compiled-cspec e)
+            (let ((cspec (elmdef-content e)))
+              (unless cspec
+                (validity-error "(03) Element Valid: no definition for ~A"
+                                (rod-string (elmdef-name e))))
+              (multiple-value-call #'cons (compile-cspec cspec))))))
+
+(defun make-root-model (name)
+  (cons (lambda (actual-name)
+          (if (rod= actual-name name)
+              (constantly :dummy)
+              nil))
+        (constantly t)))
+
+;;; content spec validation:
+;;;
+;;; Given a `contentspec', COMPILE-CSPEC returns as multiple values two
+;;; functions A and B of one argument to be called for every
+;;;   A. child element
+;;;   B. text child node
+;;;
+;;; Function A will be called with
+;;;   - the element name rod as its argument.  If that element may appear
+;;;     at the current position, a new function to be called for the next
+;;;     child is returned.  Otherwise NIL is returned.
+;;;   - argument NIL at the end of the element, it must then return T or NIL
+;;;     to indicate whether the end tag is valid.
+;;;
+;;; Function B will be called with the character data rod as its argument, it
+;;; returns a boolean indicating whether this text element is allowed.
+;;;
+;;; That is, if one of the functions ever returns NIL, the element is
+;;; rejected as invalid.
+
+(defun cmodel-done (actual-value)
+  (null actual-value))
+
+(defun compile-cspec (cspec)
+  (cond
+    ((atom cspec)
+      (ecase cspec
+        (:EMPTY (values #'cmodel-done (constantly nil)))
+        (:PCDATA (values #'cmodel-done (constantly t)))
+        (:ANY
+          (values (labels ((doit (name) (if name #'doit t))) #'doit)
+                  (constantly t)))))
+    ((and (eq (car cspec) 'or) (eq (cadr cspec) :PCDATA))
+      (values (compile-mixed cspec)
+              (constantly t)))
+    ((and (eq (car cspec) '*)
+          (let ((subspec (second cspec)))
+            (and (eq (car subspec) 'or) (eq (cadr subspec) :PCDATA))))
+      (values (compile-mixed (second cspec))
+              (constantly t)))
+    (t
+      (values (compile-content-model cspec)
+              (lambda (rod) (every #'white-space-rune-p rod))))))
+
+(defun compile-mixed (cspec)
+  (let ((allowed-names (cddr cspec)))
+    (labels ((doit (actual-name)
+               (cond
+                 ((null actual-name) t)
+                 ((member actual-name allowed-names :test #'equal) #'doit)
+                 (t nil))))
+      #'doit)))
+
+(defun compile-content-model (cspec &optional (continuation #'cmodel-done))
+  (if (vectorp cspec)
+      (lambda (actual-name)
+        (if (and actual-name (rod= cspec actual-name))
+            continuation
+            nil))
+      (ecase (car cspec)
+        (and
+          (labels ((traverse (seq)
+                     (compile-content-model (car seq)
+                                            (if (cdr seq)
+                                                (traverse (cdr seq))
+                                                continuation))))
+            (traverse (cdr cspec))))
+        (or
+          (let ((options (mapcar (rcurry #'compile-content-model continuation)
+                                 (cdr cspec))))
+            (lambda (actual-name)
+              (some (rcurry #'funcall actual-name) options))))
+        (?
+          (let ((maybe (compile-content-model (second cspec) continuation)))
+            (lambda (actual-name)
+              (or (funcall maybe actual-name)
+                  (funcall continuation actual-name)))))
+        (*
+          (let (maybe-continuation)
+            (labels ((recurse (actual-name)
+                       (if (null actual-name)
+                           (funcall continuation actual-name)
+                           (or (funcall maybe-continuation actual-name)
+                               (funcall continuation actual-name)))))
+              (setf maybe-continuation
+                    (compile-content-model (second cspec) #'recurse))
+              #'recurse)))
+        (+
+          (let ((it (cadr cspec)))
+            (compile-content-model `(and ,it (* ,it)) continuation))))))
+
 (defun legal-content-model-p (cspec)
   (or (eq cspec :PCDATA)
       (eq cspec :ANY)
@@ -1949,6 +2096,8 @@
       (expect input :|<!DOCTYPE|)
       (p/S input)
       (setq name (p/name input))
+      (when *validate*
+        (setf (model-stack *ctx*) (list (make-root-model name))))
       (when (eq (peek-token input) :S)
         (p/S input)
         (unless (or (eq (peek-token input) :\[ )
@@ -2002,12 +2151,6 @@
 ;; forward declaration for DEFVAR
 (declaim (special *default-namespace-bindings*))
 
-(defstruct (context (:conc-name nil))
-  handler
-  (namespace-bindings *default-namespace-bindings*)
-  (entities nil)
-  (dtd (make-dtd)))
-
 (defun p/document (input handler)
   (let ((*ctx* (make-context :handler handler)))
     (define-default-entities)
@@ -2028,9 +2171,12 @@
       ;; Misc*
       (p/misc*-2 input)
       ;; (doctypedecl Misc*)?
-      (when (eq (peek-token input) :<!DOCTYPE)
-        (p/doctype-decl input)
-        (p/misc*-2 input))
+      (cond
+        ((eq (peek-token input) :<!DOCTYPE)
+          (p/doctype-decl input)
+          (p/misc*-2 input))
+        (*validate*
+          (validity-error "invalid document: no doctype")))
       ;; element
       (let ((*data-behaviour* :DOC))
         (p/element input))
@@ -2047,6 +2193,8 @@
     
 (defun p/element-no-ns (input)
   ;;    [39] element ::= EmptyElemTag | STag content ETag
+  (when *validate*
+    (error "sorry, bitrot in non-namespace aware mode"))
   (multiple-value-bind (cat sem) (read-token input)
     (cond ((eq cat :ztag)
 	   (sax:start-element (handler *ctx*) nil nil (car sem) (build-attribute-list-no-ns (cdr sem)))
@@ -2068,6 +2216,7 @@
 (defun p/element-ns (input)
   (destructuring-bind (cat (name &rest attrs))
       (multiple-value-list (read-token input))
+    (validate-start-element *ctx* name)
     (let ((ns-decls (declare-namespaces attrs)))
       (multiple-value-bind (ns-uri prefix local-name) (decode-qname name)
 	(declare (ignore prefix))
@@ -2087,7 +2236,8 @@
 		
 		(t
 		 (error "Expecting element, got ~S." cat)))))
-      (undeclare-namespaces ns-decls))))
+      (undeclare-namespaces ns-decls))
+    (validate-end-element *ctx* name)))
       
 (defun perror (stream format-string &rest format-args)
   (when (zstream-p stream)
@@ -2106,6 +2256,7 @@
        (p/content input))
       ((:CDATA)
        (consume-token input)
+       (validate-characters *ctx* sem)
        (sax:characters (handler *ctx*) sem)
        (p/content input))
       ((:ENTITY-REF)
@@ -2132,6 +2283,7 @@
                        (rune= #/A (read-rune input))
                        (rune= #/\[ (read-rune input)))
             (error "After '<![', 'CDATA[' is expected."))
+	  (validate-characters *ctx* #"hack") ;anything other than whitespace
 	  (sax:start-cdata (handler *ctx*))
 	  (sax:characters (handler *ctx*) (read-cdata-sect input))
 	  (sax:end-cdata (handler *ctx*)))
