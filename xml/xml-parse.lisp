@@ -1569,14 +1569,18 @@
     (define-entity input name kind def)
     (when (eq kind :general)
       ;; XXX wirklich nur :general?
-      ;; XXX was ist mit notation-name?
+      ;; XXX ist sax:unparsed-entity-declaration ueberhaupt richtig?
+      ;; Brauchen wir nicht sax:internal- und sax:external-entity-declaration?
       (ecase (car def)
         (:EXTERNAL
           (destructuring-bind (id notation) (cdr def)
             (ecase (car id)
               (:PUBLIC
                 (sax:unparsed-entity-declaration
-                 *handler* name (second id) (third id) notation)))))
+                 *handler* name (second id) (third id) notation))
+              (:SYSTEM
+                (sax:unparsed-entity-declaration
+                 *handler* name nil (second id) notation)))))
         (:INTERNAL
           (sax:unparsed-entity-declaration *handler* name nil nil nil))))
     (p/S? input)
@@ -1903,7 +1907,8 @@
       (p/S? input)
       (ecase (car extid)
         (:PUBLIC (sax:start-dtd *handler* name (cadr extid) (caddr extid)))
-        (:SYSTEM (sax:start-dtd *handler* name nil (cadr extid))))
+        (:SYSTEM (sax:start-dtd *handler* name nil (cadr extid)))
+        ((nil) (sax:start-dtd *handler* name nil nil)))
       (when (eq (peek-token input) :\[ )
         (consume-token input)
         (while (progn (p/S? input)
