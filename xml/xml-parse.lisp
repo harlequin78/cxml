@@ -594,16 +594,16 @@
 
 (defun absolute-extid (source-stream extid)
   (case (car extid)
-    (:system
+    (:SYSTEM
      (list (car extid)
            (absolute-uri (cadr extid) source-stream)))
-    (:public
+    (:PUBLIC
      (list (car extid)
            (cadr extid)
            (absolute-uri (caddr extid) source-stream)))))
 
 (defun define-entity (source-stream name kind def)
-  (when (eq (car def) :external)
+  (when (eq (car def) :EXTERNAL)
     (setf def
       (list (car def) (absolute-extid source-stream (cadr def)))))
   (setf name (intern-name name))
@@ -630,13 +630,13 @@
         (error "Entity '~A' is not defined." (rod-string entity-name))))
     (let (r)
       (ecase (cadr looked)
-        (:internal 
+        (:INTERNAL 
          (setf r (make-rod-xstream (caddr looked)))
          (setf (xstream-name r)
            (make-stream-name :entity-name entity-name
                              :entity-kind kind
                              :file-name nil)))
-        (:external
+        (:EXTERNAL
          (setf r (open-extid (caddr looked)))
          (setf (stream-name-entity-name (xstream-name r)) entity-name
                (stream-name-entity-kind (xstream-name r)) kind)))
@@ -664,25 +664,25 @@
       (close-xstream in))))
 
 (defun define-default-entities ()
-  (define-entity nil '#.(string-rod "lt")   :general `(:internal #.(string-rod "&#60;")))
-  (define-entity nil '#.(string-rod "gt")   :general `(:internal #.(string-rod ">")))
-  (define-entity nil '#.(string-rod "amp")  :general `(:internal #.(string-rod "&#38;")))
-  (define-entity nil '#.(string-rod "apos") :general `(:internal #.(string-rod "'")))
-  (define-entity nil '#.(string-rod "quot") :general `(:internal #.(string-rod "\"")))
+  (define-entity nil '#.(string-rod "lt")   :general `(:INTERNAL #.(string-rod "&#60;")))
+  (define-entity nil '#.(string-rod "gt")   :general `(:INTERNAL #.(string-rod ">")))
+  (define-entity nil '#.(string-rod "amp")  :general `(:INTERNAL #.(string-rod "&#38;")))
+  (define-entity nil '#.(string-rod "apos") :general `(:INTERNAL #.(string-rod "'")))
+  (define-entity nil '#.(string-rod "quot") :general `(:INTERNAL #.(string-rod "\"")))
   ;;
   #||
-  (define-entity nil '#.(string-rod "ouml") :general `(:internal #.(string-rod "ö")))
-  (define-entity nil '#.(string-rod "uuml") :general `(:internal #.(string-rod "ü")))
-  (define-entity nil '#.(string-rod "auml") :general `(:internal #.(string-rod "ä")))
-  (define-entity nil '#.(string-rod "Ouml") :general `(:internal #.(string-rod "Ö")))
-  (define-entity nil '#.(string-rod "Auml") :general `(:internal #.(string-rod "Ä")))
-  (define-entity nil '#.(string-rod "Uuml") :general `(:internal #.(string-rod "Ü")))
-  (define-entity nil '#.(string-rod "szlig") :general `(:internal #.(string-rod "ß")))
+  (define-entity nil '#.(string-rod "ouml") :general `(:INTERNAL #.(string-rod "ö")))
+  (define-entity nil '#.(string-rod "uuml") :general `(:INTERNAL #.(string-rod "ü")))
+  (define-entity nil '#.(string-rod "auml") :general `(:INTERNAL #.(string-rod "ä")))
+  (define-entity nil '#.(string-rod "Ouml") :general `(:INTERNAL #.(string-rod "Ö")))
+  (define-entity nil '#.(string-rod "Auml") :general `(:INTERNAL #.(string-rod "Ä")))
+  (define-entity nil '#.(string-rod "Uuml") :general `(:INTERNAL #.(string-rod "Ü")))
+  (define-entity nil '#.(string-rod "szlig") :general `(:INTERNAL #.(string-rod "ß")))
   ||#
   ;;
   #||
   (define-entity nil '#.(string-rod "nbsp") 
-    :general `(:internal ,(let ((r (make-rod 1)))
+    :general `(:INTERNAL ,(let ((r (make-rod 1)))
                             (setf (aref r 0) #o240)
                             r)))
   ||#
@@ -834,7 +834,7 @@
                       (rune= c #/U+0009)
                       (rune= c #/U+000D)
                       (rune= c #/U+000A))
-                  (values :s nil))
+                  (values :S nil))
                  ((rune= #/% c)
                   (cond ((name-start-rune-p (peek-rune input))
                          ;; an entity reference
@@ -847,15 +847,15 @@
            (cond 
             ((rune= c #/&)
              (multiple-value-bind (kind data) (read-entity-ref input)
-               (cond ((eq kind :named)
-                      (values :entity-ref data) )
-                     ((eq kind :numeric)
-                      (values :cdata
+               (cond ((eq kind :NAMED)
+                      (values :ENTITY-REF data) )
+                     ((eq kind :NUMERIC)
+                      (values :CDATA
                               (with-rune-collector (collect)
                                 (%put-rune data collect)))))))
             (t
              (unread-rune c input)
-             (values :cdata (read-cdata input))) ))))))))
+             (values :CDATA (read-cdata input))) ))))))))
 
 (defun read-pe-reference (zinput)
   (let* ((input (car (zstream-input-stack zinput)))
@@ -868,7 +868,7 @@
            (values :S nil) ;space before inserted PE expansion.
            )
           (t
-           (values :pe-reference nam)) )))
+           (values :PE-REFERENCE nam)) )))
 
 (defun read-token-after-|<| (zinput input)
   (let ((d (read-rune input)))
@@ -886,7 +886,7 @@
 		    (error "Processing instruction target ~S is not a valid NcName."
 			   (mu target)))
                    (t
-                    (values :pi (cons target content))))))
+                    (values :PI (cons target content))))))
           ((rune= #// d)
            (let ((c (peek-rune input)))
              (cond ((name-start-rune-p c)
@@ -951,7 +951,7 @@
     (cond ((eq c :eof)
            (error "EOF after '&'"))
           ((rune= c #/#)
-           (values :numeric (read-numeric-entity input)))
+           (values :NUMERIC (read-numeric-entity input)))
           (t
            (unless (name-start-rune-p (peek-rune input))
              (error "Expecting name after &."))
@@ -959,7 +959,7 @@
              (setf c (read-rune input))
              (unless (rune= c #/\;)
                (perror input "Expected \";\"."))
-             (values :named name))))))
+             (values :NAMED name))))))
 
 (defsubst read-s? (input)
   (while (member (peek-rune input) '(#/U+0020 #/U+0009 #/U+000A #/U+000D)
@@ -987,7 +987,7 @@
                             (not x))
                    (setf atts (cons (setf x (cons (attdef-name adef) (cadr (attdef-default adef))))
                                     atts)))
-                 (unless (eq (attdef-type adef) :cdata)
+                 (unless (eq (attdef-type adef) :CDATA)
                    (when x
                      (setf (cdr x) (canon-not-cdata-attval (cdr x)))))
        
@@ -1038,7 +1038,7 @@
                       (= c #/U+000D))))
       (consume-rune input))
     (cons name (read-att-value-2 input))
-    ;;(cons name (read-att-value zinput input :att t))
+    ;;(cons name (read-att-value zinput input :ATT t))
     ))
 
 (defun canon-not-cdata-attval (value)
@@ -1109,13 +1109,13 @@
                                    (setf c (read-rune input))
                                    (assert (rune= c #/\;))
                                    (ecase mode
-                                     (:att
+                                     (:ATT
                                       (recurse-on-entity 
                                        zinput name :general
                                        (lambda (zinput)
                                          (muffle (car (zstream-input-stack zinput))
                                                  :eof))))
-                                     (:ent
+                                     (:ENT
                                       ;; bypass, but never the less we
                                       ;; need to check for legal
                                       ;; syntax.
@@ -1124,7 +1124,7 @@
                                       (collect #/&)
                                       (map nil (lambda (x) (collect x)) name)
                                       (collect #/\; )))))))
-                         ((and (eq mode :ent) (rune= c #/%))
+                         ((and (eq mode :ENT) (rune= c #/%))
                           (unless (name-start-rune-p (peek-rune input))
                             (error "Expecting name after %."))
                           (let ((name (read-name-token input)))
@@ -1138,7 +1138,7 @@
                                               :eof))))
                                   (t
                                    (error "No PE here.")))))
-                         ((and (eq mode :att) (rune= c #/<))
+                         ((and (eq mode :ATT) (rune= c #/<))
                           ;; xxx fix error message
                           (cerror "Eat them in spite of this."
                                   "For no apparent reason #\/< is forbidden in attribute values. ~
@@ -1491,14 +1491,14 @@
   ;; [59] Enumeration ::= '(' S? Nmtoken (S? '|' S? Nmtoken)* S? ')' /* VC: Enumeration */
   (multiple-value-bind (cat sem) (read-token input)
     (cond ((eq cat :name)
-           (cond ((equalp sem '#.(string-rod "CDATA"))    :cdata)
-                 ((equalp sem '#.(string-rod "ID"))       :id)
-                 ((equalp sem '#.(string-rod "IDREF"))    :idrefs)
-                 ((equalp sem '#.(string-rod "IDREFS"))   :idrefs)
-                 ((equalp sem '#.(string-rod "ENTITY"))   :entity)
-                 ((equalp sem '#.(string-rod "ENTITIES")) :entities)
-                 ((equalp sem '#.(string-rod "NMTOKEN"))  :nmtoken)
-                 ((equalp sem '#.(string-rod "NMTOKENS")) :nmtokens)
+           (cond ((equalp sem '#.(string-rod "CDATA"))    :CDATA)
+                 ((equalp sem '#.(string-rod "ID"))       :ID)
+                 ((equalp sem '#.(string-rod "IDREF"))    :IDREFS)
+                 ((equalp sem '#.(string-rod "IDREFS"))   :IDREFS)
+                 ((equalp sem '#.(string-rod "ENTITY"))   :ENTITY)
+                 ((equalp sem '#.(string-rod "ENTITIES")) :ENTITIES)
+                 ((equalp sem '#.(string-rod "NMTOKEN"))  :NMTOKEN)
+                 ((equalp sem '#.(string-rod "NMTOKENS")) :NMTOKENS)
                  ((equalp sem '#.(string-rod "NOTATION"))
                   ;; xxx nmtoken vs name
                   (let (names)
@@ -1570,7 +1570,7 @@
 (defun p/entity-def (input kind)
   (multiple-value-bind (cat sem) (peek-token input)
     (cond ((member cat '(:\" :\'))
-           (list :internal (p/entity-value input)))
+           (list :INTERNAL (p/entity-value input)))
           ((and (eq cat :name)
                 (or (equalp sem '#.(string-rod "SYSTEM"))
                     (equalp sem '#.(string-rod "PUBLIC"))))
@@ -1585,7 +1585,7 @@
                         (consume-token input)
                         (p/S input)
                         (setf ndata (p/name input))))))
-             (list :external extid ndata)))
+             (list :EXTERNAL extid ndata)))
           (t
            (error "p/entity-def: ~S / ~S." cat sem)) )))
 
@@ -1593,7 +1593,7 @@
   (let ((delim (if (eq (read-token input) :\") #/\" #/\')))
     (read-att-value input
                     (car (zstream-input-stack input))
-                    :ent
+                    :ENT
                     nil
                     delim)))
 
@@ -1601,7 +1601,7 @@
   (let ((delim (if (eq (read-token input) :\") #/\" #/\')))
     (read-att-value input
                     (car (zstream-input-stack input))
-                    :att
+                    :ATT
                     t
                     delim)))
 
@@ -1610,7 +1610,7 @@
   (multiple-value-bind (cat sem) (read-token input)
     (cond ((and (eq cat :name) (equalp sem '#.(string-rod "SYSTEM")))
            (p/S input)
-           (list :system (p/system-literal input))
+           (list :SYSTEM (p/system-literal input))
            )
           ((and (eq cat :name) (equalp sem '#.(string-rod "PUBLIC")))
            (let (pub sys)
@@ -1625,7 +1625,7 @@
              (when (and (not public-only-ok-p)
                         (null sys))
                (error "System identifier needed for this PUBLIC external identifier."))
-             (list :public pub sys)))
+             (list :PUBLIC pub sys)))
           (t
            (error "Expected external-id: ~S / ~S." cat sem)))))
 
@@ -1680,7 +1680,7 @@
            (eq (car cspec) '*)
            (consp (cadr cspec))
            (eq (car (cadr cspec)) 'or)
-           (eq (cadr (cadr cspec)) :pcdata)
+           (eq (cadr (cadr cspec)) :PCDATA)
            (every #'vectorp (cddr (cadr cspec))))
       (labels ((walk (x)
                  (cond ((member x '(:PCDATA :ANY :EMPTY))
@@ -1707,20 +1707,20 @@
                     (cond ((rod= sem '#.(string-rod "EMPTY"))
                            :empty)
                           ((rod= sem '#.(string-rod "ANY"))
-                           :any)
+                           :ANY)
                           (t
                            sem)))
                    ((and (eq cat :\#PCDATA) (not only-names-p))
                     (unless (= level 1)
                       (error "#PCDATA only on top level in content modell."))
                     (consume-token input)
-                    :pcdata)
+                    :PCDATA)
                    ((and (eq cat :\() (not only-names-p))
                     (consume-token input)
                     (p/S? input)
                     (setq names (list (p/cspec input (+ level 1))))
                     (p/S? input)
-                    (let ((on? (eq (car names) :pcdata)))
+                    (let ((on? (eq (car names) :PCDATA)))
                       (cond ((member (peek-token input) '(:\| :\,))
                              (setf op-cat (peek-token input))
                              (setf op (if (eq op-cat :\,) 'and 'or))
@@ -1814,14 +1814,14 @@
       ((:|<!ELEMENT| :|<!ATTLIST| :|<!ENTITY| :|<!NOTATION| :PI :COMMENT)
        (let ((*expand-pe-p* t))
          (p/markup-decl input)))
-      ((:pe-reference)
+      ((:PE-REFERENCE)
        (let ((name (nth-value 1 (read-token input))))
          (recurse-on-entity input name :parameter
                             (lambda (input)
                               (ecase (entity-source-kind name :parameter)
-                                (:external
+                                (:EXTERNAL
                                  (p/ext-subset input))
-                                (:internal
+                                (:INTERNAL
                                  (p/ext-subset-decl input)))
                               (unless (eq :eof (peek-token input))
                                 (error "Trailing garbage."))))))
@@ -1884,14 +1884,14 @@
         (consume-token input)
         (while (progn (p/S? input)
                       (not (eq (peek-token input) :\] )))
-          (if (eq (peek-token input) :pe-reference)
+          (if (eq (peek-token input) :PE-REFERENCE)
               (let ((name (nth-value 1 (read-token input))))
                 (recurse-on-entity input name :parameter
                                    (lambda (input)
                                      (ecase (entity-source-kind name :parameter)
-                                       (:external
+                                       (:EXTERNAL
                                         (p/ext-subset input))
-                                       (:internal
+                                       (:INTERNAL
                                         (p/ext-subset-decl input)))
                                      (unless (eq :eof (peek-token input))
                                        (error "Trailing garbage.")))))
@@ -1904,12 +1904,12 @@
                (zi2 (make-zstream :input-stack (list xi2))))
           (let ()
             (p/ext-subset zi2))))
-      (list :doctype name extid))))
+      (list :DOCTYPE name extid))))
 
 (defun p/misc*-2 (input)
   ;; Misc*
-  (while (member (peek-token input) '(:comment :pi :s))
-    (when (eq (peek-token input) :pi)
+  (while (member (peek-token input) '(:COMMENT :PI :S))
+    (when (eq (peek-token input) :PI)
       (sax:processing-instruction 
              *handler*
              (car (nth-value 1 (peek-token input)))
@@ -1948,7 +1948,7 @@
       ;; Misc*
       (p/misc*-2 input)
       ;; (doctypedecl Misc*)?
-      (when (eq (peek-token input) :<!doctype)
+      (when (eq (peek-token input) :<!DOCTYPE)
         (p/doctype-decl input)
         (p/misc*-2 input))
       ;; element
@@ -2005,7 +2005,7 @@
 		 (sax:end-element *handler* ns-uri local-name name))
 		
 		(t
-		 (error "Expecting element.")))))
+		 (error "Expecting element, got ~S." cat)))))
       (undeclare-namespaces ns-decls))))
       
 (defun perror (stream format-string &rest format-args)
@@ -2023,11 +2023,11 @@
       ((:stag :ztag)
        (p/element input)
        (p/content input))
-      ((:cdata)
+      ((:CDATA)
        (consume-token input)
        (sax:characters *handler* sem)
        (p/content input))
-      ((:entity-ref)
+      ((:ENTITY-REF)
        (let ((name sem))
          (consume-token input)
          (append ;; nil  #+(OR)
@@ -2035,8 +2035,8 @@
                              (lambda (input)
                                (prog1
                                    (ecase (entity-source-kind name :general)
-                                     (:internal (p/content input))
-                                     (:external (p/ext-parsed-ent input)))
+                                     (:INTERNAL (p/content input))
+                                     (:EXTERNAL (p/ext-parsed-ent input)))
                                  (unless (eq (peek-token input) :eof)
                                    (error "Trailing garbage. - ~S" (peek-token input))))))
           (p/content input))))
@@ -2055,11 +2055,11 @@
 	  (sax:characters  *handler* (read-cdata-sect input))
 	  (sax:end-cdata *handler*))
         (p/content input)))
-      ((:pi)
+      ((:PI)
        (consume-token input)
        (sax:processing-instruction *handler* (car sem) (cdr sem))
        (p/content input))
-      ((:comment) ;; FIXME: should call sax:comment. How does this work?
+      ((:COMMENT) ;; FIXME: should call sax:comment. How does this work?
        (consume-token input)
        (p/content input))
       (otherwise
@@ -2521,7 +2521,7 @@
   (let ((e (assoc (list :general name) *entities* :test #'equal)))
     (unless e
       (error "Entity '~A' is not defined." (rod-string name)))
-    (unless (eq :internal (cadr e))
+    (unless (eq :INTERNAL (cadr e))
       (error "Entity '~A' is not an internal entity."))
     (or (cadddr e)
         (car
@@ -2580,8 +2580,8 @@
        (lambda (input)
          (prog1
              (ecase (entity-source-kind name :general)
-               (:internal (p/content input))
-               (:external (p/ext-parsed-ent input)))
+               (:INTERNAL (p/content input))
+               (:EXTERNAL (p/ext-parsed-ent input)))
            (unless (eq (peek-token input) :eof)
              (error "Trailing garbage. - ~S" (peek-token input)))))))))
 
@@ -2600,9 +2600,9 @@
                 ((rune= #/& c)
                  (multiple-value-bind (kind sem) (read-entity-ref input)
                    (ecase kind
-                     (:numeric
+                     (:NUMERIC
                       (%put-rune sem collect))
-                     (:named
+                     (:NAMED
                       (let* ((exp (internal-entity-expansion sem))
                              (n (length exp)))
                         (declare (type (simple-array rune (*)) exp))
