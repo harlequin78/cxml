@@ -8,37 +8,6 @@
 
 (in-package :xml)
 
-(defun valid-name-p (rod)
-  (and (not (zerop (length rod)))
-       (let ((initial (elt rod 0)))
-         (or (rune-in-range-p initial *base-char-ranges*)
-             (rune-in-range-p initial *ideographic-ranges*)
-             (rune= initial #/_)
-             (eql initial #/:)))
-       (every #'rune-name-char-p rod)))
-
-(defun rune-name-char-p (rune)
-  (or (rune-in-range-p rune *base-char-ranges*)
-      (rune-in-range-p rune *ideographic-ranges*)
-      (rune-in-range-p rune *digit-ranges*)
-      (eql rune #/.)
-      (eql rune #/-)
-      (eql rune #/_)
-      (eql rune #/:)
-      (rune-in-range-p rune *combining-char-ranges*)
-      (rune-in-range-p rune *extender-ranges*)))
-
-(defun rune-in-range-p (rune range)
-  ;; XXX FIXME, das geht doch besser
-  (let ((code (rune-code rune)))
-    (block nil
-      (map nil (lambda (range)
-                 (when (< code (car range))
-                   (return nil))
-                 (when (<= code (cadr range))
-                   (return t)))
-           range))))
-
 (defparameter *base-char-ranges*
     #((#x0041 #x005A) (#x0061 #x007A) (#x00C0 #x00D6) (#x00D8 #x00F6)
       (#x00F8 #x00FF) (#x0100 #x0131) (#x0134 #x013E) (#x0141 #x0148)
@@ -131,3 +100,34 @@
     #((#x00B7 #x00B7) (#x02D0 #x02D0) (#x02D1 #x02D1) (#x0387 #x0387)
       (#x0640 #x0640) (#x0E46 #x0E46) (#x0EC6 #x0EC6) (#x3005 #x3005)
       (#x3031 #x3035) (#x309D #x309E) (#x30FC #x30FE)))
+
+(defun valid-name-p (rod)
+  (and (not (zerop (length rod)))
+       (let ((initial (elt rod 0)))
+         (or (rune-in-range-p initial *base-char-ranges*)
+             (rune-in-range-p initial *ideographic-ranges*)
+             (rune= initial #/_)
+             (eql initial #/:)))
+       (every #'rune-name-char-p rod)))
+
+(defun rune-name-char-p (rune)
+  (or (rune-in-range-p rune *base-char-ranges*)
+      (rune-in-range-p rune *ideographic-ranges*)
+      (rune-in-range-p rune *digit-ranges*)
+      (eql rune #/.)
+      (eql rune #/-)
+      (eql rune #/_)
+      (eql rune #/:)
+      (rune-in-range-p rune *combining-char-ranges*)
+      (rune-in-range-p rune *extender-ranges*)))
+
+(defun rune-in-range-p (rune range)
+  ;; XXX FIXME, das geht doch besser
+  (let ((code (rune-code rune)))
+    (block nil
+      (map nil (lambda (range)
+                 (when (< code (car range))
+                   (return nil))
+                 (when (<= code (cadr range))
+                   (return t)))
+           range))))

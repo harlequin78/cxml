@@ -1423,6 +1423,8 @@
 ;;;;  Parser
 ;;;;
 
+(defvar *handler*)
+
 (defun p/S (input)
   ;; S ::= (#x20 | #x9 | #xD | #xA)+
   (expect input :S)
@@ -1959,14 +1961,12 @@
     (consume-token input)))
   
 
-(defvar *handler*)
-
 (defun p/document (input handler)
   (let ((*handler* handler)
 	(*namespace-bindings* *default-namespace-bindings*)
         (*entities* nil)
         (*dtd* (make-dtd)))
-    (declare (special *namespace-bindings*)) ;forward declaration for DEFVAR
+    (declare (special *namespace-bindings* *default-namespace-bindings*)) ;forward declaration for DEFVAR
     (define-default-entities)
     (sax:start-document *handler*)
     ;; document ::= XMLDecl? Misc* (doctypedecl Misc*)? element Misc*
