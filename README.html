@@ -84,6 +84,7 @@
           <li><a href="#serialization">Serialization</a></li>
           <li><a href="#misc">Miscellaneous utility functions</a></li>
           <li><a href="#xmls">XMLS compatibility</a></li>
+          <li><a href="#rods">Dealing with rods</a></li>
         </ul>
       </li>
       <li><a href="#sax">SAX interface</a></li>
@@ -487,6 +488,56 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     <p>
       <em>fixme:</em> namespace support.
     </p>
+
+    <a name="rods"/>
+    <h3>Dealing with rods</h3>
+    <p>
+      As explained above, the XML parser handles character encoding and
+      uses 16bit strings internally.  Instead of using characters and strings
+      it uses <em>runes</em> and <em>rods</em>.  This is seen as a
+      feature, but can be inconvenient.
+    </p>
+    <ul>
+      <li>
+        If your Lisp supports 16 bit unicode strings, use feature
+        <tt>:rune-is-character</tt> and forget about runes and rods.
+        CXML will use ordinary Lisp characters and strings both
+        internally and externally.
+      </li>
+      <li>
+        If your Lisp does not support such strings and your application
+        needs Unicode support, use functions defined in the
+        <tt>runes</tt> package instead of ordinary string operators.
+      </li>
+      <li>
+        If your Lisp does not support such strings and your application
+        does not need Unicode support anyway, it will probably be more
+        convenient to let CXML convert rods into strings automatically.
+        To do that, use <tt>cxml:make-recoder</tt> to chain a special
+        sax handler between the parser and your application handler.
+        The recoder translates all rods using an application defined
+        function, which defaults to <tt>runes:rod-string</tt>.  Although
+        the actual XML parser still uses rods internally, you SAX
+        handler will only see ordinary Lisp strings.
+      </li>
+    </ul>
+    <p>
+      <div class="def">Function CXML:MAKE-RECODER (chained-handler &optional recoder-fn)</div>
+      Return a SAX handler which passes all events on to
+      <tt>chained-handler</tt> after converting all strings and rods
+      using <tt>recoder-fn</tt>, a function of one argument which
+      defaults to <tt>runes:rod-string</tt>.
+    </p>
+    <p>
+      <b>Example.</b> In a Lisp which ordinarily would use octet vector rods:
+    </p>
+    <pre>CL-USER(14): (cxml:parse-string "<test/>" (cxml-xmls:make-xmls-builder))
+(#(116 101 115 116) NIL)</pre>
+    <p>
+      Use a SAX recoder to get strings instead::
+    </p>
+    <pre>CL-USER(17): (parse-string "<test/>" (cxml:make-recoder (cxml-xmls:make-xmls-builder)))
+("test" NIL)</pre>
 
     <a name="sax"/>
     <h2>SAX interface</h2>

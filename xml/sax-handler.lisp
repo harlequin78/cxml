@@ -141,9 +141,6 @@ Handlers that need to maintain internal state may use this to perform
 any neccessary initializations.")
   (:method ((handler t)) nil))
 
-;; How should attributes be represented?
-;; Currently its just a (name . value) alist, but this isn't too
-;; useful wrt namespaced attributes. Probably a struct.
 (defgeneric start-element (handler namespace-uri local-name qname attributes)
   (:documentation "Called to report the beginning of an element.
 

@@ -56,4 +56,6 @@
    #:parse-dtd-file
    #:parse-dtd-stream
    #:validity-error
-   #:make-validator))
+   #:make-validator
+   
+   #:make-recoder))
