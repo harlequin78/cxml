@@ -40,12 +40,32 @@
     (or (null mismatch) (= mismatch (length prefix)))))
 
 (defun normalize-public (str)
-  ;; FIXME
-  str)
+  (flet ((whitespacep (c)
+           (find c #.(map 'string #'code-char '(#x9 #xa #xd #x20)))))
+    (let ((start (position-if-not #'whitespacep str))
+          (end (position-if-not #'whitespacep str :from-end t))
+          (spacep nil))
+      (with-output-to-string (out)
+        (when start
+          (loop for i from start to end do
+                (let ((c (char str i)))
+                  (cond
+                    ((whitespacep c)
+                      (unless spacep
+                        (setf spacep t)
+                        (write-char #\space out)))
+                    (t
+                      (setf spacep nil)
+                      (write-char c out))))))))))
 
 (defun normalize-uri (str)
-  ;; FIXME
-  str)
+  ;; assumes that UTF-8 encoding has already been done
+  (with-output-to-string (out)
+    (loop for ch across str do
+          (let ((c (char-code ch)))
+            (if (< c 15)
+                (write-string (string-upcase (format nil "%~2,'0X" c)) out)
+                (write-char ch out))))))
 
 (defun unwrap-publicid (str)
   (normalize-public
