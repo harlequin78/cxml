@@ -210,7 +210,7 @@
 ;;;; (11) IDREF                                 VALIDATE-ATTRIBUTE, P/DOCUMENT
 ;;;; (12) Entity Name                           VALIDATE-ATTRIBUTE
 ;;;; (13) Name Token                            VALIDATE-ATTRIBUTE
-;;;; (14) Notation Attributes
+;;;; (14) Notation Attributes                   VALIDATE-ATTRIBUTE, P/ATT-TYPE
 ;;;; (15) One Notation Per Element Type
 ;;;; (16) No Notation on Empty Element
 ;;;; (17) Enumeration                           VALIDATE-ATTRIBUTE
@@ -776,6 +776,9 @@
         (unless (member value (cdr type) :test #'rod=)
           (validity-error "(17) Enumeration: value not declared: ~S"
                           (rod-string value))))
+      (:NOTATION
+        (unless (member value (cdr type) :test #'rod=)
+          (validity-error "(14) Notation Attributes: ~S" (rod-string value))))
       (:ENTITY
         (validate-entity value))
       (:ENTITIES
@@ -783,8 +786,6 @@
           (unless names
             (validity-error "(13) Name Token: malformed NMTOKENS"))
           (mapc #'validate-entity names)))
-      (:NOTATION)                       ;fixme
-      (:NOTATIONS)                      ;fixme
       (:CDATA))))
 
 (defun validate-idref (ctx value)
@@ -1710,22 +1711,24 @@
                  ((equalp sem '#.(string-rod "NMTOKEN"))  :NMTOKEN)
                  ((equalp sem '#.(string-rod "NMTOKENS")) :NMTOKENS)
                  ((equalp sem '#.(string-rod "NOTATION"))
-                  ;; xxx nmtoken vs name
                   (let (names)
                     (p/S input)
                     (expect input :\()
                     (setf names (p/list input #'p/name :\| ))
                     (expect input :\))
-                    (cons :notation names)))
+                    (when *validate*
+                      (setf (referenced-notations *ctx*)
+                            (append names (referenced-notations *ctx*))))
+                    (cons :NOTATION names)))
                  (t
                   (error "In p/att-type: ~S ~S." cat sem))))
           ((eq cat :\()
-           ;; xxx nmtoken vs name
+           ;; XXX Die Nmtoken-Syntax pruefen wir derzeit nur beim Validieren.
            (let (names)
              ;;(expect input :\()
              (setf names (p/list input #'p/name :\| ))
              (expect input :\))
-             (cons :enumeration names)))
+             (cons :ENUMERATION names)))
           (t
            (error "In p/att-type: ~S ~S." cat sem)) )))
 
