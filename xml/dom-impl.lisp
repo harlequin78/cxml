@@ -681,7 +681,7 @@
 (defmethod (setf dom:data) (newval (self processing-instruction))
   (assert-writeable self)
   (setf newval (rod newval))
-  (setf (slot-value newval 'data) newval))
+  (setf (slot-value self 'data) newval))
 
 ;; das koennte man auch mit einer GF machen
 (defun can-adopt-p (parent child)
