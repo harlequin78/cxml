@@ -391,6 +391,8 @@
 (defmethod dom:node-value ((self entity-reference)) nil)
 (defmethod dom:node-value ((self processing-instruction)) (dom:data self))
 
+;; (setf node-value), first the meaningful cases...
+
 (defmethod (setf dom:node-value) (newval (self character-data))
   (assert-writeable self)
   (setf (dom:data self) newval))
@@ -402,6 +404,35 @@
 (defmethod (setf dom:node-value) (newval (self processing-instruction))
   (assert-writeable self)
   (setf (dom:data self) newval))
+
+;; ... and (setf node-value), part II.  The DOM Level 1 spec fails to explain
+;; this case, but it is covered by the (Level 1) test suite and clarified
+;; in Level 2:
+;;         nodeValue of type DOMString
+;;                 The value of this node, depending on its type; see the
+;;                 table above.  When it is defined to be null, setting
+;;                 it has no effect.
+
+(defmethod (setf dom:node-value) (newval (self element))
+  (declare (ignore newval)))
+
+(defmethod (setf dom:node-value) (newval (self entity-reference))
+  (declare (ignore newval)))
+
+(defmethod (setf dom:node-value) (newval (self entity))
+  (declare (ignore newval)))
+
+(defmethod (setf dom:node-value) (newval (self document))
+  (declare (ignore newval)))
+
+(defmethod (setf dom:node-value) (newval (self document-type))
+  (declare (ignore newval)))
+
+(defmethod (setf dom:node-value) (newval (self document-fragment))
+  (declare (ignore newval)))
+
+(defmethod (setf dom:node-value) (newval (self notation))
+  (declare (ignore newval)))
 
 ;; attributes
 
