@@ -2175,10 +2175,29 @@
       (:SYSTEM
         (sax:notation-declaration (handler *ctx*) name nil (cadr id)))
       (:PUBLIC
-        (sax:notation-declaration (handler *ctx*) name (cadr id) (caddr id))))
+        (sax:notation-declaration (handler *ctx*) name (normalize-public-id (cadr id)) (caddr id))))
     (when *validate*
       (define-notation (dtd *ctx*) name id))
     (list :notation-decl name id)))
+
+(defun normalize-public-id (rod)
+  (with-rune-collector (collect)
+    (let ((gimme-20 nil)
+          (anything-seen-p nil))
+      (map nil (lambda (c)
+                 (cond
+                   ((or (rune= c #/u+0009)
+                        (rune= c #/u+000A)
+                        (rune= c #/u+000D)
+                        (rune= c #/u+0020))
+                     (setf gimme-20 t))
+                   (t
+                     (when (and anything-seen-p gimme-20)
+                       (collect #/u+0020))
+                     (setf gimme-20 nil)
+                     (setf anything-seen-p t)
+                     (collect c))))
+           rod))))
 
 ;;;
 
