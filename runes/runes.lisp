@@ -153,7 +153,7 @@
 
 (defun rune-char (rune &optional (default #\?))
   (if (>= rune char-code-limit)
-      nil
+      default
       (or (code-char rune) default)))
 
 (defun rod-string (rod &optional (default-char #\?))
