@@ -225,19 +225,36 @@
     (file-error () nil)
     (parser-error () nil)))
 
+(defparameter *catalog-dtd*
+    (let* ((cxml
+            (slot-value (asdf:find-system :cxml) 'asdf::relative-pathname))
+           (dtd
+            (merge-pathnames "catalog.dtd" cxml))
+           (bytes
+            (make-array (file-length dtd) :element-type '(unsigned-byte 8))))
+      (with-open-file (s dtd :element-type '(unsigned-byte 8))
+        (read-sequence bytes s))
+      bytes))
+
 (defun parse-catalog-file/strict (uri)
-  (let* ((cxml (slot-value (asdf:find-system :cxml) 'asdf::relative-pathname))
-         (dtd (pathname-to-uri (merge-pathnames "catalog.dtd" cxml)))
-         (*catalog* nil))
-    (with-open-stream (s (open (uri-to-pathname uri)
-                               :element-type '(unsigned-byte 8)
-                               :direction :input))
-      (parse-stream s
-                    (make-recoder (make-instance 'catalog-parser :uri uri)
-                                  #'rod-to-utf8-string)
-                    :validate t
-                    :dtd (make-extid nil dtd)
-                    :root #"catalog"))))
+  (let* ((*catalog* nil)
+         (dtd-sysid
+          (puri:parse-uri "http://www.oasis-open.org/committees/entity/release/1.0/catalog.dtd")))
+    (flet ((entity-resolver (public system)
+             (declare (ignore public))
+             (if (puri:uri= system dtd-sysid)
+                 (print (make-octet-input-stream *catalog-dtd*))
+                 nil)))
+      (with-open-stream (s (open (uri-to-pathname uri)
+                                 :element-type '(unsigned-byte 8)
+                                 :direction :input))
+        (parse-stream s
+                      (make-recoder (make-instance 'catalog-parser :uri uri)
+                                    #'rod-to-utf8-string)
+                      :validate t
+                      :dtd (make-extid nil dtd-sysid)
+                      :root #"catalog"
+                      :entity-resolver #'entity-resolver)))))
 
 (defclass catalog-parser ()
   ((result :initform (make-entry-file) :accessor result)
