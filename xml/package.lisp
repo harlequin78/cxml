@@ -1,13 +1,13 @@
 (in-package :cl-user)
 
 (defpackage :encoding
-  (:use :cl :glisp)
+  (:use :cl :runes)
   (:export
    #:find-encoding
    #:decode-sequence))
 
 (defpackage :xml
-  (:use :cl :glisp :encoding)
+  (:use :cl :runes :encoding)
   (:export
    ;; xstreams
    #:make-xstream

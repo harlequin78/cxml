@@ -1,5 +1,5 @@
 (defpackage xmlconf
-  (:use :cl :glisp))
+  (:use :cl :runes))
 (in-package :xmlconf)
 
 (defun get-attribute (element name)

@@ -1,4 +1,4 @@
-;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: XML; readtable: glisp; Encoding: utf-8; -*-
+;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: XML; readtable: runes; Encoding: utf-8; -*-
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: A prototype XML parser
 ;;;   Created: 1999-07-17
@@ -196,7 +196,7 @@
 (in-package :xml)
 
 #+allegro
-(setf (excl:named-readtable :glisp) *readtable*)
+(setf (excl:named-readtable :runes) *readtable*)
 
 (eval-when (eval compile load)
   (defparameter *fast* '(optimize (speed 3) (safety 0)))
@@ -296,7 +296,7 @@
   )
 
 (defun make-rod-hashtable (&key (size 200))
-  (setf size (glisp::nearest-greater-prime size))
+  (setf size (runes::nearest-greater-prime size))
   (make-rod-hashtable/low
    :size size
    :table (make-array size :initial-element nil)))
@@ -2655,7 +2655,7 @@
        (notany #'(lambda (rune) (rune= #/: rune)) name)))
 
 (defun split-qname (qname)
-  (declare (type glisp:simple-rod qname))
+  (declare (type runes:simple-rod qname))
   (let ((pos (position  #/: qname)))
     (if pos
 	(let ((prefix (subseq qname 0 pos))
@@ -2667,7 +2667,7 @@
 		 
 (defun decode-qname (qname)
   "decode-qname name => namespace-uri, prefix, local-name"
-  (declare (type glisp:simple-rod qname))
+  (declare (type runes:simple-rod qname))
   (multiple-value-bind (prefix local-name) (split-qname qname)
     (let ((uri (find-namespace-binding prefix)))
       (if uri

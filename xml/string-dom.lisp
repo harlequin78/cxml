@@ -51,7 +51,7 @@
   (rod-to-string (dom:get-attribute elt name)))
 
 (defun string-dom:set-attribute (elt name value)
-  (dom:set-attribute elt (glisp:rod name) (glisp:rod value)))
+  (dom:set-attribute elt (runes:rod name) (runes:rod value)))
 
 (defun string-dom:public-id (node)
   (rod-to-string (dom:public-id node)))

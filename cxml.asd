@@ -10,9 +10,6 @@
   (handler-bind ((sb-ext:compiler-note #'muffle-warning))
     (call-next-method)))
 
-(unless (find-package :glisp)
-  (defpackage :glisp))
-
 #-rune-is-character
 (format t "~&;;; Building cxml with (UNSIGNED-BYTE 16) RUNES~%")
 
@@ -26,13 +23,14 @@
     (error "CXML was configured to use character runes, but it is not known ~
             whether this Lisp has 16-bit characters")))
 
-(defsystem glisp
+(defsystem runes
     :default-component-class closure-source-file
     :pathname (merge-pathnames
-               "glisp/"
+               "runes/"
                (make-pathname :name nil :type nil :defaults *load-truename*))
     :components
-    ((:file dependent
+    ((:file "package")
+     (:file dependent
 	    :pathname
 	    #+CLISP                             "dep-clisp"
 	    #+(AND :CMU (NOT :PTHREAD))         "dep-cmucl"
@@ -40,9 +38,8 @@
 	    #+(AND :CMU :PTHREAD)               "dep-cmucl-dtc"
 	    #+(and allegro-version>= (version>= 5.0)) "dep-acl5"
 	    #-(and allegro-version>= (version>= 5.0)) "dep-acl"
-	    #-(or sbcl CLISP CMU allegro) #.(error "Configure!"))
-     (:file "package"
-	    :depends-on (dependent))
+	    #-(or sbcl CLISP CMU allegro) #.(error "Configure!")
+            :depends-on ("package"))
      (:file runes
             :pathname
              #-rune-is-character "runes"
@@ -71,7 +68,7 @@
      (:file "xml-name-rune-p" :depends-on ("package"))
      (:file "xml-parse"       :depends-on ("package" "dom-impl" "sax-handler" "encodings" "xml-stream"))
      (:file "xml-canonic"     :depends-on ("package" "dompack" "xml-parse")))
-    :depends-on (:glisp))
+    :depends-on (:runes))
 
 (asdf:defsystem :cxml-test
     :default-component-class closure-source-file

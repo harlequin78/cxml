@@ -1,4 +1,4 @@
-;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: XML; readtable: glisp; Encoding: utf-8; -*-
+;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: XML; readtable: runes; Encoding: utf-8; -*-
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: Fast streams
 ;;;   Created: 1999-07-17

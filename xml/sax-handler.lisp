@@ -1,4 +1,4 @@
-;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: SAX; readtable: glisp; Encoding: utf-8; -*-
+;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: SAX; readtable: runes; Encoding: utf-8; -*-
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: A SAX2-like API for the xml parser
 ;;;   Created: 2003-06-30

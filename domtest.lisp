@@ -63,7 +63,7 @@
 ;;;; spezielle Hilfsfunktionen
 
 (defun tag-name (elt)
-  (glisp:rod-string (dom:tag-name elt)))
+  (runes:rod-string (dom:tag-name elt)))
 
 (defmacro with-attributes ((&rest attributes) element &body body)
   (let ((e (gensym "element")))
@@ -94,14 +94,14 @@
 
 (defun %intern (name)
   (unless (stringp name)
-    (setf name (glisp:rod-string name)))
+    (setf name (runes:rod-string name)))
   (if (zerop (length name))
       nil
       (intern name :domtest-tests)))
 
 (defun replace-studly-caps (str)
   (unless (stringp str)
-    (setf str (glisp:rod-string str)))
+    (setf str (runes:rod-string str)))
   ;; s/([A-Z][a-z])/-\1/
   (with-output-to-string (out)
     (with-input-from-string (in str)
@@ -125,7 +125,7 @@
 
 (defun parse-java-literal (str)
   (unless (stringp str)
-    (setf str (glisp:rod-string str)))
+    (setf str (runes:rod-string str)))
   (cond
     ((zerop (length str)) nil)
     ((equal str "true")
@@ -135,7 +135,7 @@
     ((digit-char-p (char str 0))
       (parse-integer str))
     ((char= (char str 0) #\")
-      (glisp:rod
+      (runes:rod
        (with-output-to-string (out)
          (with-input-from-string (in str)
            (read-char in)
@@ -207,10 +207,10 @@
       (funcall test a b)))
 
 (defun %equal (a b)
-  (or (equal a b) (and (glisp::rodp a) (glisp::rodp b) (glisp:rod= a b))))
+  (or (equal a b) (and (runes::rodp a) (runes::rodp b) (runes:rod= a b))))
 
 (defun %equalp (a b)
-  (or (equalp a b) (and (glisp::rodp a) (glisp::rodp b) (glisp:rod-equal a b))))
+  (or (equalp a b) (and (runes::rodp a) (runes::rodp b) (runes:rod-equal a b))))
 
 (defun translate-equals (element)
   (with-attributes (|actual| |expected| |ignoreCase|) element
@@ -228,7 +228,7 @@
 (defun translate-instance-of (element)
   (with-attributes (|obj| |type|) element
     `(eq (dom:node-type ,(%intern |obj|))
-         ',(string-case (glisp:rod-string |type|)
+         ',(string-case (runes:rod-string |type|)
              ("Document" :document)
              ("DocumentFragment" :document-fragment)
              ("Text" :text)
@@ -261,7 +261,7 @@
        |scheme| |path| |host| |file| |name| |query| |fragment| |isAbsolute|)
       element
     |isAbsolute|
-   `(let ((uri (net.uri:parse-uri (glisp:rod-string ,(%intern |actual|)))))
+   `(let ((uri (net.uri:parse-uri (runes:rod-string ,(%intern |actual|)))))
       (flet ((uri-directory (path)
                (namestring
                 (make-pathname :directory (pathname-directory path))))
@@ -272,7 +272,7 @@
                (pathname-name path))
              (maybe-equal (expected actual)
                (if expected
-                   (%equal (glisp::rod expected) (glisp::rod actual))
+                   (%equal (runes::rod expected) (runes::rod actual))
                    t)))
         (and (maybe-equal ,(parse-java-literal |scheme|)
                           (net.uri:uri-scheme uri))
@@ -369,9 +369,9 @@
 (defun translate-has-feature (element)
   (with-attributes (|var| |feature| |version|) element
     (maybe-setf (%intern |var|)
-                `(and (glisp:rod-equal ,(parse-java-literal |feature|) #"XML")
+                `(and (runes:rod-equal ,(parse-java-literal |feature|) #"XML")
                       (or (zerop (length ,(parse-java-literal |version|)))
-                          (glisp:rod-equal ,(parse-java-literal |version|) #"1.0"))))))
+                          (runes:rod-equal ,(parse-java-literal |version|) #"1.0"))))))
 
 (defun translate-fail (element)
   (declare (ignore element))
@@ -397,8 +397,8 @@
 
 (defun translate-member (element)
   (let* ((name (dom:tag-name element))
-         (method (find name *methods* :key #'car :test #'glisp:rod=))
-         (field (find name *fields* :test #'glisp:rod=)))
+         (method (find name *methods* :key #'car :test #'runes:rod=))
+         (field (find name *fields* :test #'runes:rod=)))
     (cond
       (method (translate-call element method))
       (field (translate-get element field))
@@ -470,7 +470,7 @@
         'list
         (lambda (exception)
           `(when (eq (dom-impl::dom-exception-key c)
-                     ,(intern (glisp:rod-string (dom:get-attribute exception "code"))
+                     ,(intern (runes:rod-string (dom:get-attribute exception "code"))
                               :keyword))
              ,@(translate-body exception)
              ,return))
@@ -530,7 +530,7 @@
      (make-pathname :name name :type "xml" :defaults test-directory))))
 
 (defun assert-have-implementation-attribute (element)
-  (let ((attribute (glisp:rod-string (dom:get-attribute element "name"))))
+  (let ((attribute (runes:rod-string (dom:get-attribute element "name"))))
     (string-case attribute
       (t
         (format t "~&implementationAttribute ~A not supported, skipping test~%"
@@ -553,7 +553,7 @@
               (setf title (dom:data (dom:first-child title-element)))))
           ("var"
             (push (list (%intern (dom:get-attribute e "name"))
-                        (string-case (glisp:rod-string
+                        (string-case (runes:rod-string
                                        (dom:get-attribute e "type"))
                           (("byte" "short" "int" "long") 0)
                           (t nil)))
@@ -579,7 +579,7 @@
 
 (defun load-file (name &optional will-be-modified-p)
   (declare (ignore will-be-modified-p))
-  (setf name (glisp:rod-string name))
+  (setf name (runes:rod-string name))
   (let* ((directory (merge-pathnames "tests/level1/core/files/" *directory*))
          (document
           (xml:parse-file
@@ -601,12 +601,12 @@
          (nfailed 0))
     (do-child-elements (member suite)
       (unless
-          (member (glisp:rod-string (dom:get-attribute member "href"))
+          (member (runes:rod-string (dom:get-attribute member "href"))
                   *bad-tests*
                   :test 'equal)
         (incf n)))
     (do-child-elements (member suite)
-      (let ((href (glisp:rod-string (dom:get-attribute member "href"))))
+      (let ((href (runes:rod-string (dom:get-attribute member "href"))))
         (unless (member href *bad-tests* :test 'equal)
           (format t "~&~D/~D ~A~%" i n href)
           (let ((lisp (slurp-test (merge-pathnames href test-directory))))

@@ -1,5 +1,5 @@
 (defpackage :dom-impl
-  (:use :cl :glisp))
+  (:use :cl :runes))
 
 (in-package :dom-impl)
 
