@@ -990,6 +990,7 @@
   ;; Um ein neues Dokumentenobject zu erzeugen, parsen wir einfach ein
   ;; Dummydokument.
   (let* ((handler (dom:make-dom-builder))
+         (cxml::*ctx* (cxml::make-context :handler handler))
          (result
           (progn
             (sax:start-document handler)
