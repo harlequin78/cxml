@@ -186,9 +186,16 @@
 
 (defun translate-equals (element)
   (with-attributes (|actual| |expected| |ignoreCase|) element
-    `(,(if (parse-java-literal |ignoreCase|) 'string-equal 'equal)
-         ,(%intern actual)
-         ,(parse-java-literal expected))))
+    `(let ((a ,(%intern actual))
+           (b ,(parse-java-literal expected))
+           (test ',(if (parse-java-literal |ignoreCase|) 'string-equal 'equal)))
+       (when (typep a 'dom-impl::named-node-map)
+         (setf a (dom:items a)))
+       (when (typep b 'dom-impl::named-node-map)
+         (setf b (dom:items b)))
+       (if (and (listp a) (listp b))
+           (null (set-exclusive-or a b :test test))
+           (funcall test a b)))))
 
 (defun translate-same (element)
   (with-attributes (|actual| |expected|) element
