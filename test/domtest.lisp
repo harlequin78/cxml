@@ -216,13 +216,13 @@
 
 (defun translate-equals (element)
   (with-attributes (|actual| |expected| |ignoreCase|) element
-    `(equalsp ,(%intern actual)
-              ,(parse-java-literal expected)
+    `(equalsp ,(%intern |actual|)
+              ,(parse-java-literal |expected|)
               ',(if (parse-java-literal |ignoreCase|) '%equal '%equal))))
 
 (defun translate-same (element)
   (with-attributes (|actual| |expected|) element
-    `(eql ,(%intern actual) ,(parse-java-literal expected))))
+    `(eql ,(%intern |actual|) ,(parse-java-literal |expected|))))
 
 (defun translate-or (element)
   `(or ,@(map-child-elements 'list #'translate-condition element)))
