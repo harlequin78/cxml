@@ -536,7 +536,7 @@
 
 (defun slurp-test (pathname)
   (unless *fields*
-    (multiple-value-setq (*methods* *fields*) (read-members *directory*)))
+    (multiple-value-setq (*methods* *fields*) (read-members)))
   (catch 'give-up
     (let* ((builder (dom:make-dom-builder))
            (test (dom:document-element (xml:parse-file pathname builder)))
