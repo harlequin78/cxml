@@ -325,10 +325,6 @@
          :encoding encoding
          :name name)))))
 
-(defmethod figure-encoding ((stream glisp:gstream))
-  ;; For HTML iso-8859-1 is the default
-  (values (xml::find-encoding :iso-8859-1) nil))
-
 (defun make-rod-xstream (string &key name)
   ;; XXX encoding is mis-handled by this kind of stream
   (let ((n (length string)))

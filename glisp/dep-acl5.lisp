@@ -47,94 +47,6 @@
 
 (export 'glisp::make-server-socket :glisp)
 
-(defun glisp::mp/seize-lock (lock &key whostate)
-  whostate
-  (mp:process-lock lock))
-
-(defun glisp::mp/release-lock (lock)
-  (mp:process-unlock lock))
-
-(defun glisp::read-byte-sequence (&rest ap)
-  (apply #'read-sequence ap))
-
-(defun glisp::read-char-sequence (&rest ap)
-  (apply #'read-sequence ap))
-
-#+(and allegro-version>= (version>= 5))
-(defun glisp::open-inet-socket (hostname port)
-  (values
-   (socket:make-socket :remote-host hostname 
-                       :remote-port port 
-                       :format :binary)
-   :byte))
-
-(defun glisp::make-server-socket (port &key (element-type '(unsigned-byte 8)))
-  (socket:make-socket :connect :passive
-                      :local-port port
-                      :format (cond ((subtypep element-type '(unsigned-byte 8))
-                                     :binary)
-                                    ((subtypep element-type 'character)
-                                     :text)
-                                    (t
-                                     (error "Unknown element type: ~S." element-type)))))
-
-(defun glisp::accept-connection/low (socket)
-  (values
-   (socket:accept-connection socket :wait t)
-   :byte))
-  
-
-#-(and allegro-version>= (version>= 5))
-(defun glisp::open-inet-socket (hostname port)
-  (values
-   (ipc:open-network-stream :host hostname
-                            :port port
-                            :element-type '(unsigned-byte 8) 
-                            :class 'excl::bidirectional-binary-socket-stream)
-   :byte))
-
-(defun glisp::mp/make-lock (&key name)
-  (mp:make-process-lock :name name))
-
-(defmacro glisp::mp/with-lock ((lock) &body body)
-  `(mp:with-process-lock (,lock)
-     ,@body))
-
-(defmacro glisp::with-timeout ((&rest options) &body body)
-  `(mp:with-timeout ,options . ,body))
-
-(defun glisp::g/make-string (length &rest options)
-  (apply #'make-array length :element-type 'base-char options))
-
-(defun glisp:run-unix-shell-command (cmd)
-  (excl:shell cmd))
-
-(defparameter glisp::*inherited-vars* 
-    '(*terminal-io* *standard-input* *standard-output* *error-output* *trace-output* *query-io* *debug-io*))
-
-(defparameter glisp::*inherited-vars* nil)
-
-(defun glisp:mp/process-run-function (name fn &rest args)
-  (mp:process-run-function 
-   name
-   (lambda (vars vals fn args)
-     (progv vars vals
-       (apply fn args)))
-   glisp::*inherited-vars* (mapcar #'symbol-value glisp::*inherited-vars*)
-   fn args))
-
-(defun glisp:mp/current-process ()
-  sys:*current-process*)
-
-(defun glisp::mp/process-yield (&optional process-to-run)
-  (mp:process-allow-schedule process-to-run))
-
-(defun glisp::mp/process-wait (whostate predicate)
-  (mp:process-wait whostate predicate))
-
-(defun glisp::mp/process-kill (proc)
-  (mp:process-kill proc))
-
 ;; ACL is incapable to define compiler macros on (setf foo)
 ;; Unfortunately it is also incapable to declaim such functions inline.
 ;; So we revoke the DEFUN hack from dep-gcl here.
@@ -156,7 +68,3 @@
                    (block ,fun 
                      ,@(remove-if #'declp body)))
                  .args.))))))
-
-
-(defun glisp::getenv (string)
-  (sys:getenv string))
