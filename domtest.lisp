@@ -416,8 +416,8 @@
 (defun assert-have-implementation-attribute (element)
   (string-case (dom:get-attribute element "name")
     (t
-      (warn "implementationAttribute ~A not supported, skipping test"
-            (dom:get-attribute element "name"))
+      (format t "~&implementationAttribute ~A not supported, skipping test~%"
+              (dom:get-attribute element "name"))
       (throw 'give-up nil))))
 
 (defun slurp-test (pathname)
