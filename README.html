@@ -99,6 +99,7 @@
     <ul class="nomargin">
       <li>Use the puri library for Sys-ID handling.</li>
       <li>Auto-detect unicode support for better asdf-installability.</li>
+      <li>Semi-automatic caching of DTD instances.</li>
     </ul>
     <p class="nomargin"><tt>patch-306</tt> (2004-09-03)</p>
     <ul class="nomargin">
@@ -631,6 +632,10 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     <p>
       <div class="def">Variable CXML:*DTD-CACHE*</div>
       The DTD cache object consulted by the parser when it needs a DTD.
+    </p>
+    <p>
+      <div class="def">Function CXML:MAKE-DTD-CACHE ()</div>
+      Return a new, empty DTD cache object.
     </p>
     <p>
       <div class="def">Variable CXML:*CACHE-ALL-DTDS*</div>
