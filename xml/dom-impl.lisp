@@ -628,9 +628,9 @@
              (let ((previous nil))
                (dolist (child (dom:child-nodes n))
                  (cond
-                   ((not (dom:text-node-p child))
+                   ((not (eq (dom:node-type child) :text))
                      (setf previous nil))
-                   ((and previous (dom:text-node-p previous))
+                   ((and previous (eq (dom:node-type previous) :text))
                      (setf (slot-value previous 'value)
                            (concatenate 'vector
                              (dom:data previous)
