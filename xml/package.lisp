@@ -71,6 +71,7 @@
    #:make-extid
 
    #:*catalog*
+   #:*prefer*
    #:make-catalog
    #:resolve-uri
    #:resolve-extid

@@ -723,6 +723,12 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       open an entity.  Initially <tt>nil</tt>.
     </p>
     <p>
+      <div class="def">Variable CXML:*PREFER*</div>
+      The default "prefer" mode from the Catalog specification, one
+      of <tt>:public</tt> or <tt>:system</tt>.  Defaults
+      to <tt>:public</tt>.
+    </p>
+    <p>
       <div class="def">Function CXML:MAKE-CATALOG (&optional uris)</div>
       Return a catalog object for the catalog files specified.
     </p>

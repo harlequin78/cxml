@@ -16,7 +16,7 @@
 ;;;     (Jedenfalls behauptet das die Spec.)
 ;;;     A long-term solution might be an XML Schema validator.
 
-(defvar *prefer* nil)
+(defvar *prefer* :public)
 (defvar *default-catalog*
     '(;; libxml standard
       "/etc/xml/catalog"
@@ -45,6 +45,7 @@
     (or (null mismatch) (= mismatch (length prefix)))))
 
 (defun normalize-public (str)
+  (setf str (rod-to-utf8-string (rod str)))
   (flet ((whitespacep (c)
            (find c #.(map 'string #'code-char '(#x9 #xa #xd #x20)))))
     (let ((start (position-if-not #'whitespacep str))
