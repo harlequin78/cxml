@@ -7,7 +7,8 @@
             (if (member var '(cdom:data cdom:name cdom:value cdom:tag-name
                               cdom:node-name cdom:node-value
                               cdom:substring-data cdom:get-attribute
-                              cdom:set-attribute cdom:public-id cdom:system-id))
+                              cdom:set-attribute cdom:public-id cdom:system-id
+                              cdom:notation-name))
                 :string-dom
                 :cdom))
            (symbol (intern (symbol-name var) home-package)))
@@ -52,3 +53,6 @@
 
 (defun string-dom:system-id (node)
   (rod-to-string (cdom:system-id node)))
+
+(defun string-dom:notation-name (node)
+  (rod-to-string (cdom:notation-name node)))

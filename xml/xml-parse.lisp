@@ -1572,11 +1572,11 @@
       ;; XXX was ist mit notation-name?
       (ecase (car def)
         (:EXTERNAL
-          (let ((id (second def)))
+          (destructuring-bind (id notation) (cdr def)
             (ecase (car id)
               (:PUBLIC
                 (sax:unparsed-entity-declaration
-                 *handler* name (second id) (third id) nil)))))
+                 *handler* name (second id) (third id) notation)))))
         (:INTERNAL
           (sax:unparsed-entity-declaration *handler* name nil nil nil))))
     (p/S? input)
