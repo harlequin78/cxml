@@ -105,13 +105,15 @@
 (defmethod sax:characters ((handler xmls-builder) data)
   (let* ((parent (car (element-stack handler)))
          (prev (car (node-children parent))))
-    (if (stringp prev)
+    ;; Be careful to accept both rods and strings here, so that xmls can be
+    ;; used with strings even if cxml is configured to use octet string rods.
+    (if (typep prev '(or rod string))
         ;; um entities herum wird SAX:CHARACTERS mehrfach aufgerufen fuer
         ;; den gleichen Textknoten.  Hier muessen wir den bestehenden Knoten
         ;; erweitern, sonst ist das Dokument nicht normalisiert.
         ;; (XXX Oder sollte man besser den Parser entsprechend aendern?)
         (setf (car (node-children parent))
-              (concatenate 'rod prev data))
+              (concatenate (type-of prev) prev data))
         (push data (node-children parent)))))
 
 
