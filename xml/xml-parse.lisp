@@ -201,7 +201,7 @@
 ;;;; (04) Attribute Value Type                  VALIDATE-ATTRIBUTE
 ;;;; (05) Unique Element Type Declaration       DEFINE-ELEMENT
 ;;;; (06) Proper Group/PE Nesting
-;;;; (07) No Duplicate Types
+;;;; (07) No Duplicate Types                    LEGAL-CONTENT-MODEL-P
 ;;;; (08) ID                                    VALIDATE-ATTRIBUTE
 ;;;; (09) One ID per Element Type               DEFINE-ATTRIBUTE
 ;;;; (10) ID Attribute Default                  DEFINE-ATTRIBUTE
@@ -1842,8 +1842,7 @@
     (p/S input)
     (setf content (normalize-mixed-cspec (p/cspec input)))
     (unless (legal-content-model-p content)
-      '(error "Illegal content model: ~S." (mu content))
-      (warn "Illegal content model: ~S." (mu content)))
+      (error "Malformed or invalid content model: ~S." (mu content)))
     (p/S? input)
     (expect input :\>)
     (when *validate*
@@ -1955,6 +1954,9 @@
           (let ((it (cadr cspec)))
             (compile-content-model `(and ,it (* ,it)) continuation))))))
 
+(defun setp (list &key (test 'eql))
+  (equal list (remove-duplicates list :test test)))
+
 (defun legal-content-model-p (cspec)
   (or (eq cspec :PCDATA)
       (eq cspec :ANY)
@@ -1964,7 +1966,10 @@
            (consp (cadr cspec))
            (eq (car (cadr cspec)) 'or)
            (eq (cadr (cadr cspec)) :PCDATA)
-           (every #'vectorp (cddr (cadr cspec))))
+           (every #'vectorp (cddr (cadr cspec)))
+           (or (not *validate*)
+                ;; VC: No Duplicate Types (07)
+               (setp (cddr (cadr cspec)) :test #'rod=)))
       (labels ((walk (x)
                  (cond ((member x '(:PCDATA :ANY :EMPTY))
                         nil)
