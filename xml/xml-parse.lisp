@@ -203,7 +203,7 @@
 ;;;; (06) Proper Group/PE Nesting
 ;;;; (07) No Duplicate Types
 ;;;; (08) ID                                    VALIDATE-ATTRIBUTES
-;;;; (09) One ID per Element Type
+;;;; (09) One ID per Element Type		DEFINE-ATTRIBUTE
 ;;;; (10) ID Attribute Default
 ;;;; (11) IDREF
 ;;;; (12) Entity Name
