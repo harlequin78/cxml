@@ -479,13 +479,25 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       (<em>name</em>&nbsp;((<em>name</em>&nbsp;<em>value</em>)<em>*</em>)&nbsp;<em>child*</em>).
     </p>
     <p>
+      <tt>name</tt> can also be a cons of local name and namespace prefix.
+      <em>fixme:</em> It is unclear to me how namespaces are meant to
+      work in xmls, since xmls documentation differs from how xmls
+      actually works in current releases.  Usually application need to
+      know both the namespace prefix <em>and</em> the namespace uri.  We
+      currently follow the xmls <em>implementation</em> and use the
+      namespace prefix instead of following its <em>documentation</em> which
+      shows the URI.  We do not follow xmls in munging xmlns attribute
+      values.  Attributes themselved have namespaces and it is not clear
+      to me how that works in xmls.
+    </p>
+    <p>
       <div class="def">Accessor CXML-XMLS:NODE-NAME (node)</div>
+      <div class="def">Accessor CXML-XMLS:NODE-NS (node)</div>
       <div class="def">Accessor CXML-XMLS:NODE-ATTRS (node)</div>
       <div class="def">Accessor CXML-XMLS:NODE-CHILDREN (node)</div>
       Accessors for xmls node data.
     </p>
     <p>
-      <em>fixme:</em> namespace support.
     </p>
 
     <a name="rods"/>
