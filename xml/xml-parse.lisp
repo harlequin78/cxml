@@ -1832,9 +1832,6 @@
         (:ANY
           (values (labels ((doit (name) (if name #'doit t))) #'doit)
                   (constantly t)))))
-    ((and (eq (car cspec) 'or) (eq (cadr cspec) :PCDATA))
-      (values (compile-mixed cspec)
-              (constantly t)))
     ((and (eq (car cspec) '*)
           (let ((subspec (second cspec)))
             (and (eq (car subspec) 'or) (eq (cadr subspec) :PCDATA))))
@@ -1845,6 +1842,7 @@
               (lambda (rod) (every #'white-space-rune-p rod))))))
 
 (defun compile-mixed (cspec)
+  ;; das koennten wir theoretisch auch COMPILE-CONTENT-MODEL erledigen lassen
   (let ((allowed-names (cddr cspec)))
     (labels ((doit (actual-name)
                (cond
