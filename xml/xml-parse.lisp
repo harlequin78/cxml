@@ -211,7 +211,7 @@
 ;;;; (12) Entity Name                           VALIDATE-ATTRIBUTE
 ;;;; (13) Name Token                            VALIDATE-ATTRIBUTE
 ;;;; (14) Notation Attributes                   VALIDATE-ATTRIBUTE, P/ATT-TYPE
-;;;; (15) One Notation Per Element Type
+;;;; (15) One Notation Per Element Type         DEFINE-ATTRIBUTE
 ;;;; (16) No Notation on Empty Element
 ;;;; (17) Enumeration                           VALIDATE-ATTRIBUTE
 ;;;; (18) Required Attribute                    PROCESS-ATTRIBUTES
@@ -992,7 +992,15 @@
                                  (rod-string element)))
                (unless (member default '(:REQUIRED :IMPLIED))
                  (validity-error "(10) ID Attribute Default: ~A"
-                                 (rod-string element)))))
+                                 (rod-string element))))
+             (when *validate*
+               (flet ((notationp (type)
+                        (and (listp type) (eq (car type) :NOTATION))))
+                 (when (and (notationp type)
+                            (find-if #'notationp (elmdef-attributes e)
+                                     :key #'attdef-type))
+                   (validity-error "(15) One Notation Per Element Type: ~S"
+                                   (rod-string element))))))
            (push adef (elmdef-attributes e))))
     (when (and *validate* (listp default))
       (unless (eq (attdef-type adef) :CDATA)
