@@ -45,7 +45,9 @@
 
 (defmethod sax:start-element ((handler dom-builder) namespace-uri local-name qname attributes)
   (with-slots (document element-stack) handler
-    (let ((element (dom:create-element document qname))
+    (let ((element (make-instance 'element 
+                     :tag-name qname
+                     :owner document))
 	  (parent (car element-stack))
           (anodes '()))
       (dolist (attr attributes)
@@ -60,9 +62,10 @@
       (setf (slot-value element 'dom-impl::parent) parent)
       (fast-push element (slot-value parent 'dom-impl::children))
       (setf (slot-value element 'dom-impl::attributes)
-            (make-instance 'named-node-map
+            (make-instance 'attribute-node-map
               :items anodes
               :element-type :attribute
+              :element element
               :owner document))
       (push element element-stack))))
 

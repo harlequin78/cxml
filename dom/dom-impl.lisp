@@ -91,6 +91,9 @@
    (read-only-p   :initform nil           :reader read-only-p)
    (element-type  :initarg :element-type)))
 
+(defclass attribute-node-map (named-node-map)
+  ((element       :initarg :element)))
+
 
 ;;; Implementation
 
@@ -178,12 +181,16 @@
   (setf tag-name (rod tag-name))
   (unless (cxml::valid-name-p tag-name)
     (dom-error :INVALID_CHARACTER_ERR "not a name: ~A" (rod-string tag-name)))
-  (make-instance 'element 
-    :tag-name tag-name
-    :owner document
-    :attributes (make-instance 'named-node-map
-                  :element-type :attribute
+  (let ((result (make-instance 'element 
+                  :tag-name tag-name
                   :owner document)))
+    (setf (slot-value result 'attributes)
+          (make-instance 'attribute-node-map
+            :element-type :attribute
+            :owner document
+            :element result))
+    (add-default-attributes result)
+    result))
 
 (defmethod dom:create-document-fragment ((document document))
   (make-instance 'document-fragment
@@ -757,7 +764,37 @@
     (unless (find old-attr items)
       (dom-error :NOT_FOUND_ERR "Attribute not found."))
     (setf items (remove old-attr items))
+    (maybe-add-default-attribute element (dom:name old-attr))
     old-attr))
+
+;; eek, defaulting:
+
+(defun maybe-add-default-attribute (element name)
+  (let* ((dtd (dtd (slot-value element 'owner)))
+         (e (cxml::find-element (dom:tag-name element) dtd))
+         (a (when e (cxml::find-attribute e name))))
+    (when (and a (listp (cxml::attdef-default a)))
+      (add-default-attribute element a))))
+
+(defun add-default-attributes (element)
+  (let* ((dtd (dtd (slot-value element 'owner)))
+         (e (cxml::find-element (dom:tag-name element) dtd)))
+    (when e
+      (dolist (a (cxml::elmdef-attributes e))
+        (when (and a (listp (cxml::attdef-default a)))
+          (add-default-attribute element a))))))
+
+(defun add-default-attribute (element adef)
+  (let* ((value (second (cxml::attdef-default adef)))
+         (owner (slot-value element 'owner))
+         (anode (dom:create-attribute owner (cxml::attdef-name adef)))
+         (text (dom:create-text-node owner value)))
+    (setf (slot-value anode 'dom-impl::specified-p) nil)
+    (dom:append-child anode text)
+    (push anode (slot-value (dom:attributes element) 'items))))
+
+(defmethod dom:remove-named-item :after ((self attribute-node-map) name)
+  (maybe-add-default-attribute (slot-value self 'element) name))
 
 (defmethod dom:get-elements-by-tag-name ((element element) name)
   (assert-writeable element)
@@ -926,12 +963,13 @@
   (import-node-internal 'document-fragment document node deep))
 
 (defmethod dom:import-node ((document document) (node element) deep)
-  (let* ((attributes (make-instance 'named-node-map
+  (let* ((attributes (make-instance 'attribute-node-map
                        :element-type :attribute
                        :owner document))
          (result (import-node-internal 'element document node deep
                                        :attributes attributes
                                        :tag-name (dom:tag-name node))))
+    (setf (slot-value attributes 'element) result)
     (dolist (attribute (dom:items (dom:attributes node)))
       (when (or (dom:specified attribute) *clone-not-import*)
         (dom:set-attribute result (dom:name attribute) (dom:value attribute))))
