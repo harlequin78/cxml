@@ -500,6 +500,21 @@
              :start2 0 :end2 count))
   (values))
 
+(defmethod dom:insert-data ((node character-data) offset arg)
+  (assert-writeable node)
+  (setf arg (rod arg))
+  (with-slots (value) node
+    (unless (<= 0 offset (length value))
+      (dom-error :INDEX_SIZE_ERR "offset is invalid"))
+    (let ((new (make-array (+ (length value) (length arg))
+                           :element-type (array-element-type value)))
+          (arglen (length arg)))
+      (replace new value :end1 offset)
+      (replace new arg :start1 offset)
+      (replace new value :start1 (+ offset arglen) :start2 offset)
+      (setf value new)))
+  (values))
+
 ;;; ATTR
 
 ;; hmm... value muss noch entities lesen und text-nodes in die hierarchie hängen.
