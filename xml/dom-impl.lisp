@@ -344,6 +344,15 @@
 (defmethod dom:node-value ((self entity-reference)) nil)
 (defmethod dom:node-value ((self processing-instruction)) (dom:data self))
 
+(defmethod (setf dom:node-value) (newval (self character-data))
+  (setf (dom:data self) newval))
+
+(defmethod (setf dom:node-value) (newval (self attribute))
+  (setf (dom:value self) newval))
+
+(defmethod (setf dom:node-value) (newval (self processing-instruction))
+  (setf (dom:data self) newval))
+
 ;; attributes
 
 ;; (gibt es nur auf element)
