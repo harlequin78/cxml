@@ -53,8 +53,10 @@
          (doctype (make-instance 'dom-impl::document-type
                     :name name
                     :notations (make-instance 'dom-impl::named-node-map
+                                 :element-type :notation
                                  :owner document)
                     :entities (make-instance 'dom-impl::named-node-map
+                                :element-type :entity
                                 :owner document))))
     (setf (slot-value doctype 'dom-impl::owner) document
 	  (slot-value document 'dom-impl::doc-type) doctype)))

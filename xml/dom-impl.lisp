@@ -90,7 +90,8 @@
   ((items         :initarg :items         :reader dom:items
                   :initform nil)
    (owner         :initarg :owner         :reader dom:owner-document)
-   (read-only-p   :initform nil           :reader read-only-p)))
+   (read-only-p   :initform nil           :reader read-only-p)
+   (element-type  :initarg :element-type)))
 
 
 ;;; Implementation
@@ -172,7 +173,9 @@
   (make-instance 'element 
     :tag-name tag-name
     :owner document
-    :attributes (make-instance 'named-node-map :owner document)))
+    :attributes (make-instance 'named-node-map
+                  :element-type :attribute
+                  :owner document)))
 
 (defmethod dom:create-document-fragment ((document document))
   (make-instance 'document-fragment
@@ -515,6 +518,10 @@
 
 (defmethod dom:set-named-item ((self named-node-map) arg)
   (assert-writeable self)
+  (unless (eq (dom:node-type arg) (slot-value self 'element-type))
+    (dom-error :HIERARCHY_REQUEST_ERR
+               "~S cannot adopt ~S, since it is not of type ~S."
+               self arg (slot-value self 'element-type)))
   (unless (eq (dom:owner-document self) (dom:owner-document arg))
     (dom-error :WRONG_DOCUMENT_ERR
                "~S cannot adopt ~S, since it was created by a different document."
@@ -842,7 +849,9 @@
   (import-node-internal 'document-fragment document node deep))
 
 (defmethod dom:import-node ((document document) (node element) deep)
-  (let* ((attributes (make-instance 'named-node-map :owner document))
+  (let* ((attributes (make-instance 'named-node-map
+                       :element-type :attribute
+                       :owner document))
          (result (import-node-internal 'element document node deep
                                        :attributes attributes
                                        :tag-name (dom:tag-name node))))
