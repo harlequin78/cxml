@@ -22,7 +22,8 @@
   ((parent      :initarg :parent        :initform nil)
    (children    :initarg :children      :initform nil)
    (owner       :initarg :owner         :initform nil)
-   (read-only-p :initform nil           :reader read-only-p)))
+   (read-only-p :initform nil           :reader read-only-p)
+   (map         :initform nil)))
 
 (defclass document (node)
   ((doc-type    :initarg :doc-type     :reader dom:doctype)
@@ -37,8 +38,7 @@
 (defclass attribute (node)
   ((name        :initarg :name          :reader dom:name)
    (value       :initarg :value         :reader dom:value)
-   (specified-p :initarg :specified-p   :reader dom:specified)
-   (map         :initform nil)))
+   (specified-p :initarg :specified-p   :reader dom:specified)))
 
 (defmethod print-object ((object attribute) stream)
   (print-unreadable-object (object stream :type t :identity t)
@@ -587,6 +587,11 @@
 
 (defmethod dom:set-attribute-node ((element element) (new-attr attribute))
   (assert-writeable element)
+  (unless (eq (dom:owner-document element) 
+              (dom:owner-document new-attr))
+    (dom-error :WRONG_DOCUMENT_ERR
+               "~S cannot adopt attribute node ~S, since it was created by a different document."
+               element new-attr))
   (dom:set-named-item (dom:attributes element) new-attr))
 
 (defmethod dom:get-attribute ((element element) name)
