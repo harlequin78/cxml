@@ -2404,6 +2404,10 @@
                (zi2 (make-zstream :input-stack (list xi2))))
           (p/ext-subset zi2)))
       (sax:end-dtd (handler *ctx*))
+      (let ((dtd (dtd *ctx*)))
+        (sax:entity-resolver
+         (handler *ctx*)
+         (lambda (name handler) (resolve-entity name handler dtd))))
       (list :DOCTYPE name extid))))
 
 (defun p/misc*-2 (input)
@@ -3100,35 +3104,22 @@
          (lambda (zinput)
            (muffle (car (zstream-input-stack zinput))))) ))))
 
-;; Do we need this? Not called anywhere  --?
-;; Used by dom-impl.lisp now, but wih a huge FIXME.  See below. --david
-(defun ff (name)
-  (let ((input (make-zstream)))
-    (let ((*data-behaviour* :DOC)
-          #+(or)                        ;?
-          (*document* (make-instance 'simple-document)))
-      (recurse-on-entity
-       input name :general
-       (lambda (input)
-         (prog1
-             (ecase (entity-source-kind name :general)
-               (:INTERNAL (p/content input))
-               (:EXTERNAL (p/ext-parsed-ent input)))
-           (unless (eq (peek-token input) :eof)
-             (error "Trailing garbage. - ~S" (peek-token input)))))))))
-
-;;; XXX FIXME FIXME FIXME
-(defun resolve-entity (name dtd)
-  (if (let ((*validate* nil))
-        (get-entity-definition name :general dtd))
-      (let* ((handler (funcall (find-symbol (symbol-name '#:make-dom-builder) :dom)))
-             (*ctx* (make-context :handler handler :dtd dtd))
-             (*validate* nil))          ;XXX
-        (sax:start-document handler)
-        (ff (rod name))
-        (funcall (find-symbol (symbol-name '#:child-nodes) :dom)
-                 (sax:end-document handler)))
-      nil))
+(defun resolve-entity (name handler dtd)
+  (let ((*validate* nil))
+    (if (get-entity-definition name :general dtd)
+        (let* ((*ctx* (make-context :handler handler :dtd dtd))
+               (input (make-zstream))
+               (*data-behaviour* :DOC))
+          (recurse-on-entity
+           input name :general
+           (lambda (input)
+             (prog1
+                 (ecase (entity-source-kind name :general)
+                   (:INTERNAL (p/content input))
+                   (:EXTERNAL (p/ext-parsed-ent input)))
+               (unless (eq (peek-token input) :eof)
+                 (error "Trailing garbage. - ~S" (peek-token input)))))))
+        nil)))
 
 (defun read-att-value-2 (input)
   (let ((delim (read-rune input)))

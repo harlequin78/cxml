@@ -72,7 +72,8 @@
 	   #:start-dtd
 	   #:end-dtd
            #:unparsed-entity-declaration
-           #:notation-declaration))
+           #:notation-declaration
+           #:entity-resolver))
 
 (in-package :sax)
 
@@ -258,4 +259,14 @@ other textual content.")
    "Called when a notation declaration is seen while parsing a DTD.")
   (:method ((handler t) name public-id system-id)
     (declare (ignore name public-id system-id))
+    nil))
+
+(defgeneric entity-resolver
+    (handler resolver)
+  (:documentation
+   "Called between sax:end-dtd and sax:end-document to register an entity
+    resolver, a function of two arguments: An entity name and SAX handler.
+    When called, the resolver function will parse the named entities data.")
+  (:method ((handler t) resolver)
+    (declare (ignore resolver))
     nil))

@@ -26,7 +26,8 @@
 
 (defclass document (node)
   ((doc-type    :initarg :doc-type     :reader dom:doctype)
-   (dtd         :initform nil          :reader dtd)))
+   (dtd         :initform nil          :reader dtd)
+   (entity-resolver :initform nil)))
 
 (defclass document-fragment (node)
   ())
@@ -854,13 +855,13 @@
 
 (defmethod initialize-instance :after ((instance entity-reference) &key)
   (let* ((owner (dom:owner-document instance))
-         (dtd (or (dtd owner) (cxml::dtd cxml::*ctx*)))
-         (children (cxml::resolve-entity (dom:name instance) dtd)))
-    (setf (slot-value instance 'children)
-          (make-node-list
-           (map 'vector
-             (lambda (node) (dom:import-node owner node t))
-             children))))
+         (handler (dom:make-dom-builder))
+         (resolver (slot-value owner 'entity-resolver)))
+    (unless resolver
+      (dom-error :NOT_SUPPORTED_ERR "No entity resolver registered."))
+    (setf (document handler) owner)
+    (push instance (element-stack handler))
+    (funcall resolver (dom:name instance) handler))
   (labels ((walk (n)
              (setf (slot-value n 'read-only-p) t)
              (when (dom:element-p n)

@@ -29,6 +29,9 @@
       (setf (slot-value (dom:notations doctype) 'read-only-p) t)))
   (document handler))
 
+(defmethod sax:entity-resolver ((handler dom-builder) resolver)
+  (setf (slot-value (document handler) 'entity-resolver) resolver))
+
 (defmethod sax:start-dtd ((handler dom-builder) name publicid systemid)
   (declare (ignore publicid systemid))
   (let* ((document (document handler))
