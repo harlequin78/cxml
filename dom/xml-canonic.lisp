@@ -71,6 +71,7 @@
      (width :initform 79 :initarg :width :accessor width)
      (canonical :initform t :initarg :canonical :accessor canonical)
      (indentation :initform nil :initarg :indentation :accessor indentation)
+     (current-indentation :initform 0 :accessor current-indentation)
      (notations :initform (make-buffer :element-type t) :accessor notations)
      (name-for-dtd :accessor name-for-dtd)
      (previous-notation :initform nil :accessor previous-notation)
@@ -369,3 +370,57 @@
            (wr (logior #b10000000 (ldb (byte 6 12) code)))
            (wr (logior #b10000000 (ldb (byte 6 6) code)))
            (wr (logior #b10000000 (ldb (byte 6 0) code)))))))
+
+
+;;;; convenience functions for DOMless XML serialization
+
+(defvar *current-element*)
+(defvar *sink*)
+
+(defmacro with-xml-output ((&rest options) &body body)
+  `(invoke-with-xml-output (lambda () ,@body) ,@options))
+
+(defun invoke-with-xml-output (fn &rest options)
+  (let ((*sink* (apply #'make-octet-vector-sink options))
+        (*current-element* nil))
+    (sax:start-document *sink*)
+    (funcall fn)
+    (sax:end-document *sink*)))
+
+(defmacro with-element (qname &body body)
+  ;; XXX Statt qname soll man in zukunft auch mal (lname uri) angeben koennen.
+  ;; Hat aber Zeit bis DOM 2.
+  (when (listp qname)
+    (destructuring-bind (n) qname
+      (setf qname n)))
+  `(invoke-with-element (lambda () ,@body) ,qname))
+
+(defun maybe-emit-start-tag ()
+  (when *current-element*
+    ;; starting child node, need to emit opening tag of parent first:
+    (destructuring-bind (qname &rest attributes) *current-element*
+      (sax:start-element *sink* nil nil qname (reverse attributes)))
+    (setf *current-element* nil)))
+
+(defun invoke-with-element (fn qname)
+  (maybe-emit-start-tag)
+  (let ((*current-element* (list qname)))
+    (multiple-value-prog1
+        (funcall fn)
+      (maybe-emit-start-tag)
+      (sax:end-element *sink* nil nil qname))))
+
+(defun attribute (name value)
+  (push (sax:make-attribute :qname name :value value)
+        (cdr *current-element*))
+  value)
+
+(defun cdata (data)
+  (sax:start-cdata *sink*)
+  (sax:characters *sink* data)
+  (sax:end-cdata *sink*)
+  data)
+
+(defun text (data)
+  (sax:characters *sink* data)
+  data)

@@ -353,7 +353,6 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       <div class="def">Function CXML:MAKE-OCTET-VECTOR-SINK (&rest keys) => sink</div>
       Return a handle suitable for event-based XML serialization.
     </p>
-
     <p>
       These function provide the low-level mechanism used by the DOM
       serialization functions.  To serialize a document without building
@@ -361,6 +360,24 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       handle.  <tt>sax:end-document</tt> returns the serialized form of
       the document described by the SAX events.
     </p>
+
+    <p>
+      <div class="def">Macro CXML:WITH-XML-OUTPUT ((&rest options) &body body) => vector</div>
+      <div class="def">Macro CXML:WITH-ELEMENT (qname &body body) => result</div>
+      <div class="def">Function CXML:ATTRIBUTE (name value) => value</div>
+      <div class="def">Function CXML:TEXT (data) => data</div>
+      <div class="def">Function CXML:CDATA (data) => data</div>
+      Convenience syntax for event-based serialization.
+    </p>
+    <p>
+      Example:
+    </p>
+    <pre>(with-xml-output (:indentation 2 :canonical nil)
+  (with-element #"foo"
+    (attribute #"xyz" #"abc")
+    (with-element #"bar"
+      (attribute #"blub" #"bla"))
+    (text #"Hi there.")))</pre>
 
     <p>
       <div class="def">Function CXML:MAKE-VALIDATOR (dtd root)</div>

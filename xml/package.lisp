@@ -46,6 +46,12 @@
    #:unparse-document
    #:unparse-document-to-octets
 
+   #:with-xml-output
+   #:with-element
+   #:attribute
+   #:cdata
+   #:text
+
    #:parse-dtd-file
    #:parse-dtd-stream
    #:validity-error
