@@ -62,7 +62,7 @@
       (#x3105 #x312C) (#xAC00 #xD7A3)))
 
 (defparameter *ideographic-ranges*
-    #((#x4E00 #x9FA5) (#x3007 #x3007) (#x3021 #x3029)))
+    #((#x3007 #x3007) (#x3021 #x3029)(#x4E00 #x9FA5)))
 
 (defparameter *combining-char-ranges*
   #((#x0300 #x0345) (#x0360 #x0361) (#x0483 #x0486) (#x0591 #x05A1)
