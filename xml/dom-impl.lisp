@@ -166,6 +166,7 @@
   (setf name (rod name))
   (make-instance 'attribute
     :name name
+    :value ""
     :specified-p nil                    ;???
     :owner document))
 
