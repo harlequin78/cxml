@@ -530,8 +530,6 @@
            (bindings '())
            (code '()))
       (declare (ignore title))
-      ;; XXX Muesste der Parser nicht ein normalisiertes Dokument liefern?
-      (dom:normalize test)
       (do-child-elements (e test)
         (string-case (dom:tag-name e)
           ("metadata"
@@ -568,8 +566,6 @@
          (document
           (xml:parse-file
            (make-pathname :name name :type "xml" :defaults directory))))
-    ;; XXX Muesste der Parser nicht ein normalisiertes Dokument liefern?
-    (dom:normalize (dom:document-element document))
     document))
 
 (defparameter *bad-tests*

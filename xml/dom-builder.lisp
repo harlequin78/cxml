@@ -76,12 +76,21 @@
 
 (defmethod sax:characters ((handler dom-builder) data)
   (with-slots (document element-stack) handler
-    (let ((parent (car element-stack)))
-      (if (eq (dom:node-type parent) :cdata-section)
-          (setf (dom:data parent) data)
+    (let* ((parent (car element-stack))
+           (last-child (dom:last-child parent)))
+      (cond
+        ((eq (dom:node-type parent) :cdata-section)
+          (setf (dom:data parent) data))
+        ((and last-child (eq (dom:node-type last-child) :text))
+          ;; um entities herum wird SAX:CHARACTERS mehrfach aufgerufen fuer
+          ;; den gleichen Textknoten.  Hier muessen wir den bestehenden Knoten
+          ;; erweitern, sonst ist das Dokument nicht normalisiert.
+          ;; (XXX Oder sollte man besser den Parser entsprechend aendern?)
+          (dom:append-data last-child data))
+        (t
           (let ((node (cdom:create-text-node document data)))
             (setf (slot-value node 'dom-impl::parent) parent)
-            (fast-push node (slot-value (car element-stack) 'dom-impl::children)))))))
+            (fast-push node (slot-value (car element-stack) 'dom-impl::children))))))))
 
 (defmethod sax:start-cdata ((handler dom-builder))
   (with-slots (document element-stack) handler
