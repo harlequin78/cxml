@@ -614,11 +614,11 @@
 
 (defmethod dom:remove-attribute-node ((element element) (old-attr attribute))
   (assert-writeable element)
-  (let ((res (dom:remove-named-item (dom:attributes element)
-                                    (dom:name old-attr))))
-    (if res
-        res
-      (dom-error :NOT_FOUND_ERR "Attribute not found."))))
+  (with-slots (items) (dom:attributes element)
+    (unless (find old-attr items)
+      (dom-error :NOT_FOUND_ERR "Attribute not found."))
+    (setf items (remove old-attr items))
+    old-attr))
 
 (defmethod dom:get-elements-by-tag-name ((element element) name)
   (assert-writeable element)
