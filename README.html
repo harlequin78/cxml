@@ -81,6 +81,7 @@
     </p>
     <ul>
       <li>Renamed package <tt>XML</tt> to <tt>CXML</tt>.</li>
+      <li>The unparse functions support non-canonical output now.</li>
     </ul>
 
     <a name="modules"/>
@@ -235,17 +236,31 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     <pre>(cxml:parse-file "test.xml" (dom:make-dom-builder))</pre>
 
     <p>
-      <div class="def">Function CXML:UNPARSE-DOCUMENT (document stream)</div>
-      <div class="def">Function CXML:UNPARSE-DOCUMENT-TO-OCTETS (document) => vector</div>
+      <div class="def">Function CXML:UNPARSE-DOCUMENT (document stream &key (canonical t) indentation)</div>
+      <div class="def">Function CXML:UNPARSE-DOCUMENT-TO-OCTETS (document &key (canonical t) indentation) => vector</div>
       Serialize a document into <a
       href="http://www.w3.org/TR/2001/REC-xml-c14n-20010315">canonical
-      form</a>.
+      form</a> if <tt>canonical</tt> is true, or into a more
+      readable non-canonical representation otherwise.
     </p>
     <ul>
       <li><tt>document</tt> -- a DOM document object</li>
       <li><tt>stream</tt> -- a Common Lisp stream with element-type
         <tt>character</tt></li>
+      <li>
+        <tt>canonical</tt> -- a boolean, indicating whether to generate
+        canonical XML
+      </li>
+      <li>
+        <tt>indentation</tt> -- indentation level.  An integer or <tt>nil</tt>.
+      </li>
     </ul>
+    <p>
+      With an <tt>indentation</tt> level, pretty-print the XML by
+      inserting additional whitespace.&nbsp; Note that indentation
+      changes the document model and should only be used if whitespace
+      does not matter to the application.
+    </p>
     <p>
       <tt>unparse-document-to-octets</tt> returns an <tt>(unsigned-byte
       8)</tt> array, whereas <tt>unparse-document</tt> writes
