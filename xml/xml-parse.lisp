@@ -150,8 +150,6 @@
 ;; o merge node representation with SGML module
 ;;   [???]
 ;; 
-;; o validation
-;;
 ;; o line/column number recording
 ;;
 ;; o better error messages
