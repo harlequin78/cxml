@@ -124,9 +124,10 @@ $ cvs co 2001/DOM-Test-Suite</pre>
 xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
 
       The log message for the changes reads "<i>Removed unnecessary
-      xml:base attribute</i>".&nbsp; I don't understand where I am
-      supposed to get the base directory from if not from this
-      attribute.
+      xml:base attribute</i>".&nbsp; If I understand correctly, only
+      DOM&nbsp;3 parsers provide the baseURI attribute necesary for
+      understanding <tt>xmlconf.xml</tt> now.&nbsp; We don't have that
+      yet.
     </p>
   </body>
 </html>
