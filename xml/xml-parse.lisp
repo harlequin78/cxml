@@ -1966,12 +1966,6 @@
       (cond ((eq (peek-token input) :xml-pi)
              (let ((hd (parse-xml-pi (cdr (nth-value 1 (peek-token input))) t)))
                (setup-encoding input hd))
-	     ;; FIXME: Ceci n'est pas un pi. Should probably go away.
-	     ;; (hmot 30/06/03)
-             (sax:processing-instruction
-                    *handler*
-                    (car (nth-value 1 (peek-token input)))
-                    (cdr (nth-value 1 (peek-token input))))
              (read-token input)))
       (set-full-speed input)
       ;; Misc*
