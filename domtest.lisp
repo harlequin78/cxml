@@ -1,4 +1,3 @@
-#+(or)
 (defpackage :domtest
   (:use :cl :xml)
   (:alias (:string-dom :dom)))
