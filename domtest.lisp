@@ -1,10 +1,9 @@
--(defpackage :domtest
-  (:use :cl :xml))
+(defpackage :domtest
+  (:use :cl :xml)
+  (:export #:run-all-tests))
 (defpackage :domtest-tests
   (:use))
 (in-package :domtest)
-
-(defparameter *directory* "~/src/2001/DOM-Test-Suite/")
 
 
 ;;;; allgemeine Hilfsfunktionen
@@ -163,8 +162,10 @@
 (defvar *methods* '())
 (defvar *fields* '())
 
-(defun read-members (&optional (directory *directory*))
-  (let* ((pathname (merge-pathnames "patches/dom1-interfaces.xml" directory))
+(declaim (special *directory*))
+
+(defun read-members ()
+  (let* ((pathname (merge-pathnames "patches/dom1-interfaces.xml" *directory*))
          (builder (dom:make-dom-builder))
          (library (dom:document-element (xml:parse-file pathname builder)))
          (methods '())
@@ -525,11 +526,6 @@
        (map nil (lambda (,(%intern |member|)) ,@(translate-body element))
             collection))))
 
-(defun test (name &optional (directory *directory*))
-  (let* ((test-directory (merge-pathnames "tests/level1/core/" directory)))
-    (slurp-test
-     (make-pathname :name name :type "xml" :defaults test-directory))))
-
 (defun assert-have-implementation-attribute (element)
   (let ((attribute (runes:rod-string (dom:get-attribute element "name"))))
     (string-case attribute
@@ -592,7 +588,7 @@
 (defparameter *bad-tests*
     '("hc_elementnormalize2.xml" "hc_nodereplacechildnewchildexists.xml"))
 
-(defun test2 (&optional verbose)
+(defun run-all-tests (*directory* &optional verbose)
   (let* ((xml::*redefinition-warning* nil)
          (test-directory (merge-pathnames "tests/level1/core/" *directory*))
          (all-tests (merge-pathnames "alltests.xml" test-directory))
@@ -627,7 +623,7 @@
     (format t "~&~D/~D tests failed; ~D test~:P were skipped"
             nfailed ntried (- n ntried))))
 
-(defun run-test (href)
+(defun run-test (*directory* href)
   (let* ((test-directory (merge-pathnames "tests/level1/core/" *directory*))
          (lisp (slurp-test (merge-pathnames href test-directory))))
     (print lisp)
@@ -635,7 +631,4 @@
       (funcall (compile nil lisp)))))
 
 #+(or)
-(test2)
-
-#+(or)
-(test2 t)
+(run-all-tests "~/src/2001/DOM-Test-Suite/")

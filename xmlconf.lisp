@@ -1,5 +1,6 @@
 (defpackage xmlconf
-  (:use :cl :runes))
+  (:use :cl :runes)
+  (:export #:run-all-tests))
 (in-package :xmlconf)
 
 (defun get-attribute (element name)
@@ -50,7 +51,7 @@
       (read-sequence result s )
       result)))
 
-(defun test-xml-conformance (directory)
+(defun run-all-tests (directory)
   (let* ((pathname (merge-pathnames "xmlconf.xml" directory))
          (builder (dom:make-dom-builder))
          (xmlconf (xml:parse-file pathname builder))
@@ -100,4 +101,4 @@
             nfailed ntried nskipped)))
 
 #+(or)
-(xmlconf::test-xml-conformance "/mnt/debian/space/xmlconf/")
+(xmlconf::run-all-tests "/mnt/debian/space/xmlconf/")
