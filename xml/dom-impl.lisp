@@ -259,7 +259,7 @@
                        (setf (slot-value new-child 'parent) node)
                        (setf (cdr q) (cons new-child nil)))
                       (t
-                       (dom-error NOT_FOUND_ERR "~S is no child of ~S."
+                       (dom-error :NOT_FOUND_ERR "~S is no child of ~S."
                                   ref-child node))))
              (cond ((eq (cadr q) ref-child)
                     (setf (slot-value new-child 'parent) node)
@@ -466,6 +466,11 @@
 (defmethod dom:delete-data ((node character-data) offset count)
   (assert-writeable node)
   (with-slots (value) node
+    (unless (< -1 offset (length value))
+      (dom-error :INDEX_SIZE_ERR "offset is invalid"))
+    (when (minusp count)
+      (dom-error :INDEX_SIZE_ERR "count is negative"))
+    (setf count (min count (- (length value) offset)))
     (let ((new (make-array (- (length value) count) :element-type (type-of value))))
       (replace new value 
                :start1 0 :end1 offset
@@ -480,6 +485,15 @@
   (assert-writeable node)
   (setf arg (rod arg))
   (with-slots (value) node
+    (unless (< -1 offset (length value))
+      (dom-error :INDEX_SIZE_ERR "offset is invalid"))
+    (when (minusp count)
+      (dom-error :INDEX_SIZE_ERR "count is negative"))
+    (let ((end1 (+ offset count)))
+      (when (> end1 (length value))
+        (let ((new (make-array end1 :element-type (array-element-type value))))
+          (replace new value)
+          (setf value new))))
     (replace value arg
              :start1 offset :end1 (+ offset count)
              :start2 0 :end2 count))
