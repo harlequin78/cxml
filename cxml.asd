@@ -40,8 +40,7 @@
 	    #+(AND :CMU :PTHREAD)               "dep-cmucl-dtc"
 	    #+(and allegro-version>= (version>= 5.0)) "dep-acl5"
 	    #-(and allegro-version>= (version>= 5.0)) "dep-acl"
-	    #+GCL                               "dep-gcl"
-	    #-(or sbcl CLISP CMU allegro GCL) #.(error "Configure!"))
+	    #-(or sbcl CLISP CMU allegro) #.(error "Configure!"))
      (:file "package"
 	    :depends-on (dependent))
      (:file runes
