@@ -531,12 +531,12 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     <p>
       <b>Example.</b> In a Lisp which ordinarily would use octet vector rods:
     </p>
-    <pre>CL-USER(14): (cxml:parse-string "<test/>" (cxml-xmls:make-xmls-builder))
+    <pre>CL-USER(14): (cxml:parse-string "&lt;test/&gt;" (cxml-xmls:make-xmls-builder))
 (#(116 101 115 116) NIL)</pre>
     <p>
       Use a SAX recoder to get strings instead::
     </p>
-    <pre>CL-USER(17): (parse-string "<test/>" (cxml:make-recoder (cxml-xmls:make-xmls-builder)))
+    <pre>CL-USER(17): (parse-string "&lt;test/&gt;" (cxml:make-recoder (cxml-xmls:make-xmls-builder)))
 ("test" NIL)</pre>
 
     <a name="sax"/>
