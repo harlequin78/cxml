@@ -364,10 +364,15 @@
   (do-child-elements (c element)
     (unless (equal (dom:tag-name c) "metadata")
       (return
-        `(progn
-           ,@(translate-body c)
-           ;; XXX haben noch keine Exceptions
-           (error "expected exception ~A" ,(dom:tag-name element)))))))
+        `(block assert-domexception
+           (handler-bind
+               ((dom-impl::dom-exception
+                 (lambda (c)
+                   (when (eq (dom-impl::dom-exception-key c)
+                             ,(intern (dom:tag-name c) :keyword))
+                     (return-from assert-domexception)))))
+             ,@(translate-body c)
+             (error "expected exception ~A" ,(dom:tag-name c))))))))
 
 (defun translate-try (element)
   `(progn

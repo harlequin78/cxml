@@ -6,6 +6,18 @@
 
 ;; Classes
 
+(define-condition dom-exception (error)
+  ((key       :initarg :key       :reader dom-exception-key)
+   (string    :initarg :string    :reader dom-exception-string)
+   (arguments :initarg :arguments :reader dom-exception-arguments))
+  (:report
+   (lambda (c s)
+     (format s "~A (~D):~%~?"
+             (dom-exception-key c)
+             (dom:code c)
+             (dom-exception-string c)
+             (dom-exception-arguments c)))))
+
 (defclass node ()
   ((parent      :initarg :parent        :initform nil)
    (children    :initarg :children      :initform nil)
@@ -83,8 +95,25 @@
 
 (defun assert-writeable (node)
   (when (read-only-p node)
-    ;; NO_MODIFICATION_ALLOWED_ERR
-    (error "~S is marked read-only." node)))
+    (dom-error :NO_MODIFICATION_ALLOWED_ERR "~S is marked read-only." node)))
+
+;; dom-exception
+
+(defun dom-error (key fmt &rest args)
+  (error 'dom-exception :key key :string fmt :arguments args))
+
+(defmethod dom:code ((self dom-exception))
+  (ecase (dom-exception-key self)
+    (:INDEX_SIZE_ERR                    1)
+    (:DOMSTRING_SIZE_ERR                2)
+    (:HIERARCHY_REQUEST_ERR             3)
+    (:WRONG_DOCUMENT_ERR                4)
+    (:INVALID_CHARACTER_ERR             5)
+    (:NO_DATA_ALLOWED_ERR               6)
+    (:NO_MODIFICATION_ALLOWED_ERR       7)
+    (:NOT_FOUND_ERR                     8)
+    (:NOT_SUPPORTED_ERR                 9)
+    (:INUSE_ATTRIBUTE_ERR               10)))
 
 ;; document-fragment protocol
 ;; document protocol
@@ -200,13 +229,12 @@
 (defun ensure-valid-insertion-request (node new-child)
   (assert-writeable node)
   (unless (can-adopt-p node new-child)
-    ;; HIERARCHY_REQUEST_ERR
-    (error "~S cannot adopt ~S." node new-child))
+    (dom-error :HIERARCHY_REQUEST_ERR "~S cannot adopt ~S." node new-child))
   (unless (eq (dom:owner-document node) 
               (dom:owner-document new-child))
-    ;; WRONG_DOCUMENT_ERR
-    (error "~S cannot adopt ~S, since it was created by a different document."
-           node new-child))
+    (dom-error :WRONG_DOCUMENT_ERR
+               "~S cannot adopt ~S, since it was created by a different document."
+               node new-child))
   (with-slots (children) node
     (unless (null (slot-value new-child 'parent))
       (cond ((eq (slot-value new-child 'parent)
@@ -215,8 +243,8 @@
              (setf children (delete new-child children)))
             (t
              ;; otherwise it is an error.
-             ;; GB_INTEGRITY_ERR
-             (error "~S is already adopted." new-child)))) ))
+             (dom-error :GB_INTEGRITY_ERR "~S is already adopted."
+                        new-child)))) ))
 
 (defmethod dom:insert-before ((node node) (new-child node) (ref-child t))
   (ensure-valid-insertion-request node new-child)
@@ -231,8 +259,8 @@
                        (setf (slot-value new-child 'parent) node)
                        (setf (cdr q) (cons new-child nil)))
                       (t
-                       ;; NOT_FOUND_ERR
-                       (error "~S is no child of ~S." ref-child node))))
+                       (dom-error NOT_FOUND_ERR "~S is no child of ~S."
+                                  ref-child node))))
              (cond ((eq (cadr q) ref-child)
                     (setf (slot-value new-child 'parent) node)
                     (setf (cdr q) (cons new-child (cdr q)))
@@ -249,8 +277,7 @@
   (with-slots (children) node
     (do ((q children (cdr q)))
         ((null q)
-         ;; NOT_FOUND_ERR
-         (error "~S is no child of ~S." old-child node))
+         (dom-error :NOT_FOUND_ERR "~S is no child of ~S." old-child node))
       (cond ((eq (car q) old-child)
              (setf (car q) new-child)
              (setf (slot-value new-child 'parent) node)
@@ -502,8 +529,7 @@
                                     (dom:name old-attr))))
     (if res
         res
-      ;; NOT_FOUND_ERR
-      (error "Attribute not found."))))
+      (dom-error :NOT_FOUND_ERR "Attribute not found."))))
 
 (defmethod dom:get-elements-by-tag-name ((element element) name)
   (assert-writeable element)
@@ -655,7 +681,7 @@
                         :name (dom:name node))
   ;; XXX If the document being imported into provides a definition for
   ;; this entity name, its value is assigned.
-  (error "not implemented"))
+  (dom-error :NOT_SUPPORTED_ERR "not implemented"))
 
 (defmethod dom:import-node ((document document) (node notation) deep)
   (import-node-internal 'notation document node deep

@@ -65,6 +65,7 @@
    #:notation-name
    #:target
    #:import-node
+   #:code
    
    ;; protocol classes
    #:dom-implementation
