@@ -18,6 +18,7 @@
 (defmethod sax:end-document ((handler dom-builder))
   (setf (slot-value (document handler) 'children )
 	(nreverse (slot-value (document handler) 'children)))
+  (setf (slot-value (document handler) 'entities) xml::*entities*)
   (document handler))
 
 (defmethod sax:start-element ((handler dom-builder) namespace-uri local-name qname attributes)

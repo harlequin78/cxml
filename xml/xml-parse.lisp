@@ -623,7 +623,7 @@
 
 (defun entity->xstream (entity-name kind &optional zstream)
   ;; `zstream' is for error messages
-  (let ((looked (assoc (list kind entity-name) *entities* :test #'equal)))
+  (let ((looked (assoc (list kind entity-name) *entities* :test #'equalp)))
     (unless looked
       (if zstream 
           (perror zstream "Entity '~A' is not defined." (rod-string entity-name))
@@ -643,7 +643,7 @@
       r)))
 
 (defun entity-source-kind (name type)
-  (let ((looked (assoc (list type name) *entities* :test #'equal)))
+  (let ((looked (assoc (list type name) *entities* :test #'equalp)))
     (unless looked
       (error "Entity '~A' is not defined." (rod-string name)))
     (cadr looked)))
@@ -2522,7 +2522,7 @@
                        res))))
 
 (defun internal-entity-expansion (name)
-  (let ((e (assoc (list :general name) *entities* :test #'equal)))
+  (let ((e (assoc (list :general name) *entities* :test #'equalp)))
     (unless e
       (error "Entity '~A' is not defined." (rod-string name)))
     (unless (eq :INTERNAL (cadr e))
@@ -2574,10 +2574,12 @@
          (lambda (zinput)
            (muffle (car (zstream-input-stack zinput))))) ))))
 
-#+(or) ;; Do we need this? Not called anywhere
+;; Do we need this? Not called anywhere  --?
+;; Used by dom-impl.lisp now, but wih a huge FIXME.  See below. --david
 (defun ff (name)
   (let ((input (make-zstream)))
     (let ((*data-behaviour* :DOC)
+          #+(or)                        ;?
           (*document* (make-instance 'simple-document)))
       (recurse-on-entity
        input name :general
@@ -2588,6 +2590,17 @@
                (:EXTERNAL (p/ext-parsed-ent input)))
            (unless (eq (peek-token input) :eof)
              (error "Trailing garbage. - ~S" (peek-token input)))))))))
+
+;;; XXX FIXME
+(defun resolve-entity (name entities)
+  (let ((*handler* (make-instance 'dom-impl::dom-builder))
+        (*namespace-bindings* *default-namespace-bindings*)
+        (*entities* entities)
+        (*dtd* (make-dtd)))
+    (declare (special *namespace-bindings*)) ;forward declaration for DEFVAR
+    (sax:start-document *handler*)
+    (ff (rod name))
+    (dom:child-nodes (sax:end-document *handler*))))
 
 (defun read-att-value-2 (input)
   (let ((delim (read-rune input)))

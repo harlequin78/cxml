@@ -12,7 +12,8 @@
    (owner       :initarg :owner         :initform nil)))
 
 (defclass document (node)
-  ((doc-type    :initarg :doc-type     :reader dom:doctype)))
+  ((doc-type    :initarg :doc-type     :reader dom:doctype)
+   (entities    :initform nil          :reader entities)))
 
 (defclass document-fragment (node)
   ())
@@ -517,7 +518,15 @@
 ;;; DOCUMENT-TYPE -- missing
 ;;; NOTATION -- nix
 ;;; ENTITY -- nix
-;;; ENTITY-REFERENCE -- nix
+
+;;; ENTITY-REFERENCE
+
+(defmethod initialize-instance :after ((instance entity-reference) &key)
+  (let* ((owner (dom:owner-document instance))
+         (entities (or (entities owner) xml::*entities*))
+         (children (xml::resolve-entity (dom:name instance) entities)))
+    (setf (slot-value instance 'children)
+          (mapcar (lambda (node) (dom:import-node owner node t)) children))))
 
 ;;; PROCESSING-INSTRUCTION
 
@@ -626,10 +635,9 @@
 
 (defmethod dom:import-node
     ((document document) (node processing-instruction) deep)
-  (import-node-internal 'notation document node deep
-                        :name (dom:name node)
-                        :public-id (dom:public-id node)
-                        :system-id (dom:system-id node)))
+  (import-node-internal 'processing-instruction document node deep
+                        :target (dom:target node)
+                        :data (dom:data node)))
 
 ;; TEXT_NODE, CDATA_SECTION_NODE, COMMENT_NODE
 (defmethod dom:import-node
