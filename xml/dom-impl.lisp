@@ -1,5 +1,6 @@
 (defpackage :dom-impl
-  (:use :glisp))
+  (:use :glisp)
+  (:alias (:cdom :dom)))
 
 (in-package :dom-impl)
 
@@ -527,7 +528,8 @@
   (let ((result (apply #'make-instance class :owner document initargs)))
     (when deep
       (dolist (child (dom:child-nodes node))
-        (dom:append-child result (dom:import-node document child t))))))
+        (dom:append-child result (dom:import-node document child t))))
+    result))
 
 (defmethod dom:import-node ((document document) (node attribute) deep)
   (declare (ignore deep))

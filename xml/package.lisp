@@ -10,6 +10,7 @@
   (:use 
    :glisp
    :encoding)
+  (:alias (:cdom :dom))
   
   (:export
    ;; xstreams

@@ -22,10 +22,10 @@
 
 (defmethod sax:start-element ((handler dom-builder) namespace-uri local-name qname attributes)
   (with-slots (document element-stack) handler
-    (let ((element (dom:create-element document qname))
+    (let ((element (cdom:create-element document qname))
 	  (parent (car element-stack)))
       (dolist (attr attributes)
-	(dom:set-attribute element (xml::attribute-qname attr) (xml::attribute-value attr)))
+	(cdom:set-attribute element (xml::attribute-qname attr) (xml::attribute-value attr)))
       (setf (slot-value element 'dom-impl::parent) parent)
       (push element (slot-value parent 'dom-impl::children))
       (push element element-stack))))
@@ -37,10 +37,10 @@
 
 (defmethod sax:characters ((handler dom-builder) data)
   (with-slots (document element-stack) handler
-    (let ((node (dom:create-text-node document data)))
+    (let ((node (cdom:create-text-node document data)))
       (push node (slot-value (car element-stack) 'dom-impl::children)))))
 
 (defmethod sax:processing-instruction ((handler dom-builder) target data)
   (with-slots (document element-stack) handler
-    (let ((node (dom:create-processing-instruction document target data)))
+    (let ((node (cdom:create-processing-instruction document target data)))
       (push node (slot-value (car element-stack) 'dom-impl::children)))))
