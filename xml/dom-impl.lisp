@@ -483,6 +483,8 @@
   (values))
 
 (defmethod dom:replace-data ((node character-data) offset count arg)
+  ;; Although we could implement this by calling DELETE-DATA, then INSERT-DATA,
+  ;; we implement this function directly to avoid creating temporary garbage.
   (assert-writeable node)
   (setf arg (rod arg))
   (with-slots (value) node
@@ -490,14 +492,19 @@
       (dom-error :INDEX_SIZE_ERR "offset is invalid"))
     (when (minusp count)
       (dom-error :INDEX_SIZE_ERR "count is negative"))
-    (let ((end1 (+ offset count)))
-      (when (> end1 (length value))
-        (let ((new (make-array end1 :element-type (array-element-type value))))
-          (replace new value)
+    (setf count (min count (- (length value) offset)))
+    (if (= count (length arg))
+        (replace value arg
+                 :start1 offset :end1 (+ offset count)
+                 :start2 0 :end2 count)
+        (let ((new (make-array (+ (length value) (length arg) (- count))
+                               :element-type (array-element-type value))))
+          (replace new value :end1 offset)
+          (replace new arg :start1 offset)
+          (replace new value
+                   :start1 (+ offset (length arg))
+                   :start2 (+ offset count))
           (setf value new))))
-    (replace value arg
-             :start1 offset :end1 (+ offset count)
-             :start2 0 :end2 count))
   (values))
 
 (defmethod dom:insert-data ((node character-data) offset arg)
