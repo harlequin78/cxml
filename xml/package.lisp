@@ -69,5 +69,10 @@
    #:remdtd
    #:clear-dtd-cache
    #:make-extid
+
+   #:*catalog*
+   #:make-catalog
+   #:resolve-uri
+   #:resolve-extid
    
    #:make-recoder))

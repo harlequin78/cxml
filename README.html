@@ -86,7 +86,8 @@
           <li><a href="#misc">Miscellaneous Utility Functions</a></li>
           <li><a href="#xmls">XMLS Compatibility</a></li>
           <li><a href="#rods">Dealing with Rods</a></li>
-          <li><a href="#dtdcache">Caching of DTD objects</a></li>
+          <li><a href="#dtdcache">Caching of DTD Objects</a></li>
+          <li><a href="#catalogs">XML Catalogs</a></li>
         </ul>
       </li>
       <li><a href="#sax">SAX Interface</a></li>
@@ -101,6 +102,7 @@
       <li>Use the puri library for Sys-ID handling.</li>
       <li>Semi-automatic caching of DTD instances.</li>
       <li>Support user-defined entity resolvers.</li>
+      <li>Support for Oasis XML Catalogs.</li>
     </ul>
     <p class="nomargin"><tt>patch-306</tt> (2004-09-03)</p>
     <ul class="nomargin">
@@ -631,7 +633,7 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
 ("test" NIL)</pre>
 
     <a name="dtdcache"/>
-    <h3>Caching of DTD objects</h3>
+    <h3>Caching of DTD Objects</h3>
     <p>
       To avoid spending time parsing the same DTD over and over again,
       CXML can cache DTD objects.  The parser consults
@@ -679,6 +681,77 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     </p>
     <p>
       <em>fixme:</em> thread-safety
+    </p>
+
+    <a name="catalogs"/>
+    <h3>XML Catalogs</h3>
+    <p>
+      External entities (for example, DTDs) are referred to using their
+      Public and System IDs.  Usually the System ID, a URI, is used to
+      locate the entity.  CXML itself handles only file://-URIs, but
+      many System IDs in practical use are http://-URIs.  There are two
+      different mechanims applications can use to allow CXML to locate
+      entities using arbitrary Public ID or System ID:
+    </p>
+    <ul>
+      <li>
+        User-defined entity resolvers can be used to open entities using
+        arbitrary protocols.   For example, an entity resolver could
+        handle all System-IDs with the <tt>http</tt> scheme using some
+        HTTP library.  Refer to the description of the 
+        <tt>entity-resolver</tt> keyword argument to parser functions (see <a
+        href="#parser"><tt>cxml:parse-file</tt></a>) to more
+        information on entity resolvers.
+      </li>
+      <li>
+        XML Catalogs are (local) tables in XML syntax which map External
+        IDs to alternative System IDs.  If, say, the xhtml DTD is
+        present in the local file system and the local copy has been
+        registered with the XML catalog, CXML will use the local copy of
+        the DTD instead of trying to open the version available using HTTP.
+      </li>
+    </ul>
+    <p>
+      This section describes XML Catalogs, the second solution.  CXML
+      implements <a
+      href="http://www.oasis-open.org/committees/entity/spec.html">Oasis
+      XML Catalogs</a>.
+    </p>
+    <p>
+      <div class="def">Variable CXML:*CATALOG*</div>
+      The XML Catalog object consulted by the parser before trying to
+      open an entity.  Initially <tt>nil</tt>.
+    </p>
+    <p>
+      <div class="def">Function CXML:MAKE-CATALOG (&optional uris)</div>
+      Return a catalog object for the catalog files specified.
+    </p>
+    <p>
+      <div class="def">Function CXML:RESOLVE-URI (uri catalog)</div>
+      Look up <tt>uri</tt> in <tt>catalog</tt> and return the
+      resulting URI, or <tt>nil</tt> if no match was found.
+    </p>
+    <p>
+      <div class="def">Function CXML:RESOLVE-EXTID (publicid systemid catalog)</div>
+      Look up the External ID (<tt>publicid</tt>, <tt>systemid</tt>)
+      in <tt>catalog</tt> and return the resulting URI, or <tt>nil</tt>
+      if no match was found.
+    </p>
+    <p>
+      Example:
+    </p>
+    <pre>* (setf cxml:*catalog* nil)
+* (cxml:parse-file "test.xhtml" nil)
+=> Error: URI scheme :HTTP not supported
+
+* (setf cxml:*catalog* (cxml:make-catalog))
+* (cxml:parse-file "test.xhtml" nil)
+;; no error!
+NIL</pre>
+    <p>
+      Note that parsed catalog files are cached in the catalog object.
+      Catalog files cached do not expire automatically.  To ensure that
+      all catalog files are parsed again, create a new catalog object.
     </p>
 
     <a name="sax"/>

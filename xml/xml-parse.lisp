@@ -931,7 +931,7 @@
                              :entity-kind kind
                              :uri nil)))
         (external-entdef
-         (setf r (xstream-open-extid (entdef-extid def)))
+         (setf r (xstream-open-extid (extid-using-catalog (entdef-extid def))))
          (setf (stream-name-entity-name (xstream-name r)) entity-name
                (stream-name-entity-kind (xstream-name r)) kind)))
       r)))
@@ -2417,6 +2417,19 @@
   (unless (eq (peek-token input) :eof)
     (error "Trailing garbage - ~S." (peek-token input))))
 
+(defvar *catalog* nil)
+
+(defun extid-using-catalog (extid)
+  (if *catalog*
+      (let ((sysid
+             (resolve-extid (extid-public extid)
+                            (extid-system extid)
+                            *catalog*)))
+        (if sysid
+            (make-extid nil sysid)
+            extid))
+      extid))
+
 (defun p/doctype-decl (input &optional dtd-extid)
   (let ()
     (let ((*expand-pe-p* nil)
@@ -2462,8 +2475,9 @@
         (p/S? input))
       (expect input :>)
       (when extid
-        (let* ((merged-extid (absolute-extid input extid))
-               (sysid (extid-system merged-extid))
+        (let* ((effective-extid
+                (extid-using-catalog (absolute-extid input extid)))
+               (sysid (extid-system effective-extid))
                (fresh-dtd-p (null (dtd *ctx*)))
                (cached-dtd
                 (and fresh-dtd-p
@@ -2474,7 +2488,7 @@
               (setf (dtd *ctx*) cached-dtd)
               (report-cached-dtd cached-dtd))
             (t
-              (let* ((xi2 (xstream-open-extid merged-extid))
+              (let* ((xi2 (xstream-open-extid effective-extid))
                      (zi2 (make-zstream :input-stack (list xi2))))
                 (ensure-dtd)
                 (p/ext-subset zi2)

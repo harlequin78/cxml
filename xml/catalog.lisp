@@ -17,7 +17,7 @@
 ;;;     A long-term solution might be an XML Schema validator.
 
 (defvar *prefer* nil)
-(defvar *catalog*
+(defvar *default-catalog*
     '(;; libxml standard
       "/etc/xml/catalog"
       ;; FreeBSD
@@ -64,7 +64,9 @@
                       (write-char c out))))))))))
 
 (defun normalize-uri (str)
-  ;; assumes that UTF-8 encoding has already been done
+  (when (typep str 'puri:uri)
+    (setf str (puri:render-uri str nil)))
+  (setf str (rod-to-utf8-string (rod str)))
   (with-output-to-string (out)
     (loop for ch across str do
           (let ((c (char-code ch)))
@@ -140,7 +142,7 @@
             (delegates nil))
         (unless (typep file 'entry-file)
           (setf file (find-catalog-file file catalog)))
-        (unless (member file seen)
+        (unless (or (null file) (member file seen))
           (push file seen)
           (when system
             (let ((result
@@ -182,7 +184,7 @@
       (let ((file (pop files)))
         (unless (typep file 'entry-file)
           (setf file (find-catalog-file file catalog)))
-        (unless (member file seen)
+        (unless (or (null file) (member file seen))
           (push file seen)
           (let ((result
                  (or (match-exact uri (uri-entries file))
@@ -207,12 +209,13 @@
         (setf (getf (puri:uri-plist interned) 'catalog) file)))
     file))
 
-(defun make-catalog (uris)
+(defun make-catalog (&optional (uris *default-catalog*))
   (let ((result (%make-catalog)))
     (setf (catalog-main-files result)
           (loop
               for uri in uris
-              collect (find-catalog-file uri result)))
+              for file = (find-catalog-file uri result)
+              when file collect file))
     result))
 
 (defun parse-catalog-file (uri)
@@ -222,10 +225,9 @@
     (parser-error () nil)))
 
 (defun parse-catalog-file/strict (uri)
-  (let* ((cxml
-          (slot-value (asdf:find-system :cxml) 'asdf::relative-pathname))
-         (dtd
-          (pathname-to-uri (merge-pathnames "catalog.dtd" cxml))))
+  (let* ((cxml (slot-value (asdf:find-system :cxml) 'asdf::relative-pathname))
+         (dtd (pathname-to-uri (merge-pathnames "catalog.dtd" cxml)))
+         (*catalog* nil))
     (with-open-stream (s (open (uri-to-pathname uri)
                                :element-type '(unsigned-byte 8)
                                :direction :input))
