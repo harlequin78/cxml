@@ -91,9 +91,9 @@
     (return child)))
 
 (defun %intern (name)
-  (if name
-      (intern name :domtest-tests)
-      nil))
+  (if (zerop (length name))
+      nil
+      (intern name :domtest-tests)))
 
 (defun replace-studly-caps (str)
   ;; s/([A-Z][a-z])/-\1/
@@ -119,7 +119,7 @@
 
 (defun parse-java-literal (str)
   (cond
-    ((null str) nil)                    ;?
+    ((zerop (length str)) nil)
     ((equal str "true")
       t)
     ((equal str "false")
