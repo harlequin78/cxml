@@ -1774,7 +1774,7 @@
     (p/S input)
     (setf name (p/name input))
     (p/S input)
-    (setf content (p/cspec input))
+    (setf content (normalize-mixed-cspec (p/cspec input)))
     (unless (legal-content-model-p content)
       '(error "Illegal content model: ~S." (mu content))
       (warn "Illegal content model: ~S." (mu content)))
@@ -1914,10 +1914,10 @@
 ;; cspec ::= 'EMPTY' | 'ANY' | '#PCDATA' 
 ;;         | Name
 ;;         | cs
-;;    cs ::= '(' S? cspec ( S? '|' S? cs)* S? ')' ('?' | '*' | '+')?
+;;    cs ::= '(' S? cspec ( S? '|' S? cspec)* S? ')' ('?' | '*' | '+')?
 ;; und eine post mortem analyse
 
-(defun p/cspec (input &optional (level 0) (only-names-p nil))
+(defun p/cspec (input)
   (let ((term
          (let ((names nil) op-cat op res)
            (multiple-value-bind (cat sem) (peek-token input)
@@ -1929,28 +1929,25 @@
                            :ANY)
                           (t
                            sem)))
-                   ((and (eq cat :\#PCDATA) (not only-names-p))
-                    (unless (= level 1)
-                      (error "#PCDATA only on top level in content modell."))
+                   ((eq cat :\#PCDATA)
                     (consume-token input)
                     :PCDATA)
-                   ((and (eq cat :\() (not only-names-p))
+                   ((eq cat :\()
                     (consume-token input)
                     (p/S? input)
-                    (setq names (list (p/cspec input (+ level 1))))
+                    (setq names (list (p/cspec input)))
                     (p/S? input)
-                    (let ((on? (eq (car names) :PCDATA)))
-                      (cond ((member (peek-token input) '(:\| :\,))
-                             (setf op-cat (peek-token input))
-                             (setf op (if (eq op-cat :\,) 'and 'or))
-                             (while (eq (peek-token input) op-cat)
-                                    (consume-token input)
-                                    (p/S? input)
-                                    (push (p/cspec input (+ level 1) on?) names)
-                                    (p/S? input))
-                             (setf res (cons op (reverse names))))
-                            (t
-                             (setf res (car names)))))
+                    (cond ((member (peek-token input) '(:\| :\,))
+                            (setf op-cat (peek-token input))
+                            (setf op (if (eq op-cat :\,) 'and 'or))
+                            (while (eq (peek-token input) op-cat)
+                              (consume-token input)
+                              (p/S? input)
+                              (push (p/cspec input) names)
+                              (p/S? input))
+                            (setf res (cons op (reverse names))))
+                      (t
+                        (setf res (cons 'and names))))
                     (p/S? input)
                     (expect input :\))
                     res)
@@ -1961,6 +1958,26 @@
           ((eq (peek-token input) :*) (consume-token input) (list '* term))
           (t
            term))))
+
+(defun normalize-mixed-cspec (cspec)
+  ;; der Parser oben funktioniert huebsch fuer die children-Regel, aber
+  ;; fuer Mixed ist das Ergebnis nicht praktisch, denn dort wollen wir
+  ;; eigentlich auf eine Liste von Namen in einheitlichem Format hinaus.
+  ;; Dazu normalisieren wir einfach in eine der beiden folgenden Formen:
+  ;;   (* (or :PCDATA ...rods...))     -- und zwar exakt so!
+  ;;   :PCDATA                         -- sonst ganz trivial
+  (flet ((trivialp (c)
+           (and (consp c)
+                (and (eq (car c) 'and)
+                     (eq (cadr c) :PCDATA)
+                     (null (cddr c))))))
+    (if (or (trivialp cspec)            ;(and PCDATA)
+            (and (consp cspec)          ;(* (and PCDATA))
+                 (and (eq (car cspec) '*)
+                      (null (cddr cspec))
+                      (trivialp (cadr cspec)))))
+        :PCDATA
+        cspec)))
    
 ;; [52] AttlistDecl ::= '<!ATTLIST' S Name AttDef* S? '>'
     
