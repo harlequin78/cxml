@@ -219,7 +219,7 @@
 ;;;; (20) Fixed Attribute Default               VALIDATE-ATTRIBUTE
 ;;;; (21) Proper Conditional Section/PE Nesting
 ;;;; (22) Entity Declared
-;;;; (23) Notation Declared
+;;;; (23) Notation Declared                     P/ENTITY-DEF, P/DOCUMENT
 ;;;; (24) Unique Notation Name                  DEFINE-NOTATION
 
 (in-package :cxml)
@@ -242,6 +242,7 @@
   (entities nil)
   (dtd (make-dtd))
   model-stack
+  (referenced-notations '())
   (id-table (make-hash-table :test 'equalp)))
 
 (defvar *expand-pe-p*)
@@ -982,6 +983,9 @@
     (when (gethash name ns)
       (validity-error "(24) Unique Notation Name: ~S" (rod-string name)))
     (setf (gethash name ns) id)))
+
+(defun find-notation (name dtd)
+  (gethash name (dtd-notations dtd)))
 
 ;;;; ---------------------------------------------------------------------------
 ;;;;  z streams and lexer
@@ -1783,7 +1787,9 @@
                                          '#.(string-rod "NDATA")))
                         (consume-token input)
                         (p/S input)
-                        (setf ndata (p/name input))))))
+                        (setf ndata (p/name input))
+                        (when *validate*
+                          (push ndata (referenced-notations *ctx*)))))))
              (list :EXTERNAL extid ndata)))
           (t
            (error "p/entity-def: ~S / ~S." cat sem)) )))
@@ -2299,10 +2305,15 @@
       (p/misc*-2 input)
       (unless (eq (peek-token input) :eof)
         (error "Garbage at end of document."))
-      (maphash (lambda (k v)
-                 (unless v
-                   (validity-error "(11) IDREF: ~S not defined" (rod-string k))))
-               (id-table *ctx*))
+      (when *validate*
+        (maphash (lambda (k v)
+                   (unless v
+                     (validity-error "(11) IDREF: ~S not defined" (rod-string k))))
+                 (id-table *ctx*))
+      
+        (dolist (name (referenced-notations *ctx*)) 
+          (unless (find-notation name (dtd *ctx*))
+            (validity-error "(23) Notation Declared: ~S" (rod-string name))))) 
       (sax:end-document handler))))
 
 (defun p/element (input)
