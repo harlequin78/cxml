@@ -376,7 +376,7 @@
 ;;; controller implementations
 
 (defmethod read-octets (sequence (stream stream) start end)
-  (#+CLISP lisp:read-byte-sequence
+  (#+CLISP ext:read-byte-sequence
    #-CLISP read-sequence
            sequence stream :start start :end end))
 
