@@ -212,7 +212,7 @@
 ;;;; (15) One Notation Per Element Type
 ;;;; (16) No Notation on Empty Element
 ;;;; (17) Enumeration                           VALIDATE-ATTRIBUTE
-;;;; (18) Required Attribute
+;;;; (18) Required Attribute                    PROCESS-ATTRIBUTES
 ;;;; (19) Attribute Default Legal
 ;;;; (20) Fixed Attribute Default
 ;;;; (21) Proper Conditional Section/PE Nesting
@@ -697,13 +697,38 @@
       (unless (funcall (cdr pair) rod)
         (validity-error "(03) Element Valid: unexpected PCDATA")))))
 
-(defun validate-attributes (ctx name attlist)
+(defun process-attributes (ctx name attlist)
   (let ((e (find-element name (dtd ctx))))
-    (unless e
-      (validity-error "(xy) Attribute Value Type: no definition for element ~A"
-                      (rod-string name)))
-    (dolist (a attlist)
-      (validate-attribute ctx e a))))
+    (cond
+      (e
+        (dolist (ad (elmdef-attributes e)) ;handle default values
+          (unless (get-attribute (attdef-name ad) attlist)
+            (case (attdef-default ad)
+              (:IMPLIED)
+              (:REQUIRED
+                (validity-error "(18) Required Attribute: ~S not specified"
+                                (rod-string (attdef-name ad))))
+              (t
+                (push (build-attribute (attdef-name ad)
+                                       (cadr (attdef-default ad))
+                                       nil)
+                      attlist)))))
+        (dolist (a attlist)             ;normalize non-CDATA values
+          (let* ((qname (attribute-qname a))
+                 (adef (find-attribute e qname)))
+            (when (and adef (not (eq (attdef-type adef) :CDATA)))
+              (setf (attribute-value a)
+                    (canon-not-cdata-attval (attribute-value a))))))
+        (when *validate*                ;maybe validate attribute values
+          (dolist (a attlist)
+            (validate-attribute ctx e a))))
+      ((and *validate* attlist)
+        (validity-error "(04) Attribute Value Type: no definition for element ~A"
+                        (rod-string name)))))
+  attlist)
+
+(defun get-attribute (name attributes)
+  (member name attributes :key #'attribute-qname :test #'rod=))
 
 (defun validate-attribute (ctx e a)
   (let* ((qname (attribute-qname a))
@@ -901,7 +926,8 @@
       ((null content-model)
         e)
       (t
-        (when (elmdef-content e)
+        #+(or)
+        (when (and *validate* (elmdef-content e))
           (validity-error "(05) Unique Element Type Declaration"))
         (setf (elmdef-content e) content-model)
         e))))
@@ -933,11 +959,6 @@
 
 (defun find-attribute (elmdef name)
   (find name (elmdef-attributes elmdef) :key #'attdef-name :test #'equal))
-
-(defun map-all-attdefs-for-element (dtd element continuation)
-  (declare (dynamic-extent continuation));this does not help under ACL
-  (dolist (k (elmdef-attributes (find-element element dtd)))
-    (funcall continuation k)))
 
 ;;;; ---------------------------------------------------------------------------
 ;;;;  z streams and lexer
@@ -1165,32 +1186,6 @@
   (let ((name (read-name-token input))
         (atts nil))
     (setf atts (read-attribute-list zinput input nil))
-    ;;(setf atts (nreverse atts))
-    ;; care for atts
-    ;;
-    ;;zzz
-    (let ((fn (lambda (adef &aux x)
-                 (setf x (assoc (attdef-name adef) atts))
-       
-                 (when (and (consp (attdef-default adef))
-                            (eq (car (attdef-default adef)) :default)
-                            (not x))
-                   (setf atts (cons (setf x (cons (attdef-name adef) (cadr (attdef-default adef))))
-                                    atts)))
-                 (when (and (consp (attdef-default adef))
-                            (eq (car (attdef-default adef)) :fixed)
-                            (not x))
-                   (setf atts (cons (setf x (cons (attdef-name adef) (cadr (attdef-default adef))))
-                                    atts)))
-                 (unless (eq (attdef-type adef) :CDATA)
-                   (when x
-                     (setf (cdr x) (canon-not-cdata-attval (cdr x)))))
-       
-                 ;; xxx more tests
-                 )))
-       (declare (dynamic-extent fn))
-       (map-all-attdefs-for-element 
-        (dtd *ctx*) name fn))
 
     ;; check for double attributes
     (do ((q atts (cdr q)))
@@ -2176,6 +2171,8 @@
   (unless (eq (peek-token input) :eof)
     (error "Trailing garbage - ~S." (peek-token input))))
 
+(defvar *ugly-hack* nil)
+
 (defun p/doctype-decl (input)
   (let ((*expand-pe-p* nil))
     (let (name extid)
@@ -2213,7 +2210,9 @@
         (consume-token input)
         (p/S? input))
       (expect input :>)
-      (when extid
+      (when (and extid (not *ugly-hack*))
+        ;; can we make this conditional on *validate*?
+        ;; (What about entity references then?)
         (let* ((xi2 (open-extid (absolute-extid input extid)))
                (zi2 (make-zstream :input-stack (list xi2))))
           (let ()
@@ -2283,8 +2282,7 @@
     
 (defun p/element-no-ns (input)
   ;;    [39] element ::= EmptyElemTag | STag content ETag
-  (when *validate*
-    (error "sorry, bitrot in non-namespace aware mode"))
+  (error "sorry, bitrot")
   (multiple-value-bind (cat sem) (read-token input)
     (cond ((eq cat :ztag)
 	   (sax:start-element (handler *ctx*) nil nil (car sem) (build-attribute-list-no-ns (cdr sem)))
@@ -2307,13 +2305,12 @@
   (destructuring-bind (cat (name &rest attrs))
       (multiple-value-list (read-token input))
     (validate-start-element *ctx* name)
-    (let ((ns-decls (declare-namespaces attrs)))
+    (let ((ns-decls (declare-namespaces name attrs)))
       (multiple-value-bind (ns-uri prefix local-name) (decode-qname name)
 	(declare (ignore prefix))
-	(let ((attlist (build-attribute-list-ns attrs)))
-          (when *validate*
-            (validate-attributes *ctx* name attlist))
-	  (cond ((eq cat :ztag)
+	(let* ((raw-attlist (build-attribute-list-ns attrs))
+               (attlist (process-attributes *ctx* name raw-attlist)))
+          (cond ((eq cat :ztag)
 		 (sax:start-element (handler *ctx*) ns-uri local-name name attlist)
 		 (sax:end-element (handler *ctx*) ns-uri local-name name))
 		
@@ -2905,7 +2902,8 @@
 (defun resolve-entity (name entities)
   (if (assoc (list :general name) entities :test #'equalp) ;XXX
       (let* ((handler (funcall (find-symbol (symbol-name '#:make-dom-builder) :dom)))
-             (*ctx* (make-context :handler handler)))
+             (*ctx* (make-context :handler handler :entities entities))
+             (*validate* nil))          ;XXX
         (sax:start-document handler)
         (ff (rod name))
         (funcall (find-symbol (symbol-name '#:child-nodes) :dom)
@@ -2997,13 +2995,30 @@
       (subseq attrname 6)
       nil))
 
-(defun find-namespace-declarations (attr-alist)
-  (mapcar #'(lambda (attr)
-	      (cons (attrname->prefix (car attr)) (cdr attr)))
-	  (remove-if-not #'xmlns-attr-p attr-alist :key #'car)))
+(defun find-namespace-declarations (element attr-alist)
+  (let ((result
+         (mapcar #'(lambda (attr)
+                     (cons (attrname->prefix (car attr)) (cdr attr)))
+                 (remove-if-not #'xmlns-attr-p attr-alist :key #'car))))
+    ;; Argh!  PROCESS-ATTRIBUTES needs to know the attributes' namespaces
+    ;; already.  But namespace declarations can be done using default values
+    ;; in the DTD.  So we need to handle defaulting of attribute values twice,
+    ;; once for xmlns attributes, then for all others.  (I really hope I'm
+    ;; wrong on this one, but I don't see how.)
+    (let ((e (find-element element (dtd *ctx*))))
+      (when e
+        (dolist (ad (elmdef-attributes e)) ;handle default values
+          (let* ((name (attdef-name ad))
+                 (prefix (attrname->prefix name)))
+            (when (and (xmlns-attr-p name)
+                       (not (member prefix result :key #'car :test #'rod=))
+                       (listp (attdef-default ad)) ;:DEFAULT or :FIXED
+                       )
+              (push (cons prefix (cadr (attdef-default ad))) result))))))
+    result))
 
-(defun declare-namespaces (attr-alist)
-  (let ((ns-decls (find-namespace-declarations attr-alist)))
+(defun declare-namespaces (element attr-alist)
+  (let ((ns-decls (find-namespace-declarations element attr-alist)))
     (dolist (ns-decl ns-decls )
       ;; check some namespace validity constraints
       ;; FIXME: Would be nice to add "this is insane, go ahead" restarts
@@ -3048,10 +3063,11 @@
   namespace-uri
   local-name
   qname
-  value)
+  value
+  specified-p)
 
 (defun build-attribute-list-no-ns (attr-alist)
-  (mapcar #'(lambda (pair) (make-attribute :qname (car pair) :value (cdr pair)))
+  (mapcar #'(lambda (pair) (make-attribute :qname (car pair) :value (cdr pair) :specified-p t))
 	  attr-alist))
 
 ;; FIXME: Use a non-braindead way to enforce attribute uniqueness
@@ -3060,7 +3076,7 @@
     (dolist (pair attr-alist)
       (when (or (not (xmlns-attr-p (car pair)))
 		sax:*include-xmlns-attributes*)
-	(push (build-attribute (car pair) (cdr pair)) attributes)))
+	(push (build-attribute (car pair) (cdr pair) t) attributes)))
     
     ;; 5.3 Uniqueness of Attributes
     ;; In XML documents conforming to [the xmlns] specification, no
@@ -3085,19 +3101,22 @@
 		 (mu (attribute-local-name attr-1))
 		 (mu (attribute-namespace-uri attr-1))))))))
     
-(defun build-attribute (name value)
+(defun build-attribute (name value specified-p)
   (multiple-value-bind (prefix local-name) (split-qname name)
     (declare (ignorable local-name))
     (if (or (not prefix) ;; default namespace doesn't apply to attributes
 	    (and (rod= #"xmlns" prefix) (not sax:*use-xmlns-namespace*)))
-	(make-attribute :qname name :value value)
+	(make-attribute :qname name
+                        :value value
+                        :specified-p specified-p)
 	(multiple-value-bind (uri prefix local-name)
 	    (decode-qname name)
 	  (declare (ignore prefix))
 	  (make-attribute :qname name
 			  :value value
 			  :namespace-uri uri
-			  :local-name local-name)))))
+			  :local-name local-name
+                          :specified-p specified-p)))))
     
 ;;; Faster constructors
 

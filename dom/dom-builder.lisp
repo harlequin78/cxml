@@ -1,25 +1,6 @@
 ;;; XXX this DOM builder knows too much about the specifics of the DOM
-;;; implementation for my taste.  While document creation is not specified
-;;; by the DOM Level 1 spec, we shouldn't really be manually setting slots
-;;; in other nodes IMHO.
-;;;
-;;; As a follow-up to that, the children list is created in the wrong order
-;;; and then reversed.  Is it really worth the improved speed to do this?
-;;; Calling APPEND-NODE would be portable.
-;;;
-;;; In particular, that design choice has lead to other bugs, for example the
-;;; PARENT slot has to be set manually, too.  A DOM test finally showed
-;;; that this had been forgotten for Text nodes and PIs.
-;;;
-;;; Opinions?
-;;;
-;;;   -- David
-
-;;; Now at least the children list isn't reversed anymore, because I changed
-;;; the representation to be an extensible vector.  Still its not clear to
-;;; me whether the DOM Builder should be affected by such changes at all.
-;;;
-;;;   -- David
+;;; implementation for my taste.  We need a sensible protocol for fast DOM
+;;; building.
 
 (in-package :dom-impl)
 
@@ -65,11 +46,24 @@
 (defmethod sax:start-element ((handler dom-builder) namespace-uri local-name qname attributes)
   (with-slots (document element-stack) handler
     (let ((element (dom:create-element document qname))
-	  (parent (car element-stack)))
+	  (parent (car element-stack))
+          (anodes '()))
       (dolist (attr attributes)
-	(dom:set-attribute element (cxml::attribute-qname attr) (cxml::attribute-value attr)))
+	(let ((anode
+               (dom:create-attribute document (cxml::attribute-qname attr)))
+              (text
+               (dom:create-text-node document (cxml::attribute-value attr))))
+          (setf (slot-value anode 'dom-impl::specified-p)
+                (cxml::attribute-specified-p attr))
+          (dom:append-child anode text)
+          (push anode anodes)))
       (setf (slot-value element 'dom-impl::parent) parent)
       (fast-push element (slot-value parent 'dom-impl::children))
+      (setf (slot-value element 'dom-impl::attributes)
+            (make-instance 'named-node-map
+              :items anodes
+              :element-type :attribute
+              :owner document))
       (push element element-stack))))
 
 (defmethod sax:end-element ((handler dom-builder) namespace-uri local-name qname)

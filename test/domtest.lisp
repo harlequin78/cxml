@@ -607,7 +607,8 @@
          (n 0)
          (i 0)
          (ntried 0)
-         (nfailed 0))
+         (nfailed 0)
+         (cxml::*ugly-hack* t))
     (do-child-elements (member suite)
       (unless
           (member (runes:rod-string (dom:get-attribute member "href"))
@@ -635,7 +636,8 @@
 
 (defun run-test (*directory* href)
   (let* ((test-directory (merge-pathnames "tests/level1/core/" *directory*))
-         (lisp (slurp-test (merge-pathnames href test-directory))))
+         (lisp (slurp-test (merge-pathnames href test-directory)))
+         (cxml::*ugly-hack* t))
     (print lisp)
     (when lisp
       (funcall (compile nil lisp)))))
