@@ -230,6 +230,8 @@
   ;;(defparameter *fast* '(optimize (speed 2) (safety 3)))
   )
 
+(defvar *ctx*)                          ;parser context
+
 (defvar *expand-pe-p*)
 
 ;;;; ---------------------------------------------------------------------------
@@ -649,9 +651,6 @@
 ;;;;  DTD
 ;;;;
 
-(defparameter *entities* nil)
-(defvar *dtd*)
-
 (defun validity-error (x &rest args)
   ;; XXX define a special condition class for this kind of error
   (error "Validity constraint violated: ~@?" x args))
@@ -682,14 +681,14 @@
     (setf def
       (list (car def) (absolute-extid source-stream (cadr def)))))
   (setf name (intern-name name))
-  (setf *entities*
-    (append *entities*
+  (setf (entities *ctx*)
+    (append (entities *ctx*)
             (list (cons (list kind name)
                         def)))))
 
 (defun entity->xstream (entity-name kind &optional zstream)
   ;; `zstream' is for error messages
-  (let ((looked (assoc (list kind entity-name) *entities* :test #'equalp)))
+  (let ((looked (assoc (list kind entity-name) (entities *ctx*) :test #'equalp)))
     (unless looked
       (if zstream 
           (perror zstream "Entity '~A' is not defined." (rod-string entity-name))
@@ -709,7 +708,7 @@
       r)))
 
 (defun entity-source-kind (name type)
-  (let ((looked (assoc (list type name) *entities* :test #'equalp)))
+  (let ((looked (assoc (list type name) (entities *ctx*) :test #'equalp)))
     (unless looked
       (error "Entity '~A' is not defined." (rod-string name)))
     (cadr looked)))
@@ -1080,7 +1079,7 @@
                  )))
        (declare (dynamic-extent fn))
        (map-all-attdefs-for-element 
-        *dtd* name fn))
+        (dtd *ctx*) name fn))
 
     ;; check for double attributes
     (do ((q atts (cdr q)))
@@ -1463,11 +1462,6 @@
 ;;;;  Parser
 ;;;;
 
-(defvar *handler*)
-
-;; forward declaration for DEFVAR
-(declaim (special *namespace-bindings* *default-namespace-bindings*))
-
 (defun p/S (input)
   ;; S ::= (#x20 | #x9 | #xD | #xA)+
   (expect input :S)
@@ -1498,7 +1492,7 @@
                   (return))
                  (t
                   (multiple-value-bind (name type default) (p/attdef input)
-                    (define-attribute *dtd* elm-name name type default)) )))
+                    (define-attribute (dtd *ctx*) elm-name name type default)) )))
           (:>
            (return))
           (otherwise
@@ -1634,12 +1628,12 @@
             (ecase (car id)
               (:PUBLIC
                 (sax:unparsed-entity-declaration
-                 *handler* name (second id) (third id) notation))
+                 (handler *ctx*) name (second id) (third id) notation))
               (:SYSTEM
                 (sax:unparsed-entity-declaration
-                 *handler* name nil (second id) notation)))))
+                 (handler *ctx*) name nil (second id) notation)))))
         (:INTERNAL
-          (sax:unparsed-entity-declaration *handler* name nil nil nil))))
+          (sax:unparsed-entity-declaration (handler *ctx*) name nil nil nil))))
     (p/S? input)
     (expect input :\>)))
 
@@ -1747,7 +1741,7 @@
     (p/S? input)
     (expect input :\>)
     (when *validate*
-      (define-element *dtd* name content))
+      (define-element (dtd *ctx*) name content))
     (list :element name content)))
 
 (defun legal-content-model-p (cspec)
@@ -1841,9 +1835,9 @@
     (case (car id)
       ;; XXX are these right?
       (:SYSTEM
-        (sax:notation-declaration *handler* name nil (cadr id)))
+        (sax:notation-declaration (handler *ctx*) name nil (cadr id)))
       (:PUBLIC
-        (sax:notation-declaration *handler* name (cadr id) (caddr id))))
+        (sax:notation-declaration (handler *ctx*) name (cadr id) (caddr id))))
     (list :notation-decl name id)))
 
 ;;;
@@ -1962,9 +1956,9 @@
           (setf extid (p/external-id input t))))
       (p/S? input)
       (ecase (car extid)
-        (:PUBLIC (sax:start-dtd *handler* name (cadr extid) (caddr extid)))
-        (:SYSTEM (sax:start-dtd *handler* name nil (cadr extid)))
-        ((nil) (sax:start-dtd *handler* name nil nil)))
+        (:PUBLIC (sax:start-dtd (handler *ctx*) name (cadr extid) (caddr extid)))
+        (:SYSTEM (sax:start-dtd (handler *ctx*) name nil (cadr extid)))
+        ((nil) (sax:start-dtd (handler *ctx*) name nil nil)))
       (when (eq (peek-token input) :\[ )
         (consume-token input)
         (while (progn (p/S? input)
@@ -1989,7 +1983,7 @@
                (zi2 (make-zstream :input-stack (list xi2))))
           (let ()
             (p/ext-subset zi2))))
-      (sax:end-dtd *handler*)
+      (sax:end-dtd (handler *ctx*))
       (list :DOCTYPE name extid))))
 
 (defun p/misc*-2 (input)
@@ -1997,21 +1991,27 @@
   (while (member (peek-token input) '(:COMMENT :PI :S))
     (case (peek-token input)
       (:COMMENT
-        (sax:comment *handler* (nth-value 1 (peek-token input))))
+        (sax:comment (handler *ctx*) (nth-value 1 (peek-token input))))
       (:PI
         (sax:processing-instruction 
-         *handler*
+         (handler *ctx*)
          (car (nth-value 1 (peek-token input)))
          (cdr (nth-value 1 (peek-token input))))))
     (consume-token input)))
   
+;; forward declaration for DEFVAR
+(declaim (special *default-namespace-bindings*))
+
+(defstruct (context (:conc-name nil))
+  handler
+  (namespace-bindings *default-namespace-bindings*)
+  (entities nil)
+  (dtd (make-dtd)))
+
 (defun p/document (input handler)
-  (let ((*handler* handler)
-	(*namespace-bindings* *default-namespace-bindings*)
-        (*entities* nil)
-        (*dtd* (make-dtd)))
+  (let ((*ctx* (make-context :handler handler)))
     (define-default-entities)
-    (sax:start-document *handler*)
+    (sax:start-document handler)
     ;; document ::= XMLDecl? Misc* (doctypedecl Misc*)? element Misc*
     ;; Misc ::= Comment | PI |  S
     ;; xmldecl::='<?xml' VersionInfo EncodingDecl? SDDecl? S? '?>'
@@ -2038,7 +2038,7 @@
       (p/misc*-2 input)
       (unless (eq (peek-token input) :eof)
         (error "Garbage at end of document."))
-      (sax:end-document *handler*))))
+      (sax:end-document handler))))
 
 (defun p/element (input)
   (if sax:*namespace-processing*
@@ -2049,17 +2049,17 @@
   ;;    [39] element ::= EmptyElemTag | STag content ETag
   (multiple-value-bind (cat sem) (read-token input)
     (cond ((eq cat :ztag)
-	   (sax:start-element *handler* nil nil (car sem) (build-attribute-list-no-ns (cdr sem)))
-	   (sax:end-element *handler* nil nil (car sem)))
+	   (sax:start-element (handler *ctx*) nil nil (car sem) (build-attribute-list-no-ns (cdr sem)))
+	   (sax:end-element (handler *ctx*) nil nil (car sem)))
 
           ((eq cat :stag)
-	   (sax:start-element *handler* nil nil (car sem) (build-attribute-list-no-ns (cdr sem)))
+	   (sax:start-element (handler *ctx*) nil nil (car sem) (build-attribute-list-no-ns (cdr sem)))
 	   (p/content input)
 	   (multiple-value-bind (cat2 sem2) (read-token input)
                (unless (and (eq cat2 :etag)
                             (eq (car sem2) (car sem)))
                  (perror input "Bad nesting. ~S / ~S" (mu sem) (mu (cons cat2 sem2)))))
-	   (sax:end-element *handler* nil nil (car sem)))
+	   (sax:end-element (handler *ctx*) nil nil (car sem)))
 
           (t
            (error "Expecting element.")))))
@@ -2073,17 +2073,17 @@
 	(declare (ignore prefix))
 	(let ((attlist (build-attribute-list-ns attrs)))
 	  (cond ((eq cat :ztag)
-		 (sax:start-element *handler* ns-uri local-name name attlist)
-		 (sax:end-element *handler* ns-uri local-name name))
+		 (sax:start-element (handler *ctx*) ns-uri local-name name attlist)
+		 (sax:end-element (handler *ctx*) ns-uri local-name name))
 		
 		((eq cat :stag)
-		 (sax:start-element *handler* ns-uri local-name name attlist)
+		 (sax:start-element (handler *ctx*) ns-uri local-name name attlist)
 		 (p/content input)
 		 (multiple-value-bind (cat2 sem2) (read-token input)
 		   (unless (and (eq cat2 :etag)
 				(eq (car sem2) name))
 		     (perror input "Bad nesting. ~S / ~S" (mu name) (mu (cons cat2 sem2)))))
-		 (sax:end-element *handler* ns-uri local-name name))
+		 (sax:end-element (handler *ctx*) ns-uri local-name name))
 		
 		(t
 		 (error "Expecting element, got ~S." cat)))))
@@ -2106,7 +2106,7 @@
        (p/content input))
       ((:CDATA)
        (consume-token input)
-       (sax:characters *handler* sem)
+       (sax:characters (handler *ctx*) sem)
        (p/content input))
       ((:ENTITY-REF)
        (let ((name sem))
@@ -2132,17 +2132,17 @@
                        (rune= #/A (read-rune input))
                        (rune= #/\[ (read-rune input)))
             (error "After '<![', 'CDATA[' is expected."))
-	  (sax:start-cdata *handler*)
-	  (sax:characters  *handler* (read-cdata-sect input))
-	  (sax:end-cdata *handler*))
+	  (sax:start-cdata (handler *ctx*))
+	  (sax:characters (handler *ctx*) (read-cdata-sect input))
+	  (sax:end-cdata (handler *ctx*)))
         (p/content input)))
       ((:PI)
        (consume-token input)
-       (sax:processing-instruction *handler* (car sem) (cdr sem))
+       (sax:processing-instruction (handler *ctx*) (car sem) (cdr sem))
        (p/content input))
       ((:COMMENT)
        (consume-token input)
-       (sax:comment *handler* sem)
+       (sax:comment (handler *ctx*) sem)
        (p/content input))
       (otherwise
        nil))))
@@ -2588,7 +2588,7 @@
                        res))))
 
 (defun internal-entity-expansion (name)
-  (let ((e (assoc (list :general name) *entities* :test #'equalp)))
+  (let ((e (assoc (list :general name) (entities *ctx*) :test #'equalp)))
     (unless e
       (error "Entity '~A' is not defined." (rod-string name)))
     (unless (eq :INTERNAL (cadr e))
@@ -2660,14 +2660,12 @@
 ;;; XXX FIXME FIXME FIXME
 (defun resolve-entity (name entities)
   (if (assoc (list :general name) entities :test #'equalp) ;XXX
-      (let ((*handler* (funcall (find-symbol (symbol-name '#:make-dom-builder) :dom)))
-            (*namespace-bindings* *default-namespace-bindings*)
-            (*entities* entities)
-            (*dtd* (make-dtd)))
-        (sax:start-document *handler*)
+      (let* ((handler (funcall (find-symbol (symbol-name '#:make-dom-builder) :dom)))
+             (*ctx* (make-context :handler handler)))
+        (sax:start-document handler)
         (ff (rod name))
         (funcall (find-symbol (symbol-name '#:child-nodes) :dom)
-                 (sax:end-document *handler*)))
+                 (sax:end-document handler)))
       nil))
 
 (defun read-att-value-2 (input)
@@ -2703,7 +2701,6 @@
 
 ;;; Namespace stuff
 
-(defvar *namespace-bindings* ())
 (defvar *default-namespace-bindings*
   '((#"" . nil)
     (#"xmlns" . #"http://www.w3.org/2000/xmlns/")
@@ -2738,7 +2735,7 @@
 
 
 (defun find-namespace-binding (prefix)
-  (cdr (or (assoc (or prefix #"") *namespace-bindings* :test #'rod=)
+  (cdr (or (assoc (or prefix #"") (namespace-bindings *ctx*) :test #'rod=)
 	   (error "Undeclared namespace prefix: ~A" (rod-string prefix)))))
 
 ;; FIXME: Should probably be refactored by adding :start and :end to rod=/rod-equal
@@ -2794,14 +2791,14 @@
 	   (error "Only the default namespace (the one without a prefix) may ~
                    be bound to an empty namespace URI, thus undeclaring it."))
 	  (t
-	   (push (cons prefix uri) *namespace-bindings*)
-	   (sax:start-prefix-mapping *handler* (car ns-decl) (cdr ns-decl))))))
+	   (push (cons prefix uri) (namespace-bindings *ctx*))
+	   (sax:start-prefix-mapping (handler *ctx*) (car ns-decl) (cdr ns-decl))))))
     ns-decls))
 
 (defun undeclare-namespaces (ns-decls)
   (dolist (ns-decl ns-decls)
-    (setq *namespace-bindings* (delete ns-decl *namespace-bindings*))
-    (sax:end-prefix-mapping *handler* (car ns-decl))))
+    (setf (namespace-bindings *ctx*) (delete ns-decl (namespace-bindings *ctx*)))
+    (sax:end-prefix-mapping (handler *ctx*) (car ns-decl))))
 
 (defstruct attribute
   namespace-uri
