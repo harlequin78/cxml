@@ -1,6 +1,6 @@
 Changes to Gilbert Baumann's Code
 ========================================
-(Stand dieser Liste: patch-126)
+(Stand dieser Liste: patch-134)
 
 base-0
     Import of Closure's src/xml and src/glisp
@@ -144,6 +144,18 @@ patch-120, patch-122, patch-124
     NodeList reimplementiert
 patch-121
     NAMED-NODE-MAP muss auch auf HIERARCHY_REQUEST_ERR pruefen...
+patch-128
+    ATTRIBUTE hat jetzt Kinder
+patch-129
+    auch Attribute normalisieren
+patch-130
+    (setf dom:value) auf einem Attribut darf ein etwaiges Kinderobjekt nicht wiederverwenden
+patch-131
+    replace-child fuer document-fragment implementiert
+patch-132
+    CAN-ADOPT-P fuer Parent ATTRIBUTE und Kind CDATA-SECTION korrigiert
+patch-133
+    DOCUMENT darf nur jeweils ein ELEMENT- und DOCTYPE-Kind haben
 
 xml-parse.lisp changes
 ----------------
@@ -189,6 +201,8 @@ patch-10
     reverted by patch-12
 patch-114
     reverted by patch-115
+patch-63
+    reverted by patch-134
 
 
 DOM-Builder und SAX-Interface
@@ -220,7 +234,3 @@ patch-15
     run only tests for namespace-aware XML-1.0 parsers
 patch-16
     mit korrektem OUTPUT abgleichen
-
-NOCH:
-patch-63
-    Reihenfolge der Attribute erhalten
