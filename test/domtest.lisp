@@ -539,6 +539,7 @@
 (defun assert-have-implementation-attribute (element)
   (let ((attribute (runes:rod-string (dom:get-attribute element "name"))))
     (string-case attribute
+      ("validating")
       (t
         (format t "~&implementationAttribute ~A not supported, skipping test~%"
                 attribute)
@@ -549,6 +550,7 @@
     (multiple-value-setq (*methods* *fields*) (read-members)))
   (catch 'give-up
     (let* ((builder (dom:make-dom-builder))
+           (cxml::*validate* nil)         ;dom1.dtd is buggy
            (test (dom:document-element (cxml:parse-file pathname builder)))
            title
            (bindings '())
@@ -607,8 +609,7 @@
          (n 0)
          (i 0)
          (ntried 0)
-         (nfailed 0)
-         (cxml::*ugly-hack* t))
+         (nfailed 0))
     (do-child-elements (member suite)
       (unless
           (member (runes:rod-string (dom:get-attribute member "href"))
@@ -626,7 +627,8 @@
               (incf ntried)
               (with-simple-restart (skip-test "Skip this test")
                 (handler-case
-                    (funcall (compile nil lisp))
+                    (let ((cxml::*validate* t))
+                      (funcall (compile nil lisp)))
                   (serious-condition (c)
                     (incf nfailed)
                     (warn "test failed: ~A" c))))))
@@ -636,8 +638,7 @@
 
 (defun run-test (*directory* href)
   (let* ((test-directory (merge-pathnames "tests/level1/core/" *directory*))
-         (lisp (slurp-test (merge-pathnames href test-directory)))
-         (cxml::*ugly-hack* t))
+         (lisp (slurp-test (merge-pathnames href test-directory))))
     (print lisp)
     (when lisp
       (funcall (compile nil lisp)))))
