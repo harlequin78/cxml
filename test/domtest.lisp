@@ -257,6 +257,7 @@
   (with-attributes (|type|) element 
    `(equal ,|type| "text/xml")))
 
+#+allegro
 (defun translate-uri-equals (element)
   (with-attributes
       (|actual|
