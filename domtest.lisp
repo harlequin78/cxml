@@ -127,9 +127,16 @@
     ((digit-char-p (char str 0))
       (parse-integer str))
     ((char= (char str 0) #\")
-      (let ((end (1- (length str))))
-        (assert (char= (char str end) #\"))
-        (subseq str 1 end)))
+      (with-output-to-string (out)
+        (with-input-from-string (in str)
+          (read-char in)
+          (for ((c = (read-char in))
+                :until (char= c #\"))
+            (if (char= c #\\)
+                (ecase (read-char in)
+                  ;; ...
+                  (#\n (write-char #\newline out)))
+                (write-char c out))))))
     (t
       (%intern str))))
 
