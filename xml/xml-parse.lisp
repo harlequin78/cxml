@@ -2687,7 +2687,7 @@
         (x)))
 
 ;;;; ---------------------------------------------------------------------------
-;;;; User inteface ;;;;
+;;;; User interface ;;;;
 
 (defun parse-file (filename handler &rest args)
   (with-open-xstream (input filename)
