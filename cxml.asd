@@ -33,8 +33,10 @@
 	    :depends-on (dependent))
      (:file "runes"
 	    :depends-on ("package" dependent))
+     (:file "syntax"
+	    :depends-on ("package" dependent "runes"))
      (:file "util"
-	    :depends-on ("package" dependent "runes"))))
+	    :depends-on ("package" dependent))))
 
 (asdf:defsystem :cxml
     :default-component-class closure-source-file
