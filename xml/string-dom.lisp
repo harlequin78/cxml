@@ -8,7 +8,7 @@
                               cdom:node-name cdom:node-value
                               cdom:substring-data cdom:get-attribute
                               cdom:set-attribute cdom:public-id cdom:system-id
-                              cdom:notation-name))
+                              cdom:notation-name cdom:target))
                 :string-dom
                 :cdom))
            (symbol (intern (symbol-name var) home-package)))
@@ -56,3 +56,6 @@
 
 (defun string-dom:notation-name (node)
   (rod-to-string (cdom:notation-name node)))
+
+(defun string-dom:target (node)
+  (rod-to-string (cdom:target node)))
