@@ -11,7 +11,8 @@
 (defmethod perform :around ((o compile-op) (s closure-source-file))
   ;; shut up already.  Correctness first.
   (handler-bind ((sb-ext:compiler-note #'muffle-warning))
-    (call-next-method)))
+    (let (#+sbcl (*compile-print* nil))
+      (call-next-method))))
 
 #-rune-is-character
 (format t "~&;;; Building cxml with (UNSIGNED-BYTE 16) RUNES~%")
@@ -40,7 +41,7 @@
 	    #+sbcl                              "dep-sbcl"
 	    #+(AND :CMU :PTHREAD)               "dep-cmucl-dtc"
 	    #+(and allegro-version>= (version>= 5.0)) "dep-acl5"
-	    #-(and allegro-version>= (version>= 5.0)) "dep-acl"
+	    #+(and allegro-version>= (not (version>= 5.0))) "dep-acl"
 	    #-(or sbcl CLISP CMU allegro) #.(error "Configure!")
             :depends-on ("package"))
      (:file runes
