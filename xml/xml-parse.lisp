@@ -127,23 +127,6 @@
 ;;   [for thread-safety reasons the array are allocated per context now,
 ;;   reentrancy is still open]
 
-;; o only parse the DTD on an option
-;;
-;;     Man koennte ueber eine Option nachdenken, die das Parsen des
-;;     external subsets deaktiviert.  Eine Keyword-Option 'standalone' mit
-;;     dem Effekt der gleichnamigen Deklaration im Dokument waere das
-;;     eine.  Zweitens waere ein Modus denkbar, in dem external parsed
-;;     entities (oder wie die heissen) nicht resolved werden.  Letzteres
-;;     macht aber ueberhaupt keinen Spass
-;;
-;;     Wenn's nach mir geht, ist so eine Option nicht wichtig.  Sollen die
-;;     Leute halt keine DTD angeben, wenn sie die dann nicht da haben. :-)
-;;
-;;     Eher noch wuerde ich erlauben, die DTD-Angabe zu ueberschreiben
-;;     unabhaengig vom Validieren, das machen wir ja ohnehin.  Dann muessen
-;;     Entities halt in der uebergebenen DTD definiert sein.
-;;       --david
-
 ;; o CR handling in utf-16 deocders
 ;;
 ;; o UCS-4 reader
@@ -184,17 +167,6 @@
 ;;   space rules.
 ;;
 ;; o on a parser option, do not expand external entities.
-;;
-;; o on a parser option, do not parse the DTD.
-;;
-;; o caching DTDs?
-;;
-;;   That is, if we parse a lot of documents all having the same DTD,
-;;   we do not need to re-read it every time.
-;;   But watch the file write date, since not doing so would be
-;;   a good way to confuse a hell lot of users.
-;;   But: What to do with declarations in the <!DOCTYPE header?
-;;
 ;;
 ;; o does the user need the distinction between "&#20;" and " " ?
 ;;   That is literal and 'quoted' white space.
