@@ -359,8 +359,10 @@
 
 (defun translate-assert-size (element)
   (with-attributes (|collection| |size|) element
-    `(assert (eql (length ,(%intern |collection|))
-                  ,(parse-java-literal |size|)))))
+    `(let ((collection ,(%intern |collection|)))
+       (when (typep collection 'dom-impl::named-node-map)
+         (setf collection (dom:items collection)))
+       (assert (eql (length collection) ,(parse-java-literal |size|))))))
 
 (defun translate-assert-instance-of (element)
   `(assert ,(translate-instance-of element)))
