@@ -2470,20 +2470,20 @@
   (let ((input-var (gensym))
         (collect (gensym))
         (c (gensym)))
-    `(let ((,input-var ,input))
-       (multiple-value-bind (,res ,res-start ,res-end) 
-           (with-rune-collector/raw (,collect)
-             (loop
-               (let ((,c (peek-rune ,input-var)))
-                 (cond ((eq ,c :eof) 
+    `(LET ((,input-var ,input))
+       (MULTIPLE-VALUE-BIND (,res ,res-start ,res-end) 
+           (WITH-RUNE-COLLECTOR/RAW (,collect)
+             (LOOP
+               (LET ((,c (PEEK-RUNE ,input-var)))
+                 (COND ((EQ ,c :EOF) 
                         ;; xxx error message
-                        (return))
-                       ((funcall ,predicate ,c)
-                        (return))
+                        (RETURN))
+                       ((FUNCALL ,predicate ,c)
+                        (RETURN))
                        (t
                         (,collect ,c)
-                        (consume-rune ,input-var))))))
-         (locally
+                        (CONSUME-RUNE ,input-var))))))
+         (LOCALLY
            ,@body)))))
   
 (defun read-name-token (input)
