@@ -45,7 +45,7 @@
          (xml:unparse-document document s))))
 
 (defun file-contents (pathname)
-  (with-open-file (s pathname)
+  (with-open-file (s pathname :element-type '(unsigned-byte 8))
     (let ((result
            (make-array (file-length s) :element-type '(unsigned-byte 8))))
       (read-sequence result s )
@@ -83,6 +83,7 @@
                             (let ((error-output
                                    (make-pathname :type "error" :defaults output)))
                               (with-open-file (s error-output
+                                               :element-type '(unsigned-byte 8)
                                                :direction :output
                                                :if-exists :supersede)
                                 (write-sequence (serialize-document document) s))
