@@ -152,7 +152,7 @@
             (t 
               (write-rod #" PUBLIC '" sink)
               (write-rod (dom:public-id notation) sink)
-              (write-rod "' '" sink)
+              (write-rod #"' '" sink)
               (write-rod (dom:system-id notation) sink)
               (write-rune #/' sink)))
           (write-rune #/> sink)
