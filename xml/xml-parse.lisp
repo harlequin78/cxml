@@ -2738,9 +2738,10 @@
 
 (defun parse-string (string handler)
   ;; XXX this function mis-handles encoding
-  (let* ((x (string->xstream string))
-         (z (make-zstream :input-stack (list x))))
-    (p/document z handler)))
+  (with-scratch-pads ()
+    (let* ((x (string->xstream string))
+           (z (make-zstream :input-stack (list x))))
+      (p/document z handler))))
 
 (defun string->xstream (string)
   ;; XXX encoding is mis-handled by this kind of stream
