@@ -208,7 +208,7 @@
 ;;;; (09) One ID per Element Type               DEFINE-ATTRIBUTE
 ;;;; (10) ID Attribute Default                  DEFINE-ATTRIBUTE
 ;;;; (11) IDREF                                 VALIDATE-ATTRIBUTE, P/DOCUMENT
-;;;; (12) Entity Name
+;;;; (12) Entity Name                           VALIDATE-ATTRIBUTE
 ;;;; (13) Name Token                            VALIDATE-ATTRIBUTE
 ;;;; (14) Notation Attributes
 ;;;; (15) One Notation Per Element Type
@@ -751,7 +751,7 @@
       (validity-error "(20) Fixed Attribute Default: expected ~S but got ~S"
                       (rod-string (cadr default))
                       (rod-string value)))
-    (case (if (listp type) (car type) type)
+    (ecase (if (listp type) (car type) type)
       (:ID
         (unless (valid-name-p value)
           (validity-error "(08) ID: not a name: ~S" (rod-string value)))
@@ -759,6 +759,11 @@
           (validity-error "(08) ID: ~S not unique" (rod-string value)))
         (setf (gethash value (id-table ctx)) t))
       (:IDREF
+        (unless (valid-name-p value)
+          (validity-error "(11) IDREF: not a name: ~S" (rod-string value)))
+        (unless (gethash value (id-table ctx))
+          (setf (gethash value (id-table ctx)) nil)))
+      (:IDREFS
         (let ((names (split-names value)))
           (unless names
             (validity-error "(11) IDREF: malformed names"))
@@ -782,7 +787,25 @@
       (:ENUMERATION
         (unless (member value (cdr type) :test #'rod=)
           (validity-error "(17) Enumeration: value not declared: ~S"
-                          (rod-string value)))))))
+                          (rod-string value))))
+      (:ENTITY
+        (unless (valid-name-p value)
+          (validity-error "(12) Entity Name: not a name: ~S" (rod-string value)))
+        (unless (get-entity-definition value :general *ctx*)
+          (validity-error "(12) Entity Name: ~S" (rod-string value))))
+      (:ENTITIES
+        (let ((names (split-names value)))
+          (unless names
+            (validity-error "(13) Name Token: malformed NMTOKENS"))
+          (dolist (name names)
+            (unless (valid-name-p name)
+              (validity-error "(12) Entity Name: not a name: ~S"
+                              (rod-string name)))
+            (unless (get-entity-definition name :general *ctx*)
+              (validity-error "(12) Entity Name: ~S" (rod-string name))))))
+      (:NOTATION)                       ;fixme
+      (:NOTATIONS)                      ;fixme
+      (:CDATA))))
 
 (defun split-names (rod)
   (flet ((whitespacep (x)
@@ -826,9 +849,12 @@
             (list (cons (list kind name)
                         def)))))
 
+(defun get-entity-definition (entity-name kind ctx)
+  (assoc (list kind entity-name) (entities ctx) :test #'equalp))
+
 (defun entity->xstream (entity-name kind &optional zstream)
   ;; `zstream' is for error messages
-  (let ((looked (assoc (list kind entity-name) (entities *ctx*) :test #'equalp)))
+  (let ((looked (get-entity-definition entity-name kind *ctx*)))
     (unless looked
       (if zstream 
           (perror zstream "Entity '~A' is not defined." (rod-string entity-name))
@@ -848,7 +874,7 @@
       r)))
 
 (defun entity-source-kind (name type)
-  (let ((looked (assoc (list type name) (entities *ctx*) :test #'equalp)))
+  (let ((looked (get-entity-definition name type *ctx*)))
     (unless looked
       (error "Entity '~A' is not defined." (rod-string name)))
     (cadr looked)))
@@ -921,8 +947,8 @@
 (defstruct dtd
   (elements                             ;maps element names to elmdefs
    (make-hash-table :test 'equal))
-  gentities     ;general entities
-  pentities     ;parameter entities
+  gentities     ;general entities        XXX wird nicht benutzt!
+  pentities     ;parameter entities      XXX wird nicht benutzt!
   (notations (make-hash-table :test 'equalp))
   )
 
@@ -2870,7 +2896,7 @@
                        res))))
 
 (defun internal-entity-expansion (name)
-  (let ((e (assoc (list :general name) (entities *ctx*) :test #'equalp)))
+  (let ((e (get-entity-definition name :general *ctx*)))
     (unless e
       (error "Entity '~A' is not defined." (rod-string name)))
     (unless (eq :INTERNAL (cadr e))
