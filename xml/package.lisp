@@ -1,13 +1,14 @@
 (in-package :cl-user)
 
 (defpackage :encoding
-  (:use :glisp)
+  (:use :cl :glisp)
   (:export
    #:find-encoding
    #:decode-sequence))
 
 (defpackage :xml
   (:use 
+   :cl
    :glisp
    :encoding)
   (:alias (:cdom :dom))

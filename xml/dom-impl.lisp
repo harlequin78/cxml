@@ -1,5 +1,5 @@
 (defpackage :dom-impl
-  (:use :glisp)
+  (:use :cl :glisp)
   (:alias (:cdom :dom)))
 
 (in-package :dom-impl)
