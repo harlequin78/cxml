@@ -525,7 +525,7 @@
 (declaim (type (simple-array rune (*))
                *scratch-pad* *scratch-pad-2* *scratch-pad-3* *scratch-pad-4*))
 
-(defmacro with-scratch-pads (() &body body)
+(defmacro with-scratch-pads ((&optional) &body body)
   `(let ((*scratch-pad* (make-array 1024 :element-type 'rune))
          (*scratch-pad-2* (make-array 1024 :element-type 'rune))
          (*scratch-pad-3* (make-array 1024 :element-type 'rune))
