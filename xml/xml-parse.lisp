@@ -198,7 +198,7 @@
 ;;;; Validity constraints:
 ;;;; (00) Root Element Type                     like (03), c.f. MAKE-ROOT-MODEL
 ;;;; (01) Proper Declaration/PE Nesting
-;;;; (02) Standalone Document Declaration       all over the place
+;;;; (02) Standalone Document Declaration       all over the place [*]
 ;;;; (03) Element Valid                         VALIDATE-*-ELEMENT, -CHARACTERS
 ;;;; (04) Attribute Value Type                  VALIDATE-ATTRIBUTE
 ;;;; (05) Unique Element Type Declaration       DEFINE-ELEMENT
@@ -218,9 +218,17 @@
 ;;;; (19) Attribute Default Legal               DEFINE-ATTRIBUTE
 ;;;; (20) Fixed Attribute Default               VALIDATE-ATTRIBUTE
 ;;;; (21) Proper Conditional Section/PE Nesting
-;;;; (22) Entity Declared
+;;;; (22) Entity Declared                       [**]
 ;;;; (23) Notation Declared                     P/ENTITY-DEF, P/DOCUMENT
 ;;;; (24) Unique Notation Name                  DEFINE-NOTATION
+;;;;
+;;;; [*] Perhaps we could revert the explicit checks of (02), if we did
+;;;; _not_ read external subsets of standalone documents when parsing in
+;;;; validating mode.  Violations of VC (02) constraints would then appear as
+;;;; wellformedness violations, right?
+;;;;
+;;;; [**] Although I haven't investigated this properly yet, I believe that
+;;;; we check this VC together with the WFC even in non-validating mode.
 
 (in-package :cxml)
 
