@@ -298,6 +298,8 @@
 (defmethod dom:remove-child ((node node) (old-child node))
   (assert-writeable node)
   (with-slots (children) node
+    (unless (find old-child children)
+      (dom-error :NOT_FOUND_ERR "~A not found in ~A" old-child node))
     (setf children (remove old-child children))
     (setf (slot-value old-child 'parent) nil)
     old-child))
