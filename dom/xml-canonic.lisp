@@ -136,7 +136,7 @@
   (slot-value sink 'target-stream))
 
 (defun unparse-document-to-octets (doc &rest initargs)
-  (let ((sink (apply #'make-octet-sink initargs)))
+  (let ((sink (apply #'make-octet-vector-sink initargs)))
     (dom:map-document sink doc :include-default-values t)))
 
 
