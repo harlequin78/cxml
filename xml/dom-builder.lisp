@@ -45,3 +45,8 @@
   (with-slots (document element-stack) handler
     (let ((node (cdom:create-processing-instruction document target data)))
       (push node (slot-value (car element-stack) 'dom-impl::children)))))
+
+(defmethod sax:comment ((handler dom-builder) data)
+  (with-slots (document element-stack) handler
+    (let ((node (cdom:create-comment document data)))
+      (push node (slot-value (car element-stack) 'dom-impl::children)))))

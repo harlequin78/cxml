@@ -1912,12 +1912,15 @@
 (defun p/misc*-2 (input)
   ;; Misc*
   (while (member (peek-token input) '(:COMMENT :PI :S))
-    (when (eq (peek-token input) :PI)
-      (sax:processing-instruction 
-             *handler*
-             (car (nth-value 1 (peek-token input)))
-             (cdr (nth-value 1 (peek-token input)))))
-      (consume-token input)))
+    (case (peek-token input)
+      (:COMMENT
+        (sax:comment *handler* (nth-value 1 (peek-token input))))
+      (:PI
+        (sax:processing-instruction 
+         *handler*
+         (car (nth-value 1 (peek-token input)))
+         (cdr (nth-value 1 (peek-token input))))))
+    (consume-token input)))
   
 
 (defvar *handler*)
@@ -2063,8 +2066,9 @@
        (consume-token input)
        (sax:processing-instruction *handler* (car sem) (cdr sem))
        (p/content input))
-      ((:COMMENT) ;; FIXME: should call sax:comment. How does this work?
+      ((:COMMENT)
        (consume-token input)
+       (sax:comment *handler* sem)
        (p/content input))
       (otherwise
        nil))))
