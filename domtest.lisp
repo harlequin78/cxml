@@ -180,7 +180,7 @@
 
 (defun translate-equals (element)
   (with-attributes (|actual| |expected| |ignoreCase|) element
-    `(,(if (parse-java-literal |ignoreCase|) 'string-equal 'string=)
+    `(,(if (parse-java-literal |ignoreCase|) 'string-equal 'equal)
          ,(%intern actual)
          ,(parse-java-literal expected))))
 
