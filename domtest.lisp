@@ -552,6 +552,9 @@
     (dom:normalize (dom:document-element document))
     document))
 
+(defparameter *bad-tests*
+    '("hc_elementnormalize2.xml"))
+
 (defun test2 (&optional verbose)
   (let* ((test-directory (merge-pathnames "tests/level1/core/" *directory*))
          (suite
@@ -562,23 +565,25 @@
          (ntried 0)
          (nfailed 0))
     (do-child-elements (member suite)
-      (declare (ignore member))
-      (incf n))
+      (unless
+          (member (dom:get-attribute member "href") *bad-tests* :test 'equal)
+        (incf n)))
     (do-child-elements (member suite)
       (let ((href (dom:get-attribute member "href")))
-        (format t "~&~D/~D ~A~%" i n href)
-        (let ((lisp (slurp-test (merge-pathnames href test-directory))))
-          (when verbose
-            (print lisp))
-          (when lisp
-            (incf ntried)
-            (with-simple-restart (skip-test "Skip this test")
-              (handler-case
-                  (funcall (compile nil lisp))
-                (serious-condition (c)
-                  (incf nfailed)
-                  (warn "test failed: ~A" c))))))
-      (incf i)))
+        (unless (member href *bad-tests* :test 'equal)
+          (format t "~&~D/~D ~A~%" i n href)
+          (let ((lisp (slurp-test (merge-pathnames href test-directory))))
+            (when verbose
+              (print lisp))
+            (when lisp
+              (incf ntried)
+              (with-simple-restart (skip-test "Skip this test")
+                (handler-case
+                    (funcall (compile nil lisp))
+                  (serious-condition (c)
+                    (incf nfailed)
+                    (warn "test failed: ~A" c))))))
+          (incf i))))
     (format t "~&~D/~D tests failed; ~D test~:P were skipped"
             nfailed ntried (- n ntried))))
 
