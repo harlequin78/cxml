@@ -2521,7 +2521,7 @@
     (unless e
       (error "Entity '~A' is not defined." (rod-string name)))
     (unless (eq :INTERNAL (cadr e))
-      (error "Entity '~A' is not an internal entity."))
+      (error "Entity '~A' is not an internal entity." name))
     (or (cadddr e)
         (car
          (setf (cdddr e)
