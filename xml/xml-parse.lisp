@@ -1923,6 +1923,7 @@
         (consume-token input)
         (p/S? input))
       (expect input :>)
+      #+(or)                            ;XXX workaround
       (when extid
         (let* ((xi2 (open-extid (absolute-extid input extid)))
                (zi2 (make-zstream :input-stack (list xi2))))
