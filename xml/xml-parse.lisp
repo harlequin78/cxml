@@ -2191,11 +2191,13 @@
     (p/document zstream handler)))
 
 (defun parse-string (string &optional (handler (make-instance 'dom-impl::dom-builder)))
+  ;; XXX this function mis-handles encoding
   (let* ((x (string->xstream string))
          (z (make-zstream :input-stack (list x))))
     (p/document z handler)))
 
 (defun string->xstream (string)
+  ;; XXX encoding is mis-handled by this kind of stream
   (make-rod-xstream (string-rod string)))
 
 ;;;;

@@ -39,6 +39,7 @@
    
    #:parse-file
    #:parse-stream
-   #:parse-string
+   ;; XXX encoding is mis-handled by parse-string, don't export it
+   ;; #:parse-string
 
    #:unparse-document))

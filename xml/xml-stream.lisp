@@ -304,7 +304,9 @@
 
 ;;; constructor
 
-(defun make-xstream (os-stream &key name (speed 8192) (initial-speed speed))
+(defun make-xstream (os-stream &key name (speed 8192) (initial-speed 1))
+  ;; XXX if initial-speed isn't 1, encoding will me munged up
+  (assert (eql initial-speed 1))
   (let ()
     (multiple-value-bind (encoding preread) (figure-encoding os-stream)
       (let ((osbuf (make-array speed :element-type '(unsigned-byte 8))))
@@ -328,6 +330,7 @@
   (values (xml::find-encoding :iso-8859-1) nil))
 
 (defun make-rod-xstream (string &key name)
+  ;; XXX encoding is mis-handled by this kind of stream
   (let ((n (length string)))
     (let ((buffer (make-array (1+ n) :element-type 'buffer-byte)))
       (declare (type (simple-array buffer-byte (*)) buffer))
