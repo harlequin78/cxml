@@ -2422,8 +2422,9 @@
 ;; forward declaration for DEFVAR
 (declaim (special *default-namespace-bindings*))
 
-(defun p/document (input handler)
-  (let ((*ctx* (make-context :handler handler)))
+(defun p/document (input handler &key validate root)
+  (let ((*ctx* (make-context :handler handler))
+        (*validate* (and validate t)))
     (define-default-entities)
     (sax:start-document handler)
     ;; document ::= XMLDecl? Misc* (doctypedecl Misc*)? element Misc*
@@ -2447,8 +2448,15 @@
         ((eq (peek-token input) :<!DOCTYPE)
           (p/doctype-decl input)
           (p/misc*-2 input))
-        (*validate*
+        ((and validate (not (dtd-p validate)))
           (validity-error "invalid document: no doctype")))
+      ;; Switch to caller-supplied DTD if asked to
+      (when (dtd-p validate)
+        (setf (dtd *ctx*) validate)
+        (setf (model-stack *ctx*)
+              (list (cons (lambda (x) x (constantly :dummy)) (constantly t)))))
+      (when root
+        (setf (model-stack *ctx*) (list (make-root-model root))))
       ;; element
       (let ((*data-behaviour* :DOC))
         (p/element input))
@@ -2680,7 +2688,7 @@
 ;;;; ---------------------------------------------------------------------------
 ;;;; User inteface ;;;;
 
-(defun parse-file (filename handler)
+(defun parse-file (filename handler &rest args)
   (with-open-xstream (input filename)
     (setf (xstream-name input)
       (make-stream-name
@@ -2690,9 +2698,9 @@
     (let ((zstream (make-zstream :input-stack (list input))))
       (peek-rune input)
       (progn 'time
-       (p/document zstream handler)))))
+       (apply #'p/document zstream handler args)))))
 
-(defun parse-stream (stream handler)
+(defun parse-stream (stream handler &rest args)
   (let* ((xstream 
           (make-xstream 
            stream
@@ -2703,7 +2711,26 @@
                                  *default-pathname-defaults*))
            :initial-speed 1))
          (zstream (make-zstream :input-stack (list xstream))))
-    (p/document zstream handler)))
+    (apply #'p/document zstream handler args)))
+
+(defun parse-dtd-file (filename)
+  (with-open-file (s filename :element-type '(unsigned-byte 8))
+    (parse-dtd-stream s)))
+
+(defun parse-dtd-stream (stream)
+  (let ((input (make-xstream stream)))
+    (setf (xstream-name input)
+          (make-stream-name
+           :entity-name "dtd"
+           :entity-kind :main
+           :file-name (pathname stream)))
+    (let ((zstream (make-zstream :input-stack (list input)))
+          (*ctx* (make-context :handler nil))
+          (*validate* t)
+          (*data-behaviour* :DTD))
+      (peek-rune input)
+      (p/ext-subset zstream)
+      (dtd *ctx*))))
 
 (defun parse-string (string handler)
   ;; XXX this function mis-handles encoding
@@ -2740,8 +2767,8 @@
 (defun make-octet-input-stream (octets)
   (make-instance 'octet-input-stream :octets octets))
 
-(defun parse-octets (octets handler)
-  (parse-stream (make-octet-input-stream octets) handler))
+(defun parse-octets (octets handler &rest args)
+  (apply #'parse-stream (make-octet-input-stream octets) handler args))
 
 ;;;;
 

@@ -91,17 +91,20 @@
     (format t "~&~D/~D tests failed; ~D test~:P were skipped"
             nfailed ntried nskipped)))
 
-(defmethod run-test :around (class pathname output description)
-  class pathname output
+(defmethod run-test :around (class pathname output description &rest args)
+  class pathname output args
   (handler-case
       (call-next-method)
     (serious-condition (c)
       (format t " FAILED:~%  ~A~%[~A]~%" c description)
       nil)))
 
-(defmethod run-test ((class null) pathname output description)
+(defmethod run-test ((class null) pathname output description &rest args)
   (declare (ignore description))
-  (let ((document (cxml:parse-file pathname (dom:make-dom-builder))))
+  (let ((document (apply #'cxml:parse-file
+                         pathname
+                         (dom:make-dom-builder)
+                         args)))
     (cond
       ((null output)
         (format t " input"))
@@ -118,22 +121,26 @@
                  error-output output))))
     t))
 
-(defmethod run-test ((class (eql :valid)) pathname output description)
-  (and (let ((cxml::*validate* nil))
+(defmethod run-test
+    ((class (eql :valid)) pathname output description &rest args)
+  (assert (null args))
+  (and (progn
          (format t " [not validating:]")
-         (run-test nil pathname output description))
-       (let ((cxml::*validate* t))
+         (run-test nil pathname output description :validate nil))
+       (progn
          (format t " [validating:]")
-         (run-test nil pathname output description))))
+         (run-test nil pathname output description :validate t))))
 
-(defmethod run-test ((class (eql :invalid)) pathname output description)
-  (and (let ((cxml::*validate* nil))
+(defmethod run-test
+    ((class (eql :invalid)) pathname output description &rest args)
+  (assert (null args))
+  (and (progn
          (format t " [not validating:]")
-         (run-test nil pathname output description))
+         (run-test nil pathname output description :validate nil))
        (handler-case
-           (let ((cxml::*validate* t))
+           (progn
              (format t " [validating:]")
-             (cxml:parse-file pathname (dom:make-dom-builder))
+             (cxml:parse-file pathname (dom:make-dom-builder) :validate t)
              (error "validity error not detected")
              nil)
          (cxml:validity-error ()

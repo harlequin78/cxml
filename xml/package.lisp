@@ -44,4 +44,6 @@
    #:unparse-document
    #:unparse-document-to-octets
 
+   #:parse-dtd-file
+   #:parse-dtd-stream
    #:validity-error))
