@@ -820,7 +820,13 @@
 (defun validate-entity (value)
   (unless (valid-name-p value)
     (validity-error "(12) Entity Name: not a name: ~S" (rod-string value)))
-  (unless (get-entity-definition value :general *ctx*)
+  (unless (let ((*validate*
+                 ;; Similarly the entity refs are internal and
+                 ;; don't need normalization ... the unparsed
+                 ;; entities (and entities) aren't "references"
+                 ;;   -- sun/valid/sa03.xml
+                 nil))
+            (get-entity-definition value :general *ctx*))
     (validity-error "(12) Entity Name: ~S" (rod-string value))))
 
 (defun split-names (rod)
