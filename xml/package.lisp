@@ -77,4 +77,6 @@
    #:resolve-uri
    #:resolve-extid
    
-   #:make-recoder))
+   #:make-recoder
+   #:sax-proxy
+   #:proxy-chained-handler))

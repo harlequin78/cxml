@@ -51,7 +51,7 @@
         href="http://www.knowledgetools.de">knowledgeTools</a>
         (conversion into an independent package; DOM bug fixing; validation)
         and <a href="http://www.headcraft.de/">headcraft</a>
-        (most of the october 2004 changes) and privately since then.
+        (most september 2004 changes) and privately (changes since then).
       </li>
     </ul>
 
@@ -101,6 +101,14 @@
 
     <a name="changes"/>
     <h2>Recent Changes</h2>
+    <p class="nomargin"><tt>patch-xyz</tt> (200-mm-dd)</p>
+    <ul class="nomargin">
+      <li>Minor new features: <tt>include-default-values</tt> argument to
+      <tt>make-xmls-builder</tt>; <tt>handler</tt> argument
+      to <tt>parse-dtd-stream</tt>; SAX proxy class</li>
+      <li>Minor bugfixes: Workaround for CMUCL problem
+      with <tt>fd-streams</tt> (can read from cmucl sockets now)</li>
+    </ul>
     <p class="nomargin"><tt>patch-357</tt> (2004-10-10)</p>
     <ul class="nomargin">
       <li>Auto-detect unicode support for better asdf-installability.</li>
@@ -566,6 +574,19 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       <div class="def">Function DOM:MAP-DOCUMENT (handler document &key include-xmlns-attributes include-default-values)</div>
       Traverse a DOM document and call SAX functions as if an XML
       representation of the document were processed by a SAX parser.
+    </p>
+
+    <p>
+      <div class="def">Class CXML:SAX-PROXY ()</div>
+      <div class="def">Accessor CXML:PROXY-CHAINED-HANDLER</div>
+      <tt>sax-proxy</tt> is a SAX handler which passes all events it
+      receives on to a user-defined second handler, which defaults
+      to <tt>nil</tt>.  Use <tt>sax-proxy</tt> to modify the events a
+      SAX handler receives by defining your own subclass
+      of <tt>sax-proxy</tt>.  Setting the chained handler to the target
+      handler, and define methods on your handler class for the events
+      to be modified.  All other events will pass through to the chained
+      handler unmodified.
     </p>
 
     <a name="xmls"/>
