@@ -880,10 +880,11 @@
                    (rod-string name)
                    (rod-string element))))
           (t
-           (when (and (eq type :ID)
-                      (find :ID (elmdef-attributes e) :key #'attdef-type))
-             (validity-error "(09) One ID per Element Type: element ~A"
-                             (rod-string element)))
+           (when *validate*
+             (when (and (eq type :ID)
+                        (find :ID (elmdef-attributes e) :key #'attdef-type))
+               (validity-error "(09) One ID per Element Type: element ~A"
+                               (rod-string element))))
            (push adef (elmdef-attributes e))))))
 
 (defun find-attribute (elmdef name)
