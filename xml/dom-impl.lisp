@@ -25,6 +25,12 @@
    (value       :initarg :value         :reader dom:value)
    (specified-p :initarg :specified-p   :reader dom:specified)))
 
+(defmethod print-object ((object attribute) stream)
+  (print-unreadable-object (object stream :type t :identity t)
+    (format stream "~A=~S"
+            (rod-string (dom:name object))
+            (rod-string (dom:value object)))))
+
 (defclass element (node)
   ((tag-name    :initarg :tag-name      :reader dom:tag-name)
    (attributes  :initarg :attributes    :reader dom:attributes
