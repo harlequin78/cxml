@@ -825,6 +825,22 @@
     (validity-error "(13) Name Token: not a NMTOKEN: ~S"
                     (rod-string value))))
 
+(defstruct (entdef (:constructor)))
+
+(defstruct (internal-entdef
+            (:include entdef)
+            (:constructor make-internal-entdef (value))
+            (:conc-name #:ENTDEF-))
+  (value (error "missing argument") :type rod)
+  (expansion nil))
+
+(defstruct (external-entdef
+            (:include entdef)
+            (:constructor make-external-entdef (extid ndata))
+            (:conc-name #:ENTDEF-))
+  (extid (error "missing argument") :type extid)
+  (ndata nil :type (or rod null)))
+
 (defun validate-entity (value)
   (unless (valid-name-p value)
     (validity-error "(12) Entity Name: not a name: ~S" (rod-string value)))
@@ -835,7 +851,8 @@
                     ;;   -- sun/valid/sa03.xml
                     nil))
                (get-entity-definition value :general (dtd *ctx*)))))
-    (unless (and def (third def))       ;unparsed entity
+    (unless (and (typep def 'external-entdef) (entdef-ndata def))
+      ;; unparsed entity
       (validity-error "(12) Entity Name: ~S" (rod-string value)))))
 
 (defun split-names (rod)
@@ -878,10 +895,9 @@
     (unless (gethash name table)
       (when (handler *ctx*)
         (report-entity (handler *ctx*) kind name def))
-      (when (eq (car def) :EXTERNAL)
-        (setf def
-              (list (car def)
-                    (absolute-extid source-stream (cadr def)) (third def))))
+      (when (typep def 'external-entdef)
+        (setf (entdef-extid def)
+              (absolute-extid source-stream (entdef-extid def))))
       (setf (gethash name table)
             (cons *markup-declaration-external-p* def)))))
 
@@ -905,24 +921,24 @@
           (perror zstream "Entity '~A' is not defined." (rod-string entity-name))
         (error "Entity '~A' is not defined." (rod-string entity-name))))
     (let (r)
-      (ecase (car def)
-        (:INTERNAL 
-         (setf r (make-rod-xstream (cadr def)))
+      (etypecase def
+        (internal-entdef
+         (setf r (make-rod-xstream (entdef-value def)))
          (setf (xstream-name r)
            (make-stream-name :entity-name entity-name
                              :entity-kind kind
                              :uri nil)))
-        (:EXTERNAL
-         (setf r (open-extid (cadr def)))
+        (external-entdef
+         (setf r (open-extid (entdef-extid def)))
          (setf (stream-name-entity-name (xstream-name r)) entity-name
                (stream-name-entity-kind (xstream-name r)) kind)))
       r)))
 
-(defun entity-source-kind (name type)
+(defun checked-get-entdef (name type)
   (let ((def (get-entity-definition name type (dtd *ctx*))))
     (unless def
       (error "Entity '~A' is not defined." (rod-string name)))
-    (car def)))
+    def))
 
 (defun open-extid (extid)
   (let ((sysid (extid-system extid)))
@@ -938,29 +954,11 @@
       (close-xstream in))))
 
 (defun define-default-entities ()
-  (define-entity nil '#.(string-rod "lt")   :general `(:INTERNAL #.(string-rod "&#60;")))
-  (define-entity nil '#.(string-rod "gt")   :general `(:INTERNAL #.(string-rod ">")))
-  (define-entity nil '#.(string-rod "amp")  :general `(:INTERNAL #.(string-rod "&#38;")))
-  (define-entity nil '#.(string-rod "apos") :general `(:INTERNAL #.(string-rod "'")))
-  (define-entity nil '#.(string-rod "quot") :general `(:INTERNAL #.(string-rod "\"")))
-  ;;
-  #||
-  (define-entity nil '#.(string-rod "ouml") :general `(:INTERNAL #.(string-rod "ö")))
-  (define-entity nil '#.(string-rod "uuml") :general `(:INTERNAL #.(string-rod "ü")))
-  (define-entity nil '#.(string-rod "auml") :general `(:INTERNAL #.(string-rod "ä")))
-  (define-entity nil '#.(string-rod "Ouml") :general `(:INTERNAL #.(string-rod "Ö")))
-  (define-entity nil '#.(string-rod "Auml") :general `(:INTERNAL #.(string-rod "Ä")))
-  (define-entity nil '#.(string-rod "Uuml") :general `(:INTERNAL #.(string-rod "Ü")))
-  (define-entity nil '#.(string-rod "szlig") :general `(:INTERNAL #.(string-rod "ß")))
-  ||#
-  ;;
-  #||
-  (define-entity nil '#.(string-rod "nbsp") 
-    :general `(:INTERNAL ,(let ((r (make-rod 1)))
-                            (setf (aref r 0) #o240)
-                            r)))
-  ||#
-  )
+  (define-entity nil #"lt"   :general (make-internal-entdef #"&#60;"))
+  (define-entity nil #"gt"   :general (make-internal-entdef #">"))
+  (define-entity nil #"amp"  :general (make-internal-entdef #"&#38;"))
+  (define-entity nil #"apos" :general (make-internal-entdef #"'"))
+  (define-entity nil #"quot" :general (make-internal-entdef #"\"")))
 
 (defstruct attdef
   ;; an attribute definition
@@ -1858,9 +1856,10 @@
     (expect input :\>)))
 
 (defun report-entity (h kind name def)
-  (ecase (car def)
-    (:EXTERNAL
-      (destructuring-bind (extid ndata) (cdr def)
+  (etypecase def
+    (external-entdef
+      (let ((extid (entdef-extid def))
+            (ndata (entdef-ndata def)))
         (if ndata
             (sax:unparsed-entity-declaration h
                                              name
@@ -1872,13 +1871,13 @@
                                              name
                                              (extid-public extid)
                                              (uri-rod (extid-system extid))))))
-    (:INTERNAL
-      (sax:internal-entity-declaration h kind name (cadr def)))))
+    (internal-entdef
+      (sax:internal-entity-declaration h kind name (entdef-value def)))))
 
 (defun p/entity-def (input kind)
   (multiple-value-bind (cat sem) (peek-token input)
     (cond ((member cat '(:\" :\'))
-           (list :INTERNAL (p/entity-value input)))
+           (make-internal-entdef (p/entity-value input)))
           ((and (eq cat :name)
                 (or (equalp sem '#.(string-rod "SYSTEM"))
                     (equalp sem '#.(string-rod "PUBLIC"))))
@@ -1895,7 +1894,7 @@
                         (setf ndata (p/name input))
                         (when *validate*
                           (push ndata (referenced-notations *ctx*)))))))
-             (list :EXTERNAL extid ndata)))
+             (make-external-entdef extid ndata)))
           (t
            (error "p/entity-def: ~S / ~S." cat sem)) )))
 
@@ -2316,10 +2315,10 @@
        (let ((name (nth-value 1 (read-token input))))
          (recurse-on-entity input name :parameter
                             (lambda (input)
-                              (ecase (entity-source-kind name :parameter)
-                                (:EXTERNAL
+                              (etypecase (checked-get-entdef name :parameter)
+                                (external-entdef
                                  (p/ext-subset input))
-                                (:INTERNAL
+                                (internal-entdef
                                  (p/ext-subset-decl input)))
                               (unless (eq :eof (peek-token input))
                                 (error "Trailing garbage."))))))
@@ -2403,10 +2402,10 @@
               (let ((name (nth-value 1 (read-token input))))
                 (recurse-on-entity input name :parameter
                                    (lambda (input)
-                                     (ecase (entity-source-kind name :parameter)
-                                       (:EXTERNAL
+                                     (etypecase (checked-get-entitydef name :parameter)
+                                       (external-entdef
                                         (p/ext-subset input))
-                                       (:INTERNAL
+                                       (internal-entdef
                                         (p/ext-subset-decl input)))
                                      (unless (eq :eof (peek-token input))
                                        (error "Trailing garbage.")))))
@@ -2579,9 +2578,9 @@
           (recurse-on-entity input name :general
                              (lambda (input)
                                (prog1
-                                   (ecase (entity-source-kind name :general)
-                                     (:INTERNAL (p/content input))
-                                     (:EXTERNAL (p/ext-parsed-ent input)))
+                                   (etypecase (checked-get-entitydef name :general)
+                                     (internal-entdef (p/content input))
+                                     (external-entdef (p/ext-parsed-ent input)))
                                  (unless (eq (peek-token input) :eof)
                                    (error "Trailing garbage. - ~S" (peek-token input))))))
           (p/content input))))
@@ -3146,12 +3145,10 @@
   (let ((def (get-entity-definition name :general (dtd *ctx*))))
     (unless def
       (error "Entity '~A' is not defined." (rod-string name)))
-    (unless (eq :INTERNAL (car def))
+    (unless (typep def 'internal-entdef)
       (error "Entity '~A' is not an internal entity." name))
-    (or (caddr def)
-        (car
-         (setf (cddr def)
-           (cons (find-internal-entity-expansion name) nil))))))
+    (or (entdef-expansion def)
+        (setf (entdef-expansion def) (find-internal-entity-expansion name)))))
 
 (defun find-internal-entity-expansion (name)
   (let ((zinput (make-zstream)))
@@ -3206,9 +3203,9 @@
              input name :general
              (lambda (input)
                (prog1
-                   (ecase (entity-source-kind name :general)
-                     (:INTERNAL (p/content input))
-                     (:EXTERNAL (p/ext-parsed-ent input)))
+                   (etypecase (checked-get-entitydef name :general)
+                     (internal-entdef (p/content input))
+                     (external-entdef (p/ext-parsed-ent input)))
                  (unless (eq (peek-token input) :eof)
                    (error "Trailing garbage. - ~S" (peek-token input))))))))
         nil)))
