@@ -34,7 +34,7 @@
           (SAX layer; namespace support)
         </li>
         <li>
-          David Lichteblau at knowledgeTools &lt;david@knowledgetools.de&gt;<br>
+          David Lichteblau at knowledgeTools (david at knowledgetools.de)<br>
           (conversion into an independent package; DOM bug fixing)
         </li>
       </ul>
@@ -64,17 +64,14 @@
     <p>
       <h2>Installation</h2>
 
-      <b>Prerequisites.</b> CXML is written in Common Lisp and should be
-      portable to all Common Lisp implementations.&nbsp; Currently known
-      to work are ACL, SBCL, CMUCL, and CLISP.  (<i>fixme</i>: check
-      this list)
+      CXML is written in Common Lisp and should be portable to all
+      Common Lisp implementations.&nbsp; Currently known to work are
+      ACL, SBCL, CMUCL, and CLISP.  (<i>fixme</i>: check this list)
     </p>
     </p>
       <a href="http://www.cliki.net/asdf">ASDF</a> is used for
       compilation.  These instructions assume that ASDF has already been
-      loaded.  (Some Lisps include ASDF, for example SBCL and any Lisp
-      on Debian and Gentoo.  For other Lisps please load asdf.lisp
-      manually before proceeding.)
+      loaded.
     </p>
 
     <p>
@@ -93,7 +90,7 @@
       <b>Compiling and loading CXML.</b>
       Register the .asd file, e.g. by symlinking it:
       <pre>$ ln -sf `pwd`/cxms.asd /path/to/your/registry</pre>
-      Compile CXML using:
+      Then compile CXML using:
       <pre>* (asdf:operate 'asdf:load-op :cxml)</pre>
     </p>
 
@@ -105,11 +102,18 @@
 $ cvs login    # password is "anonymous"
 $ cvs co 2001/XML-Test-Suite/xmlconf
 $ cvs co 2001/DOM-Test-Suite</pre>
-      Run all applicable tests using:
+      Usage and expected output:
       <pre>* (xmlconf:run-all-tests "/path/to/2001/XML-Test-Suite/xmlconf/")
-* (domtest:run-all-tests "/path/to/2001/2001/DOM-Test-Suite/")</pre>
-      (As always in Lisp, the trailing slash is significant.)
+22/389 tests failed; 1773 tests were skipped
+* (domtest:run-all-tests "/path/to/2001/2001/DOM-Test-Suite/")
+0/440 tests failed; 81 tests were skipped</pre>
     <p>
+
+    <p>
+      Most XML testsuite failures are due to document type declarations
+      which are read by CXML, but not written when the document is
+      serialized again.&nbsp; This needs work.
+    </p>
 
     </p>
       <i>fixme</i>: Add an explanation of xml/sax-tests here.
@@ -125,7 +129,7 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
 
       The log message for the changes reads "<i>Removed unnecessary
       xml:base attribute</i>".&nbsp; If I understand correctly, only
-      DOM&nbsp;3 parsers provide the baseURI attribute necesary for
+      DOM&nbsp;3 parsers provide the baseURI attribute necessary for
       understanding <tt>xmlconf.xml</tt> now.&nbsp; We don't have that
       yet.
     </p>
