@@ -184,21 +184,11 @@ patch-9
     print elements with their tag-name
 patch-11
     print attributes with name and value
-patch-56
-    Aenderungsliste
 
 patch-10
-   (reverted by patch-10)
-patch-12
-    REVERT patch-10
-
+    reverted by patch-12
 patch-114
-    (reverted by patch-115)
-patch-115
-    REVERT patch-114, das war ein Versehen
-
-patch-109, patch-110, patch-111
-    (empty commits due to arch problem)
+    reverted by patch-115
 
 
 DOM-Builder und SAX-Interface
@@ -215,58 +205,11 @@ patch-97
 
 domtest.cl
 ----------------
-patch-27
-    alle DOM Level 1 CORE Tests uebersetzen koennen (mehr schlecht als recht)
-patch-28
-    so, jetzt kompilieren die DOM-Tests auch (wenngleich zwei drittel noch fehlschlagen)
-patch-29
-    einzelnen Test ausfuehren koennen
-patch-30
-    <length/> workaround
-patch-31
-    <equals/> fuer nicht-Strings
-patch-40
-    ?
-patch-42
-    implementationAttribute-Probleme zwar ausgeben, aber kein WARN machen
-patch-53
-    domtest fixes fuer <var/> und <nodeType>
-patch-59
-    for-each fuer named-node-map
-patch-61
-    parse-java-literal: translate \n
-patch-62
-    <member> in <var> verstehen
-patch-64
-    workaround: normalize documents explicitly
-patch-78
-    named-node-map-hack auch fuer assertSize
-patch-79
-    ignore element order in <equals>
-patch-83
-    featuretest auf ("XML", "") verstehen
-patch-84
-    featuretest case insensitive
-patch-88
-    URI-Vergleich
-patch-92
-    instanceOf korrekt uebersetzen
-patch-93
-    <or>
-patch-99
-    s/assert-true/assert-false/
-patch-105
-    hc_elementnormalize2 ist komisch, den lassen wir aus
-patch-108
-    mit leeren Strings umgehen koennen (*seufz*)
-patch-111
-    oh je, jetzt "" statt NIL
-patch-116
-    noch "" statt NIL (diesmal wirklich)
-patch-117
-    <try> richtig uebersetzen
-patch-123
-    hc_nodereplacechildnewchildexists sehe ich nicht ein; ignorieren
+patch-27 patch-28 patch-29 patch-30 patch-31 patch-40 patch-42 patch-53
+patch-59 patch-61 patch-62 patch-64 patch-78 patch-79 patch-83 patch-84
+patch-88 patch-92 patch-93 patch-99 patch-105 patch-108 patch-111
+patch-116 patch-117 patch-123
+    DOM tests
 
 
 xmlconf.cl
