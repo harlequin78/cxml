@@ -70,7 +70,8 @@
 	   #:start-cdata
 	   #:end-cdata
 	   #:start-dtd
-	   #:end-dtd))
+	   #:end-dtd
+           #:unparsed-entity-declaration))
 
 (in-package :sax)
 
@@ -241,3 +242,11 @@ other textual content.")
 (defgeneric end-dtd (handler)
   (:documentation "Called at the end of parsing a DTD.")
   (:method ((handler t)) nil))
+
+(defgeneric unparsed-entity-declaration
+    (handler name public-id system-id notation-name)
+  (:documentation
+   "Called when an entity declaration is seen while parsing a DTD.")
+  (:method ((handler t) name public-id system-id notation-name)
+    (declare (ignore name public-id system-id notation-name))
+    nil))

@@ -41,7 +41,8 @@
   (let ((document (document handler))
 	(doctype (make-instance 'dom-impl::document-type
                    :name name
-                   :notations (make-hash-table :test #'equalp))))
+                   :notations (make-instance 'dom-impl::named-node-map)
+                   :entities (make-instance 'dom-impl::named-node-map))))
     (setf (slot-value doctype 'dom-impl::owner) document
 	  (slot-value document 'dom-impl::doc-type) doctype)))
 
@@ -80,3 +81,12 @@
           (parent (car element-stack)))
       (setf (slot-value node 'dom-impl::parent) parent)
       (push node (slot-value (car element-stack) 'dom-impl::children)))))
+
+(defmethod sax:unparsed-entity-declaration
+    ((handler dom-builder) name public-id system-id notation-name)
+  (dom:set-named-item (dom:entities (dom:doctype (document handler)))
+                      (make-instance 'dom-impl::entity
+                        :name name
+                        :public-id public-id
+                        :system-id system-id
+                        :notation-name notation-name)))

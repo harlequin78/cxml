@@ -1567,6 +1567,15 @@
     (p/S input)
     (setf def (p/entity-def input kind))
     (define-entity input name kind def)
+    (when (eq kind :general)
+      ;; XXX wirklich nur :general?
+      ;; XXX was ist mit notation-name?
+      (ecase (car def)
+        (:EXTERNAL
+          ;; XXX hier fehlen public-id und system-id
+          (sax:unparsed-entity-declaration *handler* name nil nil nil))
+        (:INTERNAL
+          (sax:unparsed-entity-declaration *handler* name nil nil nil))))
     (p/S? input)
     (expect input :\>)))
 
@@ -1883,6 +1892,9 @@
                     (eq (peek-token input) :\> ))
           (setf extid (p/external-id input t))))
       (p/S? input)
+      (ecase (car extid)
+        (:PUBLIC (sax:start-dtd *handler* name (cadr extid) (caddr extid)))
+        (:SYSTEM (sax:start-dtd *handler* name nil (cadr extid))))
       (when (eq (peek-token input) :\[ )
         (consume-token input)
         (while (progn (p/S? input)
@@ -1902,9 +1914,6 @@
         (consume-token input)
         (p/S? input))
       (expect input :>)
-      (ecase (car extid)
-        (:PUBLIC (sax:start-dtd *handler* name (cadr extid) (caddr extid)))
-        (:SYSTEM (sax:start-dtd *handler* name nil (cadr extid))))
       (when extid
         (let* ((xi2 (open-extid (absolute-extid input extid)))
                (zi2 (make-zstream :input-stack (list xi2))))
