@@ -138,11 +138,11 @@
     <a name="installation"/>
     <h2>Installation</h2>
     <p>
-      CXML is written in Common Lisp and should be portable to all
-      Common Lisp implementations.&nbsp; Currently assumed to work are
-      ACL, SBCL, CMUCL, and CLISP, though development is done on
-      ACL.&nbsp; (CLISP needs some <tt>-E</tt> option teaching it to
-      accept non-ASCII source files.)
+      CXML should be portable to all Common Lisp implementations
+      supporting gray streams.&nbsp; Currently assumed to work are ACL,
+      SBCL, CMUCL, and CLISP.&nbsp; (CLISP needs to be run with an
+      option like <tt>-E iso-8869-1</tt> teaching it to accept cxml's
+      non-ASCII source files.)
     </p>
 
     <p>
@@ -152,16 +152,15 @@
     </p>
 
     <p>
-      <b>Configuration (optional).</b>
-      CXML has full Unicode code support -- even on Lisps without
-      Unicode strings.  On non-unicode aware Lisps, <tt>DOMString</tt>
-      is implemented as an array of character codes.  If your Lisp
-      supports 16 bit characters natively, you can enable feature
-      <tt>RUNE-IS-CHARACTER</tt> to select an alternative
-      <tt>DOMString</tt> implementatation, which uses real characters
-      instead of characters codes.
+      Optional configuration (skip this unless you know better): CXML
+      has full Unicode code support -- even on Lisps without Unicode
+      strings.  On non-unicode aware Lisps, <tt>DOMString</tt> is
+      implemented as an array of character codes.  CXML will auto-detect
+      at compile-time which string representation to use.  To override
+      the auto-detection, you can set one of the features
+      <tt>:rune-is-character</tt> and <tt>:rune-is-octet</tt> before
+      loading <tt>cxml.asd</tt>.
     </p>
-    <pre>* (pushnew :rune-is-character *features*)</pre>
 
     <p>
       <b>Compiling and loading CXML.</b>

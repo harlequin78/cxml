@@ -18,18 +18,24 @@
     (let (#+sbcl (*compile-print* nil))
       (call-next-method))))
 
+#-(or rune-is-character rune-is-octet)
+(progn
+  (format t "~&;;; Checking for wide character support...")
+  (force-output)
+  (pushnew (dotimes (x 65536
+                      (progn
+                        (format t " ok, characters have at least 16 bits.~%")
+                        :rune-is-character))
+             (unless (code-char x)
+               (format t " no, reverting to octet strings.~%")
+               (return :rune-is-octet)))
+           *features*))
+
 #-rune-is-character
 (format t "~&;;; Building cxml with (UNSIGNED-BYTE 16) RUNES~%")
 
 #+rune-is-character
-(cond
-  ((or #+(and allegro (not ics)) t)
-    (error "Sorry, you cannot use RUNE-IS-CHARACTER in an 8 bit image."))
-  ((or #+(or (and allegro ics) lispworks) t)
-    (format t "~&;;; Building cxml with CHARACTER RUNES~%"))
-  (t
-    (error "CXML was configured to use character runes, but it is not known ~
-            whether this Lisp has 16-bit characters")))
+(format t "~&;;; Building cxml with CHARACTER RUNES~%") 
 
 (defsystem runes
     :default-component-class closure-source-file
