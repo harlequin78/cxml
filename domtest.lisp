@@ -430,8 +430,11 @@
 
 (defun translate-for-each (element)
   (with-attributes (|collection| |member|) element
-    `(dolist (,(%intern |member|) ,(%intern |collection|))
-       ,@(translate-body element))))
+    `(let ((collection ,(%intern |collection|)))
+       (when (typep collection 'dom-impl::named-node-map)
+         (setf collection (dom:items collection)))
+       (dolist (,(%intern |member|) collection)
+       ,@(translate-body element)))))
 
 (defun test (name &optional (directory *directory*))
   (let* ((test-directory (merge-pathnames "tests/level1/core/" directory)))
