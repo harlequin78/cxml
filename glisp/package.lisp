@@ -1,4 +1,4 @@
-;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: GLISP-TEMP; -*-
+;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: CL-USER; -*-
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: Generating a sane DEFPACKAGE for GLISP
 ;;;   Created: 1999-05-25
@@ -46,4 +46,5 @@
            #:rune-char
            #:rod-string
            #:string-rod
-           #:rod-subseq))
+           #:rod-subseq
+           #:rod<))

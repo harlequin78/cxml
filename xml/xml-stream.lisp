@@ -68,6 +68,13 @@
 (defmacro fx-pred (op &rest xs) 
   `(,op ,@(mapcar (lambda (x) `(the fixnum ,x)) xs)))
 
+;; XXX Geschwindigkeit dieser Definitionen untersuchen!
+
+(defmacro rune-op (op &rest xs) 
+  `(code-rune (,op ,@(mapcar (lambda (x) `(rune-code ,x)) xs))))
+(defmacro rune-pred (op &rest xs) 
+  `(,op ,@(mapcar (lambda (x) `(rune-code ,x)) xs)))
+
 (defmacro %+   (&rest xs) `(fx-op + ,@xs))
 (defmacro %-   (&rest xs) `(fx-op - ,@xs))
 (defmacro %*   (&rest xs) `(fx-op * ,@xs))
@@ -83,6 +90,22 @@
 (defmacro %>= (&rest xs)  `(fx-pred >= ,@xs))
 (defmacro %<  (&rest xs)  `(fx-pred < ,@xs))
 (defmacro %>  (&rest xs)  `(fx-pred > ,@xs))
+
+(defmacro %rune+   (&rest xs) `(rune-op + ,@xs))
+(defmacro %rune-   (&rest xs) `(rune-op - ,@xs))
+(defmacro %rune*   (&rest xs) `(rune-op * ,@xs))
+(defmacro %rune/   (&rest xs) `(rune-op floor ,@xs))
+(defmacro %rune-and (&rest xs) `(rune-op logand ,@xs))
+(defmacro %rune-ior (&rest xs) `(rune-op logior ,@xs))
+(defmacro %rune-xor (&rest xs) `(rune-op logxor ,@xs))
+(defmacro %rune-ash (a b) `(code-rune (ash (rune-code ,a) ,b)))
+(defmacro %rune-mod (&rest xs) `(rune-op mod ,@xs))
+
+(defmacro %rune=  (&rest xs)  `(rune-pred = ,@xs))
+(defmacro %rune<= (&rest xs)  `(rune-pred <= ,@xs))
+(defmacro %rune>= (&rest xs)  `(rune-pred >= ,@xs))
+(defmacro %rune<  (&rest xs)  `(rune-pred < ,@xs))
+(defmacro %rune>  (&rest xs)  `(rune-pred > ,@xs))
 
 (deftype buffer-index ()
   `(unsigned-byte ,(integer-length array-total-size-limit)))
@@ -218,10 +241,10 @@
 
 (defsubst unread-rune (rune input)
   "Unread the last recently read rune; if there wasn't such a rune, you
-   deserve to loose."
+   deserve to lose."
   (declare (ignore rune))
   (decf (xstream-read-ptr input))
-  (when (%= (peek-rune input) #x000A)   ;was it a line break?
+  (when (rune= (peek-rune input) #/u+000A)   ;was it a line break?
     (unaccount-for-line-break input)))
 
 (defun fread-rune (input)
@@ -313,7 +336,7 @@
         (replace osbuf preread)
         (make-xstream/low
          :buffer (let ((r (make-array speed :element-type 'buffer-byte)))
-                   (setf (%rune r 0) #xFFFF)
+                   (setf (elt r 0) #xFFFF)
                    r)
          :read-ptr 0
          :fill-ptr 0

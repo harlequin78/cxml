@@ -126,19 +126,20 @@
 (define-rune-name "shy"  #x00AD)        ;soft hyphen
 
 (defun rune-from-read-name (name)
-  (cond ((= (length name) 1)
-         (iso-10646-char-code (char name 0)))
-        ((and (= (length name) 2)
-              (char= (char name 0) #\\))
-         (iso-10646-char-code (char name 1)))
-        ((and (>= (length name) 3)
-              (char-equal (char name 0) #\u)
-              (char-equal (char name 1) #\+)
-              (every (lambda (x) (digit-char-p x 16)) (subseq name 2)))
-         (parse-integer name :start 2 :radix 16))
-        ((lookup-rune-name name))
-        (t
-         (error "Meaningless rune name ~S." name))))
+  (code-rune
+   (cond ((= (length name) 1)
+           (iso-10646-char-code (char name 0)))
+     ((and (= (length name) 2)
+           (char= (char name 0) #\\))
+       (iso-10646-char-code (char name 1)))
+     ((and (>= (length name) 3)
+           (char-equal (char name 0) #\u)
+           (char-equal (char name 1) #\+)
+           (every (lambda (x) (digit-char-p x 16)) (subseq name 2)))
+       (parse-integer name :start 2 :radix 16))
+     ((lookup-rune-name name))
+     (t
+       (error "Meaningless rune name ~S." name)))))
 
 (defun rune-reader (stream subchar arg)
   subchar arg
@@ -159,12 +160,13 @@
               (setf c (read-char stream t nil t))))
        (princ c bag)))))
 
+#-rune-is-character
 (defun rod-printer (stream rod)
   (princ #\# stream)
   (princ #\" stream)
   (loop for x across rod do
-        (cond ((or (rune= x #.(char-code #\\))
-                   (rune= x #.(char-code #\")))
+        (cond ((or (rune= x #.(char-rune #\\))
+                   (rune= x #.(char-rune #\")))
                (princ #\\ stream)
                (princ (code-char x) stream))
               ((< x char-code-limit)
@@ -173,6 +175,7 @@
                (format stream "\\u~4,'0X" x))))
   (princ #\" stream))
 
+#-rune-is-character
 (set-pprint-dispatch '(satisfies really-rod-p) #'rod-printer)
 
 (set-dispatch-macro-character #\# #\" 'rod-reader)

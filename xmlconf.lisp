@@ -1,18 +1,21 @@
 (defpackage xmlconf
-  (:use :cl)
-  (:alias (:string-dom :dom)))
+  (:use :cl :glisp)
+  (:alias (:cdom :dom)))
 (in-package :xmlconf)
 
+(defun get-attribute (element name)
+  (rod-string (dom:get-attribute element name)))
+
 (defun relevant-test-p (test)
-  (and (equal (dom:get-attribute test "TYPE") "valid")
-       (let ((version (dom:get-attribute test "RECOMMENDATION")))
+  (and (equal (get-attribute test "TYPE") "valid")
+       (let ((version (get-attribute test "RECOMMENDATION")))
          (cond
            ((or (equal version "")      ;XXX
                 (equal version "XML1.0"))
              (cond
-               ((equal (dom:get-attribute test "NAMESPACE") "no")
+               ((equal (get-attribute test "NAMESPACE") "no")
                  (format t "~A: test applies to parsers without namespace support, skipping~%"
-                       (dom:get-attribute test "URI"))
+                       (get-attribute test "URI"))
                  nil)
                (t
                  t)))
@@ -27,11 +30,11 @@
   (let* ((sub-directory
           (loop
               for parent = test then (dom:parent-node parent)
-              for base = (dom:get-attribute parent "xml:base")
+              for base = (get-attribute parent "xml:base")
               until (plusp (length base))
               finally (return (merge-pathnames base directory))))
-         (uri (dom:get-attribute test "URI"))
-         (output (dom:get-attribute test "OUTPUT")))
+         (uri (get-attribute test "URI"))
+         (output (get-attribute test "OUTPUT")))
     (values (merge-pathnames uri sub-directory)
             (when (plusp (length output))
               (merge-pathnames output sub-directory)))))
@@ -86,7 +89,9 @@
                   (incf nfailed)
                   (format t " FAILED:~%  ~A~%[~A]~%"
                           c
-                          (dom:data (dom:item (dom:child-nodes test) 0))))))))
+                          (rod-string
+                           (dom:data
+                            (dom:item (dom:child-nodes test) 0)))))))))
         (t
           (incf nskipped))))
     (format t "~&~D/~D tests failed; ~D test~:P were skipped"

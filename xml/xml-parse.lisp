@@ -221,8 +221,6 @@
 
 (deftype read-element () 'rune)
 
-;; (unsigned-byte 16)) ;;t)
-
 (defmethod figure-encoding ((stream null))
   (values :utf-8 nil))
 
@@ -324,7 +322,7 @@
     (do ((i start (%+ i 1)))
         ((%= i end))
       (declare (type fixnum i))
-      (setf res (stir res (%rune rod i))))
+      (setf res (stir res (rune-code (%rune rod i)))))
     res))
 
 (defsubst rod=* (x y &key (start1 0) (end1 (length x))
@@ -334,7 +332,7 @@
             (j start2 (%+ j 1)))
            ((%= i end1)
             t)
-         (unless (= (%rune x i) (%rune y j))
+         (unless (rune= (%rune x i) (%rune y j))
            (return nil)))))
 
 (defsubst rod=** (x y start1 end1 start2 end2)
@@ -343,7 +341,7 @@
             (j start2 (%+ j 1)))
            ((%= i end1)
             t)
-         (unless (= (%rune x i) (%rune y j))
+         (unless (rune= (%rune x i) (%rune y j))
            (return nil)))))
 
 (defun rod-hash-get (hashtable rod &optional (start 0) (end (length rod)))
@@ -371,6 +369,7 @@
         (return)))
     (values new-value key)))
 
+#-rune-is-character
 (defun rod-subseq* (source start &optional (end (length source)))
   (unless (and (typep start 'fixnum) (>= start 0))
     (error "~S is not a non-negative fixnum." start))
@@ -389,8 +388,13 @@
         (declare (type fixnum i))
         (setf (%rune res i) (aref source (the fixnum (+ i start))))))))
 
+#+rune-is-character
+(defun rod-subseq* (source start &optional (end (length source)))
+  (subseq source start end))
+
 (deftype ufixnum () `(unsigned-byte ,(integer-length most-positive-fixnum)))
 
+#-rune-is-character
 (defun rod-subseq** (source start &optional (end (length source)))
   (declare (type (simple-array rune (*)) source)
            (type ufixnum start)
@@ -406,6 +410,10 @@
           (return))
         (setf (%rune res i) (%rune source (the ufixnum (+ i start))))))
     res))
+
+#+rune-is-character
+(defun rod-subseq** (source start &optional (end (length source)))
+  (subseq source start end))
 
 (defun (setf rod-hash-get) (new-value hashtable rod &optional (start 0) (end (length rod)))
   (rod-hash-set new-value hashtable rod start end))
@@ -439,13 +447,13 @@
 (declaim (type (simple-array rune (*))
                *scratch-pad* *scratch-pad-2* *scratch-pad-3* *scratch-pad-4*))
 
-(defmacro %put-rune (rune-var put)
+(defmacro %put-unicode-char (code-var put)
   `(progn
-     (cond ((%> ,rune-var #xFFFF)
-          (,put (the (unsigned-byte 16) (%+ #xD7C0 (ash ,rune-var -10))))
-          (,put (the (unsigned-byte 16) (%ior #xDC00 (%and ,rune-var #x3FF)))))
+     (cond ((%> ,code-var #xFFFF)
+          (,put (the rune (code-rune (%+ #xD7C0 (%ash ,code-var -10)))))
+          (,put (the rune (code-rune (%ior #xDC00 (%and ,code-var #x03FF))))))
          (t
-          (,put ,rune-var)))))
+          (,put (code-rune ,code-var))))))
 
 (defun adjust-array-by-copying (old-array new-size)
   "Adjust an array by copying and thus ensures, that result is a SIMPLE-ARRAY."
@@ -855,7 +863,7 @@
                      ((eq kind :NUMERIC)
                       (values :CDATA
                               (with-rune-collector (collect)
-                                (%put-rune data collect)))))))
+                                (%put-unicode-char data collect)))))))
             (t
              (unread-rune c input)
              (values :CDATA (read-cdata input))) ))))))))
@@ -1026,19 +1034,19 @@
   (let ((name (read-name-token input)))
     (while (let ((c (peek-rune input)))
              (and (not (eq c :eof))
-                  (or (= c #/U+0020)
-                      (= c #/U+0009)
-                      (= c #/U+000A)
-                      (= c #/U+000D))))
+                  (or (rune= c #/U+0020)
+                      (rune= c #/U+0009)
+                      (rune= c #/U+000A)
+                      (rune= c #/U+000D))))
       (consume-rune input))
     (unless (eq (read-rune input) #/=)
       (perror zinput "Expected \"=\"."))
     (while (let ((c (peek-rune input)))
              (and (not (eq c :eof))
-                  (or (= c #/U+0020)
-                      (= c #/U+0009)
-                      (= c #/U+000A)
-                      (= c #/U+000D))))
+                  (or (rune= c #/U+0020)
+                      (rune= c #/U+0009)
+                      (rune= c #/U+000A)
+                      (rune= c #/U+000D))))
       (consume-rune input))
     (cons name (read-att-value-2 input))
     ;;(cons name (read-att-value zinput input :ATT t))
@@ -1054,41 +1062,27 @@
     (let ((gimme-20 nil)
           (anything-seen-p nil))
       (map nil (lambda (c)
-                 (cond ((= c #x20)
+                 (cond ((rune= c #/u+0020)
                         (setf gimme-20 t))
                        (t
                         (when (and anything-seen-p gimme-20)
-                          (collect #x20))
+                          (collect #/u+0020))
                         (setf gimme-20 nil)
                         (setf anything-seen-p t)
                         (collect c))))
            value))))
 
-#||
-(defun canon-not-cdata-attval (value)
-  ;; | If the declared value is not CDATA, then the XML processor must
-  ;; | further process the normalized attribute value by discarding any
-  ;; | leading and trailing space (#x20) characters, and by replacing
-  ;; | sequences of space (#x20) characters by a single space (#x20)
-  ;; | character.
-  value)
-||#
-
-(defsubst data-rune-p (c)
+(defsubst data-rune-p (rune)
   ;; any Unicode character, excluding the surrogate blocks, FFFE, and FFFF.
-  (or (= c #x9) (= c #xA) (= c #xD)
-      (<= #x20 c #xD7FF)
-      (<= #xE000 c #xFFFD)
-      ;;
-      (<= #xD800 c #xDBFF)
-      (<= #xDC00 c #xDFFF)
-      ;;
-      ))
-
-#||
-(defsubst data-rune-p (c)
-  t)
-||#
+  (let ((c (rune-code rune)))
+    (or (= c #x9) (= c #xA) (= c #xD)
+        (<= #x20 c #xD7FF)
+        (<= #xE000 c #xFFFD)
+        ;;
+        (<= #xD800 c #xDBFF)
+        (<= #xDC00 c #xDFFF)
+        ;;
+        )))
 
 (defun read-att-value (zinput input mode &optional canon-space-p (delim nil))
   (with-rune-collector-2 (collect)
@@ -1104,7 +1098,7 @@
                           (setf c (peek-rune input))
                           (cond ((rune= c #/#)
                                  (let ((c (read-numeric-entity input)))
-                                   (%put-rune c collect)))
+                                   (%put-unicode-char c collect)))
                                 (t
                                  (unless (name-start-rune-p (peek-rune input))
                                    (error "Expecting name after &."))
@@ -1173,25 +1167,25 @@
                   (prog1
                       (parse-integer
                        (with-output-to-string (sink)
-                         (write-char (code-char c) sink)
+                         (write-char (rune-char c) sink)
                          (while (digit-rune-p (setq c (read-rune input)) 16)
-                                (write-char (code-char c) sink)))
+                           (write-char (rune-char c) sink)))
                        :radix 16)
                     (assert (rune= c #/\;)))
                   )
-                 ((<= #/0 c #/9)
+                 ((rune<= #/0 c #/9)
                   ;; decimal
                   (prog1
                       (parse-integer
                        (with-output-to-string (sink)
-                         (write-char (code-char c) sink)
-                         (while (<= #/0 (setq c (read-rune input)) #/9)
-                                (write-char (code-char c) sink)))
+                         (write-char (rune-char c) sink)
+                         (while (rune<= #/0 (setq c (read-rune input)) #/9)
+                           (write-char (rune-char c) sink)))
                        :radix 10)
                     (assert (rune= c #/\;))) )
                  (t
                   (error "Bad char in numeric character entity.") )))))
-    (unless (data-char-p res)
+    (unless (code-data-char-p res)
       (error "expansion of numeric character reference (#x~X) is no data char."
              res))
     res))
@@ -1358,22 +1352,6 @@
 
 ;; some character categories
 
-#||
-(defun name-start-rune-p (rune)
-  (or (<= #x0041 rune #x005A)
-      (<= #x0061 rune #x007A)
-      ;; lots more
-      (>= rune #x0080)
-      (rune= rune #/_)
-      (rune= rune #/:)))
-
-(defun name-rune-p (rune)
-  (or (name-start-rune-p rune)
-      (rune= rune #/.)
-      (rune= rune #/-)
-      (rune<= #/0 rune #/9)))
-||#
-
 (defun space-rune-p (rune)
   (declare (type rune rune))
   (or (rune= rune #/U+0020)
@@ -1381,7 +1359,7 @@
       (rune= rune #/U+000A)
       (rune= rune #/U+000D)))
 
-(defun data-char-p (c)
+(defun code-data-char-p (c)
   ;; any Unicode character, excluding the surrogate blocks, FFFE, and FFFF.
   (or (= c #x9) (= c #xA) (= c #xD)
       (<= #x20 c #xD7FF)
@@ -1389,10 +1367,10 @@
       (<= #x10000 c #x10FFFF)))
 
 (defun pubid-char-p (c)
-  (or (= c #x20) (= c #xD) (= c #xA)
-      (<= #/a c #/z)
-      (<= #/A c #/Z)
-      (<= #/0 c #/9)
+  (or (rune= c #/u+0020) (rune= c #/u+000D) (rune= c #/u+000A)
+      (rune<= #/a c #/z)
+      (rune<= #/A c #/Z)
+      (rune<= #/0 c #/9)
       (member c '(#/- #/' #/\( #/\) #/+ #/, #/. #//
                   #/: #/= #/? #/\; #/! #/* #/#
                   #/@ #/$ #/_ #/%))))
@@ -2129,9 +2107,9 @@
     (when (eq (caar atts) (intern-name '#.(string-rod "version")))
       (unless (and (>= (length (cdar atts)) 1)
                    (every (lambda (x)
-                            (or (<= #/a x #/z)
-                                (<= #/A x #/Z)
-                                (<= #/0 x #/9)
+                            (or (rune<= #/a x #/z)
+                                (rune<= #/A x #/Z)
+                                (rune<= #/0 x #/9)
                                 (rune= x #/_)
                                 (rune= x #/.)
                                 (rune= x #/:)
@@ -2143,17 +2121,17 @@
     (when (eq (caar atts) (intern-name '#.(string-rod "encoding")))
       (unless (and (>= (length (cdar atts)) 1)
                    (every (lambda (x)
-                            (or (<= #/a x #/z)
-                                (<= #/A x #/Z)
-                                (<= #/0 x #/9)
+                            (or (rune<= #/a x #/z)
+                                (rune<= #/A x #/Z)
+                                (rune<= #/0 x #/9)
                                 (rune= x #/_)
                                 (rune= x #/.)
                                 (rune= x #/-)))
                           (cdar atts))
                    ((lambda (x)
-                      (or (<= #/a x #/z)
-                          (<= #/A x #/Z)
-                          (<= #/0 x #/9)))
+                      (or (rune<= #/a x #/z)
+                          (rune<= #/A x #/Z)
+                          (rune<= #/0 x #/9)))
                     (aref (cdar atts) 0)))
         (error "Bad XML encoding name: ~S." (rod-string (cdar atts))))
       (setf (xml-header-encoding res) (rod-string (cdar atts)))
@@ -2527,7 +2505,7 @@
 (defun read-cdata (input)
   (read-data-until* ((lambda (rune)
                        (declare (type rune rune))
-                       (or (%= rune #/<) (%= rune #/&)))
+                       (or (%rune= rune #/<) (%rune= rune #/&)))
                      input
                      source start end)
                     (locally
@@ -2570,7 +2548,7 @@
                             (setf c (peek-rune input))
                             (cond ((rune= c #/#)
                                    (let ((c (read-numeric-entity input)))
-                                     (%put-rune c collect)))
+                                     (%put-unicode-char c collect)))
                                   (t
                                    (unless (name-start-rune-p (peek-rune input))
                                      (error "Expecting name after &."))
@@ -2646,7 +2624,7 @@
                  (multiple-value-bind (kind sem) (read-entity-ref input)
                    (ecase kind
                      (:NUMERIC
-                      (%put-rune sem collect))
+                      (%put-unicode-char sem collect))
                      (:NAMED
                       (let* ((exp (internal-entity-expansion sem))
                              (n (length exp)))
@@ -2655,7 +2633,7 @@
                             ((%= i n))
                           (collect (%rune exp i))))))))
                 ((space-rune-p c)
-                 (collect #x20))
+                 (collect #/u+0020))
                 (t
                  (collect c))))))))
 
@@ -2698,7 +2676,7 @@
 
 
 (defun find-namespace-binding (prefix)
-  (cdr (or (assoc prefix *namespace-bindings* :test #'rod=)
+  (cdr (or (assoc (or prefix #"") *namespace-bindings* :test #'rod=)
 	   (error "Undeclared namespace prefix: ~A" (rod-string prefix)))))
 
 ;; FIXME: Should probably be refactored by adding :start and :end to rod=/rod-equal

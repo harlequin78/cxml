@@ -13,6 +13,19 @@
 (unless (find-package :glisp)
   (defpackage :glisp))
 
+#-rune-is-character
+(format t "~&;;; Building cxml with (UNSIGNED-BYTE 16) RUNES~%")
+
+#+rune-is-character
+(cond
+  ((or #+(and allegro (not ics)) t)
+    (error "Sorry, you cannot use RUNE-IS-CHARACTER in an 8 bit image."))
+  ((or #+(or (and allegro ics) lispworks) t)
+    (format t "~&;;; Building cxml with CHARACTER RUNES~%"))
+  (t
+    (error "CXML was configured to use character runes, but it is not known ~
+            whether this Lisp has 16-bit characters")))
+
 (defsystem glisp
     :default-component-class closure-source-file
     :pathname (merge-pathnames
@@ -31,10 +44,13 @@
 	    #-(or sbcl CLISP CMU allegro GCL) #.(error "Configure!"))
      (:file "package"
 	    :depends-on (dependent))
-     (:file "runes"
+     (:file runes
+            :pathname
+             #-rune-is-character "runes"
+             #+rune-is-character "characters"
 	    :depends-on ("package" dependent))
      (:file "syntax"
-	    :depends-on ("package" dependent "runes"))
+	    :depends-on ("package" dependent runes))
      (:file "util"
 	    :depends-on ("package" dependent))))
 

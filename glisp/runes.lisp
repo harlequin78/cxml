@@ -256,3 +256,15 @@
     (rod-hash-table-rehash))
 
   (pushnew 'rod-hash-after-gc-hook extensions:*after-gc-hooks*) )
+
+(defun rod< (rod1 rod2)
+  (do ((i 0 (+ i 1)))
+      (nil)
+    (cond ((= i (length rod1))
+           (return t))
+          ((= i (length rod2))
+           (return nil))
+          ((< (aref rod1 i) (aref rod2 i))
+           (return t))
+          ((> (aref rod1 i) (aref rod2 i))
+           (return nil)))))

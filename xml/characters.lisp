@@ -1,6 +1,10 @@
-;;; XXX wird derzeit in DOM:CREATE-ATTRIBUTE verwendet.  Muesste aber wohl vom
-;;; Parser auch schon geprueft werden.  Vorher sollte man allerdings die
-;;; Geschwindigkeit der Sache mal untersuchen.
+;;; XXX xml-name-rune-p.lisp habe ich erst nach dem Schreiben dieses
+;;; Files gefunden...
+
+;;; XXX wird derzeit in DOM:CREATE-ATTRIBUTE verwendet.  Muesste aber
+;;; wohl vom Parser auch schon geprueft werden (oder tut der das
+;;; schon?).  Vorher sollte man allerdings die Geschwindigkeit der Sache
+;;; mal untersuchen.
 
 (in-package :xml)
 
@@ -9,30 +13,31 @@
        (let ((initial (elt rod 0)))
          (or (rune-in-range-p initial *base-char-ranges*)
              (rune-in-range-p initial *ideographic-ranges*)
-             (eql initial #.(char-code #\_))
-             (eql initial #.(char-code #\:))))
+             (rune= initial #/_)
+             (eql initial #/:)))
        (every #'rune-name-char-p rod)))
 
 (defun rune-name-char-p (rune)
   (or (rune-in-range-p rune *base-char-ranges*)
       (rune-in-range-p rune *ideographic-ranges*)
       (rune-in-range-p rune *digit-ranges*)
-      (eql rune #.(char-code #\.))
-      (eql rune #.(char-code #\-))
-      (eql rune #.(char-code #\_))
-      (eql rune #.(char-code #\:))
+      (eql rune #/.)
+      (eql rune #/-)
+      (eql rune #/_)
+      (eql rune #/:)
       (rune-in-range-p rune *combining-char-ranges*)
       (rune-in-range-p rune *extender-ranges*)))
 
 (defun rune-in-range-p (rune range)
   ;; XXX FIXME, das geht doch besser
-  (block nil
-    (map nil (lambda (range)
-               (when (< rune (car range))
-                 (return nil))
-               (when (<= rune (cadr range))
-                 (return t)))
-         range)))
+  (let ((code (rune-code rune)))
+    (block nil
+      (map nil (lambda (range)
+                 (when (< code (car range))
+                   (return nil))
+                 (when (<= code (cadr range))
+                   (return t)))
+           range))))
 
 (defparameter *base-char-ranges*
     #((#x0041 #x005A) (#x0061 #x007A) (#x00C0 #x00D6) (#x00D8 #x00F6)
