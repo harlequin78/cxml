@@ -19,6 +19,10 @@
         background-color: #ddddff;
         font-weight: bold;
       }
+      .nomargin {
+        margin-bottom: 0;
+        margin-top: 0;
+      }
     </style>
   </head>
   <body>
@@ -52,12 +56,12 @@
 
     <p><b>Download.</b></p>
     <p>
+      Get a <a href="http://www.common-lisp.net/project/cxml/download/">tarball</a>.
+    </p>
+    <p>
       There is no CVS repository (yet).<br/>
       You can check out David's tla archive at <a
       href="http://www.common-lisp.net/project/cxml/david@knowledgetools.de--cxml/">http://www.common-lisp.net/project/cxml/david@knowledgetools.de--cxml/</a>.<br/>
-      There will also be <a href="http://www.common-lisp.net/project/cxml/download/">tarballs</a>.
-    </p>
-    <p>
       (Brief tla usage instructions: Unpack the cxml tarball.&nbsp;
       Enter <tt>tla register-archive URL</tt> to turn it into a working
       copy.&nbsp; <tt>tla update</tt> is similar to <tt>cvs up</tt>.)
@@ -66,9 +70,13 @@
     <p>
       <b>Recent Changes</b>
     </p>
-    <ul>
+    <p class="nomargin"><tt>patch-???</tt></p>
+    <ul class="nomargin">
       <li>Validation</li>
       <li>Fixed a case-sensitivity bug triggered by the XHTML DTD.</li>
+    </ul>
+    <p class="nomargin"><tt>patch-204</tt></p>
+    <ul class="nomargin">
       <li>Renamed package <tt>XML</tt> to <tt>CXML</tt>.</li>
       <li>The unparse functions support non-canonical output now.</li>
     </ul>
