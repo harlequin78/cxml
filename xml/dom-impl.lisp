@@ -173,7 +173,7 @@
   (make-instance 'attribute
     :name name
     :value ""
-    :specified-p nil                    ;???
+    :specified-p t
     :owner document))
 
 (defmethod dom:create-entity-reference ((document document) name)
