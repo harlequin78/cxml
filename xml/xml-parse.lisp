@@ -759,53 +759,50 @@
           (validity-error "(08) ID: ~S not unique" (rod-string value)))
         (setf (gethash value (id-table ctx)) t))
       (:IDREF
-        (unless (valid-name-p value)
-          (validity-error "(11) IDREF: not a name: ~S" (rod-string value)))
-        (unless (gethash value (id-table ctx))
-          (setf (gethash value (id-table ctx)) nil)))
+        (validate-idref ctx value))
       (:IDREFS
         (let ((names (split-names value)))
           (unless names
             (validity-error "(11) IDREF: malformed names"))
-          (dolist (name names)
-            (unless (valid-name-p name)
-              (validity-error "(11) IDREF: not a name: ~S" (rod-string name)))
-            (unless (gethash name (id-table ctx))
-              (setf (gethash name (id-table ctx)) nil)))))
+          (mapc (curry #'validate-idref ctx) names)))
       (:NMTOKEN
-        (unless (valid-nmtoken-p value)
-          (validity-error "(13) Name Token: not a NMTOKEN: ~S"
-                          (rod-string value))))
+        (validate-nmtoken value))
       (:NMTOKENS
         (let ((tokens (split-names value)))
           (unless tokens
             (validity-error "(13) Name Token: malformed NMTOKENS"))
-          (dolist (token tokens)
-            (unless (valid-nmtoken-p token)
-              (validity-error "(13) Name Token: not a NMTOKEN: ~S"
-                              (rod-string token))))))
+          (mapc #'validate-nmtoken tokens)))
       (:ENUMERATION
         (unless (member value (cdr type) :test #'rod=)
           (validity-error "(17) Enumeration: value not declared: ~S"
                           (rod-string value))))
       (:ENTITY
-        (unless (valid-name-p value)
-          (validity-error "(12) Entity Name: not a name: ~S" (rod-string value)))
-        (unless (get-entity-definition value :general *ctx*)
-          (validity-error "(12) Entity Name: ~S" (rod-string value))))
+        (validate-entity value))
       (:ENTITIES
         (let ((names (split-names value)))
           (unless names
             (validity-error "(13) Name Token: malformed NMTOKENS"))
-          (dolist (name names)
-            (unless (valid-name-p name)
-              (validity-error "(12) Entity Name: not a name: ~S"
-                              (rod-string name)))
-            (unless (get-entity-definition name :general *ctx*)
-              (validity-error "(12) Entity Name: ~S" (rod-string name))))))
+          (mapc #'validate-entity names)))
       (:NOTATION)                       ;fixme
       (:NOTATIONS)                      ;fixme
       (:CDATA))))
+
+(defun validate-idref (ctx value)
+  (unless (valid-name-p value)
+    (validity-error "(11) IDREF: not a name: ~S" (rod-string value)))
+  (unless (gethash value (id-table ctx))
+    (setf (gethash value (id-table ctx)) nil)))
+
+(defun validate-nmtoken (value)
+  (unless (valid-nmtoken-p value)
+    (validity-error "(13) Name Token: not a NMTOKEN: ~S"
+                    (rod-string value))))
+
+(defun validate-entity (value)
+  (unless (valid-name-p value)
+    (validity-error "(12) Entity Name: not a name: ~S" (rod-string value)))
+  (unless (get-entity-definition value :general *ctx*)
+    (validity-error "(12) Entity Name: ~S" (rod-string value))))
 
 (defun split-names (rod)
   (flet ((whitespacep (x)
