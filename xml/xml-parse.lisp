@@ -722,8 +722,9 @@
             (case (attdef-default ad)
               (:IMPLIED)
               (:REQUIRED
-                (validity-error "(18) Required Attribute: ~S not specified"
-                                (rod-string (attdef-name ad))))
+                (when *validate*
+                  (validity-error "(18) Required Attribute: ~S not specified"
+                                  (rod-string (attdef-name ad)))))
               (t
                 (when (standalone-check-necessary-p e)
                   (validity-error "(02) Standalone Document Declaration: missing attribute value"))

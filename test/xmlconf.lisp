@@ -14,7 +14,8 @@
       "ibm-valid-P29-ibm29v02.xml"))
 
 (defun relevant-test-p (test)
-  (and (equal (get-attribute test "TYPE") "valid")
+  (and (or (equal (get-attribute test "TYPE") "valid")
+           (equal (get-attribute test "TYPE") "invalid"))
        (let ((version (get-attribute test "RECOMMENDATION")))
          (cond
            ((or (equal version "")      ;XXX
@@ -22,7 +23,7 @@
              (cond
                ((equal (get-attribute test "NAMESPACE") "no")
                  (format t "~A: test applies to parsers without namespace support, skipping~%"
-                       (get-attribute test "URI"))
+                         (get-attribute test "URI"))
                  nil)
                (t
                  t)))
