@@ -1922,6 +1922,7 @@
 (defun p/document (input handler)
   (let ((*handler* handler)
 	(*namespace-bindings* *default-namespace-bindings*))
+    (declare (special *namespace-bindings*)) ;forward declaration for DEFVAR
     (setf *entities* nil)
     (setf *dtd* (make-dtd))
     (define-default-entities)
