@@ -651,10 +651,11 @@
   (with-slots (owner parent value) text
     (unless (<= 0 offset (length value))
       (dom-error :INDEX_SIZE_ERR "offset is invalid"))
-    (setf value (subseq value 0 offset))
-    (dom:insert-before parent
-                       (dom:create-text-node owner (subseq value offset))
-                       (dom:next-sibling text))))
+    (prog1
+        (dom:insert-before parent
+                           (dom:create-text-node owner (subseq value offset))
+                           (dom:next-sibling text))
+      (setf value (subseq value 0 offset)))))
 
 ;;; COMMENT -- nix
 ;;; CDATA-SECTION -- nix
