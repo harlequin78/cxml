@@ -272,7 +272,8 @@
   model-stack
   (referenced-notations '())
   (id-table (%make-rod-hash-table))
-  (standalone-p nil))
+  (standalone-p nil)
+  (ignore-external-subset-p nil))
 
 (defvar *expand-pe-p*)
 
@@ -2457,7 +2458,7 @@
         (consume-token input)
         (p/S? input))
       (expect input :>)
-      (when extid
+      (when (and extid (not (ignore-external-subset-p *ctx*)))
         (let* ((sysid (extid-system (absolute-extid input extid)))
                (fresh-dtd-p (null (dtd *ctx*)))
                (cached-dtd (and fresh-dtd-p (getdtd sysid *dtd-cache*))))
@@ -2493,6 +2494,7 @@
   (let ((*ctx* (make-context))
         (*validate* validate))
     (setf (handler *ctx*) handler)
+    (setf (ignore-external-subset-p *ctx*) (and dtd t))
     (sax:start-document handler)
     ;; document ::= XMLDecl? Misc* (doctypedecl Misc*)? element Misc*
     ;; Misc ::= Comment | PI |  S
