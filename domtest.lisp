@@ -243,6 +243,7 @@
     ("if"		(translate-if element))
     ("increment"	(translate-unary-assignment '+ element))
     ("decrement"	(translate-unary-assignment '- element))
+    ("length"		(translate-length element))
     ("load"		(translate-load element))
     ("plus"		(translate-binary-assignment '+ element))
     ("try"		(translate-try element))
@@ -264,6 +265,17 @@
   (with-attributes (|var| |href| |willBeModified|) load
     (maybe-setf (%intern |var|)
                 `(load-file ,|href| ,(parse-java-literal |willBeModified|)))))
+
+(defun translate-length (load)
+  ;; XXX Soweit ich sehe unterscheiden die Tests nicht zwischen
+  ;; der Laenge von DOMString und der length()-Methode der uebrigen
+  ;; Interfaces.  Also unterscheiden wir das erstmal manuell.
+  (with-attributes (|var| |obj|) load
+    (let ((obj (%intern |obj|)))
+      (maybe-setf (%intern |var|)
+                  `(if (typep ,obj 'sequence)
+                       (length ,obj)
+                       (dom:length ,obj))))))
 
 (defun translate-call (call method)
   (let ((name (car method))
