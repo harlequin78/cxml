@@ -69,8 +69,13 @@
     ((high-surrogate :initform nil)
      (column :initform 0 :accessor column)
      (width :initform 79 :initarg :width :accessor width)
+     (canonical :initform t :initarg :canonical :accessor canonical)
      (indentation :initform nil :initarg :indentation :accessor indentation)
      (current-indentation :initform 0 :accessor current-indentation)))
+
+(defmethod initialize-instance :after ((instance sink) &key)
+  (when (and (canonical instance) (indentation instance))
+    (error "Cannot indent XML in canonical mode")))
 
 (defclass vector-sink (sink)
     ((target-vector :initform (make-buffer))))
@@ -153,7 +158,7 @@
            (write-rune #/space sink)
            (write-rod (dom:data node) sink)
            (write-rod '#.(string-rod "?>") sink)))
-        ((dom:cdata-section-p node)
+        ((and (dom:cdata-section-p node) (not (canonical sink)))
          (when indentation
            (sink-fresh-line sink))
          (write-rod #"<![CDATA[" sink)
@@ -163,7 +168,10 @@
         ((dom:text-node-p node)
          (if indentation
              (unparse-indented-text (dom:data node) sink)
-             (map nil (lambda (c) (unparse-datachar c sink)) (dom:data node))))
+             (map nil (if (canonical sink)
+                          (lambda (c) (unparse-datachar c sink))
+                          (lambda (c) (unparse-datachar-readable c sink)))
+                  (dom:data node))))
         ((dom:comment-p node))
         (t
          (error "Oops in unparse: ~S." node)))))
