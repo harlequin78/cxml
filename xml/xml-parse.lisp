@@ -2751,6 +2751,10 @@
     ((octets :initarg :octets)
      (pos :initform 0)))
 
+(defmethod close ((stream octet-input-stream) &key abort)
+  (declare (ignore abort))
+  (open-stream-p stream))
+
 (defmethod stream-read-byte ((stream octet-input-stream))
   (with-slots (octets pos) stream
     (if (>= pos (length octets))
