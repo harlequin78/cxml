@@ -2489,9 +2489,9 @@
          (cdr (nth-value 1 (peek-token input))))))
     (consume-token input)))
   
-(defun p/document (input handler &key validate root)
+(defun p/document (input handler &key validate dtd root)
   (let ((*ctx* (make-context))
-        (*validate* (and validate t)))
+        (*validate* validate))
     (setf (handler *ctx*) handler)
     (sax:start-document handler)
     ;; document ::= XMLDecl? Misc* (doctypedecl Misc*)? element Misc*
@@ -2515,12 +2515,12 @@
         ((eq (peek-token input) :<!DOCTYPE)
           (p/doctype-decl input)
           (p/misc*-2 input))
-        ((and validate (not (dtd-p validate)))
+        ((and validate (not dtd))
           (validity-error "invalid document: no doctype")))
       (ensure-dtd)
       ;; Switch to caller-supplied DTD if asked to
-      (when (dtd-p validate)
-        (setf (dtd *ctx*) validate)
+      (when dtd
+        (setf (dtd *ctx*) dtd)
         (setf (model-stack *ctx*)
               (list (cons (lambda (x) x (constantly :dummy)) (constantly t)))))
       (when root

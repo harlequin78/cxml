@@ -310,9 +310,9 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     <a name="parser"/>
     <h3>Parsing and Validating</h3>
     <p>
-      <div class="def">Function CXML:PARSE-FILE (pathname handler &key validate root)</div>
-      <div class="def">Function CXML:PARSE-STREAM (stream handler &key validate root)</div>
-      <div class="def">Function CXML:PARSE-OCTETS (octets handler &key validate root)</div>
+      <div class="def">Function CXML:PARSE-FILE (pathname handler &key validate dtd root)</div>
+      <div class="def">Function CXML:PARSE-STREAM (stream handler &key validate dtd root)</div>
+      <div class="def">Function CXML:PARSE-OCTETS (octets handler &key validate dtd root)</div>
       Parse an XML document.&nbsp;
       Return values from this function depend on the SAX handler used.<br/>
       Arguments:
@@ -328,27 +328,31 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       Common keyword arguments:
     </p>
     <ul>
-      <li><tt>validate</tt> -- <tt>t</tt>, <tt>nil</tt>, or a DTD
-        instance.&nbsp; Defaults to <tt>nil</tt>.</li>
-      <li><tt>root</tt> -- <tt>nil</tt> or the expected root element
-        name as a <tt>rod</tt>.</li>
-    </ul>
-    <p>
-      Arguments to <tt>validate</tt>:
-    </p>
-    <ul>
-      <li><tt>nil</tt> -- do not validate</li>
-      <li><tt>t</tt> -- assert that the document contains a DOCTYPE
-        declaration and conforms to the DTD declared.</li>
-      <li>a DTD instance -- assert that the document conforms to the DTD
-        passed as an argument (as opposed to the DOCTYPE declaration, if
-        any).
+      <li>
+        <tt>validate</tt> -- A boolean.&nbsp; Defaults to
+        <tt>nil</tt>.  If true, parse in validating mode, i.e. assert that
+        the document contains a DOCTYPE declaration and conforms to the
+        DTD declared.
       </li>
+      <li>
+        <tt>dtd</tt> -- an overriding DTD instance or <tt>nil</tt> (the
+        default). If specified, use this instance instead of the doctype
+        declared.  If validating, assert that the document conforms to
+        the overriding DTD (as opposed to the DOCTYPE declaration, if any).
+        With this option, any internal subset is read and ignored,
+        external subsets not read at all.  Entities referenced from the
+        document must be declared in the overriding DTD.
+      </li>
+      <li><tt>root</tt> -- the expected root element
+        name, or <tt>nil</tt> (the default).</li>
     </ul>
     <p>
       When validating, argument <tt>root</tt> can be used to override the
       name given in the DOCTYPE declaration.&nbsp; This is useful
-      together with a caller-specified DTD instance.
+      together with a caller-specified DTD instance.  <em>Before using
+      the <tt>dtd</tt> and <tt>root</tt> options, consider whether DTD
+      caching and a special SAX handler checking for a correct DOCTYPE
+      declaration might be a better solution.</em>
     </p>
 
     <p>
