@@ -157,10 +157,15 @@
 
 ;;;; doctype and notations
 
-(defmethod sax:start-dtd ((sink sink) name public-id system-id)
+(defmethod sax:start-document ((sink sink))
   (unless (canonical sink)
-    (ensure-doctype sink public-id system-id))
-  (setf (name-for-dtd sink) name))
+    (write-rod #"<?xml version=\"1.0\" encoding=\"UTF-8\"?>" sink)
+    (write-rune #/U+000A sink)))
+
+(defmethod sax:start-dtd ((sink sink) name public-id system-id)
+  (setf (name-for-dtd sink) name)
+  (unless (canonical sink)
+    (ensure-doctype sink public-id system-id)))
 
 (defun ensure-doctype (sink &optional public-id system-id)
   (unless (have-doctype sink)
@@ -213,23 +218,37 @@
 
 (defmethod sax:end-dtd ((sink sink))
   (when (have-doctype sink)
-    (write-rod #"]>" sink)
+    (when (previous-notation sink)
+      (write-rod #"]" sink))
+    (write-rod #">" sink)
     (write-rune #/U+000A sink)))
 
 
 ;;;; elements
+
+(defstruct (tag (:constructor make-tag (name)))
+  name
+  (n-children 0)
+  (have-gt nil))
 
 (defun sink-fresh-line (sink)
   (unless (zerop (column sink))
     (write-rune-0 10 sink)
     (indent sink)))
 
+(defun maybe-close-tag (sink)
+  (let ((tag (car (stack sink))))
+    (when (and (tag-p tag) (not (tag-have-gt tag)))
+      (setf (tag-have-gt tag) t)
+      (write-rune #/> sink))))
+
 (defmethod sax:start-element
     ((sink sink) namespace-uri local-name qname attributes)
   (declare (ignore namespace-uri local-name))
+  (maybe-close-tag sink)
   (when (stack sink)
-    (incf (cdr (first (stack sink)))))
-  (push (cons qname 0) (stack sink))
+    (incf (tag-n-children (first (stack sink)))))
+  (push (make-tag qname) (stack sink))
   (when (indentation sink)
     (sink-fresh-line sink)
     (start-indentation-block sink))
@@ -243,26 +262,32 @@
       (write-rune #/\" sink)
       (map nil (lambda (c) (unparse-datachar c sink)) (sax:attribute-value a))
       (write-rune #/\" sink)))
-  (write-rod '#.(string-rod ">") sink))
+  (when (canonical sink)
+    (maybe-close-tag sink)))
 
 (defmethod sax:end-element
     ((sink sink) namespace-uri local-name qname)
   (declare (ignore namespace-uri local-name))
-  (let ((cons (pop (stack sink))))
-    (unless (consp cons)
+  (let ((tag (pop (stack sink))))
+    (unless (tag-p tag)
       (error "output does not nest: not in an element"))
-    (unless (rod= (car cons) qname)
+    (unless (rod= (tag-name tag) qname)
       (error "output does not nest: expected ~A but got ~A"
-             (rod qname) (rod (car cons))))
+             (rod qname) (rod (tag-name tag))))
     (when (indentation sink)
       (end-indentation-block sink)
-      (unless (zerop (cdr cons))
-        (sink-fresh-line sink))))
-  (write-rod '#.(string-rod "</") sink)
-  (write-rod qname sink)
-  (write-rod '#.(string-rod ">") sink))
+      (unless (zerop (tag-n-children tag))
+        (sink-fresh-line sink)))
+    (cond
+      ((tag-have-gt tag)
+       (write-rod '#.(string-rod "</") sink)
+       (write-rod qname sink)
+       (write-rod '#.(string-rod ">") sink))
+      (t
+       (write-rod #"/>" sink)))))
 
 (defmethod sax:processing-instruction ((sink sink) target data)
+  (maybe-close-tag sink)
   (unless (rod-equal target '#.(string-rod "xml"))
     (write-rod '#.(string-rod "<?") sink)
     (write-rod target sink)
@@ -271,9 +296,11 @@
     (write-rod '#.(string-rod "?>") sink)))
 
 (defmethod sax:start-cdata ((sink sink))
+  (maybe-close-tag sink)
   (push :cdata (stack sink)))
 
 (defmethod sax:characters ((sink sink) data)
+  (maybe-close-tag sink)
   (cond
     ((and (eq (car (stack sink)) :cdata)
           (not (canonical sink))
@@ -463,3 +490,11 @@
 (defun rod-to-utf8-string (rod)
   (with-output-to-string (s)
     (write-rod rod (cxml:make-character-stream-sink s))))
+
+(defun utf8-string-to-rod (str)
+  (let* ((bytes (map '(vector (unsigned-byte 8)) #'char-code str))
+         (buffer (make-array (length bytes) :element-type '(unsigned-byte 16)))
+         (n (decode-sequence :utf-8 bytes 0 (length bytes) buffer 0 0 nil))
+         (result (make-array n :element-type 'rod)))
+    (map-into result #'code-rune buffer)
+    result))
