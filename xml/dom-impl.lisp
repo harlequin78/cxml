@@ -336,7 +336,7 @@
 (defmethod dom:node-value ((self document)) nil)
 (defmethod dom:node-value ((self document-fragment)) nil)
 (defmethod dom:node-value ((self character-data)) (dom:data self))
-(defmethod dom:node-value ((self attribute)) (dom:name self))
+(defmethod dom:node-value ((self attribute)) (dom:value self))
 (defmethod dom:node-value ((self element)) nil)
 (defmethod dom:node-value ((self document-type)) nil)
 (defmethod dom:node-value ((self notation)) nil)
