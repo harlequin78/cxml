@@ -134,8 +134,8 @@
 (defun make-space (vector &optional (n 1))
   (adjust-vector-exponentially vector (+ (length vector) n) nil))
 
-(defun size (vector)
-  (array-dimension vector 0))
+(defun extension (vector)
+  (max (array-dimension vector 0) 1))
 
 ;; dom-exception
 
@@ -236,7 +236,7 @@
                  (dovector (c (dom:child-nodes n))
                    (when (dom:element-p c)
                      (when (or wild-p (rod= tag-name (dom:node-name c)))
-                       (vector-push-extend c result (size result)))
+                       (vector-push-extend c result (extension result)))
                      (walk c)))))
         (walk node)))
     result))
@@ -311,7 +311,7 @@
           (move children children i (1+ i) (- (length children) i))
           (incf (fill-pointer children))
           (setf (elt children i) new-child))
-        (vector-push-extend new-child children (size children)))
+        (vector-push-extend new-child children (extension children)))
     (setf (slot-value new-child 'parent) node)
     new-child))
 
@@ -345,7 +345,7 @@
 (defmethod dom:append-child ((node node) (new-child node))
   (ensure-valid-insertion-request node new-child)
   (with-slots (children) node
-    (vector-push-extend new-child children (size children))
+    (vector-push-extend new-child children (extension children))
     (setf (slot-value new-child 'parent) node)
     new-child))
 
@@ -486,15 +486,10 @@
 ;;; NodeList
 
 (defun make-node-list (&optional initial-contents)
-  (if (zerop (length initial-contents))
-      (make-array 1                     ;vector-push-extend wants PLUSP size
-                  :adjustable t
-                  :fill-pointer 0
-                  :initial-contents '(nil))
-      (make-array (length initial-contents)
-                  :adjustable t
-                  :fill-pointer (length initial-contents)
-                  :initial-contents initial-contents)))
+  (make-array (length initial-contents)
+              :adjustable t
+              :fill-pointer (length initial-contents)
+              :initial-contents initial-contents))
 
 (defmethod dom:item ((self vector) index)
   (if (< index (length self))

@@ -30,7 +30,7 @@
    (element-stack :initform '() :accessor element-stack)))
 
 (defun fast-push (new-element vector)
-  (vector-push-extend new-element vector (array-dimension vector 0)))
+  (vector-push-extend new-element vector (max 1 (array-dimension vector 0))))
 
 (defmethod sax:start-document ((handler dom-builder))
   (let ((document (make-instance 'dom-impl::document)))
