@@ -200,7 +200,7 @@
 ;;;; (03) Element Valid                         VALIDATE-*-ELEMENT, -CHARACTERS
 ;;;; (04) Attribute Value Type                  VALIDATE-ATTRIBUTE
 ;;;; (05) Unique Element Type Declaration       DEFINE-ELEMENT
-;;;; (06) Proper Group/PE Nesting
+;;;; (06) Proper Group/PE Nesting               P/CSPEC
 ;;;; (07) No Duplicate Types                    LEGAL-CONTENT-MODEL-P
 ;;;; (08) ID                                    VALIDATE-ATTRIBUTE
 ;;;; (09) One ID per Element Type               DEFINE-ATTRIBUTE
@@ -2102,7 +2102,7 @@
 
 (defun p/cspec (input)
   (let ((term
-         (let ((names nil) op-cat op res)
+         (let ((names nil) op-cat op res stream)
            (multiple-value-bind (cat sem) (peek-token input)
              (cond ((eq cat :name) 
                     (consume-token input) 
@@ -2116,6 +2116,7 @@
                     (consume-token input)
                     :PCDATA)
                    ((eq cat :\()
+                    (setf stream (car (zstream-input-stack input)))
                     (consume-token input)
                     (p/S? input)
                     (setq names (list (p/cspec input)))
@@ -2133,6 +2134,9 @@
                         (setf res (cons 'and names))))
                     (p/S? input)
                     (expect input :\))
+                    (when *validate*
+                      (unless (eq stream (car (zstream-input-stack input)))
+                        (validity-error "(06) Proper Group/PE Nesting")))
                     res)
                    (t
                     (error "p/cspec - ~s / ~s" cat sem)))))))
