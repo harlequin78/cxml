@@ -34,6 +34,10 @@
   (setf (slot-value (document handler) 'children )
 	(nreverse (slot-value (document handler) 'children)))
   (setf (slot-value (document handler) 'entities) xml::*entities*)
+  (let ((doctype (dom:doctype (document handler))))
+    (when doctype
+      (setf (slot-value (dom:entities doctype) 'read-only-p) t)
+      (setf (slot-value (dom:notations doctype) 'read-only-p) t)))
   (document handler))
 
 (defmethod sax:start-dtd ((handler dom-builder) name publicid systemid)
