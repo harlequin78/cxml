@@ -643,19 +643,13 @@
 
 (defmethod dom:split-text ((text text) offset)
   (assert-writeable text)
-  (assert (dom:parent-node text))
   (with-slots (owner parent value) text
     (unless (<= 0 offset (length value))
       (dom-error :INDEX_SIZE_ERR "offset is invalid"))
     (setf value (subseq value 0 offset))
-    #+(or)
     (dom:insert-before parent
                        (dom:create-text-node owner (subseq value offset))
-                       (dom:next-sibling text))
-    (let ((new-sibling (dom:create-text-node owner (subseq value offset))))
-      (dom:insert-before parent new-sibling (dom:next-sibling text))
-      (assert (dom:parent-node new-sibling))
-      new-sibling)))
+                       (dom:next-sibling text))))
 
 ;;; COMMENT -- nix
 ;;; CDATA-SECTION -- nix
