@@ -1772,6 +1772,12 @@
     (setf id (p/external-id input t))
     (p/S? input)
     (expect input :\>)
+    (case (car id)
+      ;; XXX are these right?
+      (:SYSTEM
+        (sax:notation-declaration *handler* name nil (cadr id)))
+      (:PUBLIC
+        (sax:notation-declaration *handler* name (cadr id) (caddr id))))
     (list :notation-decl name id)))
 
 ;;;

@@ -90,3 +90,11 @@
                         :public-id public-id
                         :system-id system-id
                         :notation-name notation-name)))
+
+(defmethod sax:notation-declaration
+    ((handler dom-builder) name public-id system-id)
+  (dom:set-named-item (dom:notations (dom:doctype (document handler)))
+                      (make-instance 'dom-impl::notation
+                        :name name
+                        :public-id public-id
+                        :system-id system-id)))

@@ -71,7 +71,8 @@
 	   #:end-cdata
 	   #:start-dtd
 	   #:end-dtd
-           #:unparsed-entity-declaration))
+           #:unparsed-entity-declaration
+           #:notation-declaration))
 
 (in-package :sax)
 
@@ -249,4 +250,12 @@ other textual content.")
    "Called when an entity declaration is seen while parsing a DTD.")
   (:method ((handler t) name public-id system-id notation-name)
     (declare (ignore name public-id system-id notation-name))
+    nil))
+
+(defgeneric notation-declaration
+    (handler name public-id system-id)
+  (:documentation
+   "Called when a notation declaration is seen while parsing a DTD.")
+  (:method ((handler t) name public-id system-id)
+    (declare (ignore name public-id system-id))
     nil))
