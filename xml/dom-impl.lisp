@@ -598,7 +598,7 @@
   (let ((a (dom:get-attribute-node element name)))
     (if a
         (dom:value a)
-        "")))
+        #())))
 
 (defmethod dom:set-attribute ((element element) name value)
   (assert-writeable element)
