@@ -1079,7 +1079,7 @@
       (validate-attribute* *ctx* adef (second default)))))
 
 (defun find-attribute (elmdef name)
-  (find name (elmdef-attributes elmdef) :key #'attdef-name :test #'equal))
+  (find name (elmdef-attributes elmdef) :key #'attdef-name :test #'rod=))
 
 (defun define-notation (dtd name id)
   (let ((ns (dtd-notations dtd)))
@@ -2050,7 +2050,7 @@
     (labels ((doit (actual-name)
                (cond
                  ((null actual-name) t)
-                 ((member actual-name allowed-names :test #'equal) #'doit)
+                 ((member actual-name allowed-names :test #'rod=) #'doit)
                  (t nil))))
       #'doit)))
 
