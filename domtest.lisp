@@ -474,7 +474,16 @@
                         (string-case (dom:get-attribute e "type")
                           (("byte" "short" "int" "long") 0)
                           (t nil)))
-                  bindings))
+                  bindings)
+            (do-child-elements (member e :name "member") e
+              (push `(setf ,(%intern (dom:get-attribute e "name"))
+                           (append ,(%intern (dom:get-attribute e "name"))
+                                   (list
+                                    ,(parse-java-literal
+                                      (dom:data
+                                       (car
+                                        (dom:child-nodes member)))))))
+                    code)))
           ("implementationAttribute"
             (assert-have-implementation-attribute e))
           (t
