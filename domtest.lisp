@@ -92,19 +92,25 @@
     (return child)))
 
 (defun %intern (name)
-  (intern name :domtest-tests))
+  (if name
+      (intern name :domtest-tests)
+      nil))
 
 (defun replace-studly-caps (str)
   ;; s/([A-Z][a-z])/-\1/
   (with-output-to-string (out)
     (with-input-from-string (in str)
-      (for ((first = t :then nil)
-            (c = (read-char in nil nil))
+      (for ((c = (read-char in nil nil))
+            (previous = nil then c)
             (next = (peek-char nil in nil nil))
             :while c)
-          (when (and (not first) (upper-case-p c) next (lower-case-p next))
-            (write-char #\- out))
-        (write-char (char-downcase c) out)))))
+        (when (and previous
+                   (upper-case-p c) next (lower-case-p next)
+                   (not (lower-case-p previous)))
+          (write-char #\- out))
+        (write-char (char-downcase c) out)
+        (when (and (lower-case-p c) next (upper-case-p next))
+          (write-char #\- out))))))
 
 (defun intern-dom (name)
   (intern (replace-studly-caps name) :dom))
@@ -128,7 +134,7 @@
     (t
       (%intern str))))
 
-(defmacro maybe-setf (place form)
+(defun maybe-setf (place form)
   (if place
       `(setf ,place ,form)
       form))
@@ -164,6 +170,7 @@
   (string-case (dom:tag-name element)
     ("equals" (translate-equals element))
     ("contentType" (translate-content-type element))
+    ("hasFeature" (translate-has-feature element))
     ("implementationAttribute" (assert-have-implementation-attribute element))
     ("isNull" (translate-is-null element))
     ("not" (translate-is-null element))
@@ -183,7 +190,7 @@
 
 (defun translate-instance-of (element)
   (with-attributes (|obj| |type|) element
-    `(typep ,(%intern |obj|) ,(intern-dom |type|))))
+    `(typep ,(%intern |obj|) ',(intern-dom |type|))))
 
 (defun translate-is-null (element)
   (with-attributes (|obj|) element
@@ -195,7 +202,7 @@
 
 (defun translate-content-type (element) ;XXX verstehe ich nicht
   (with-attributes (|type|) element 
-   `(equal ,(parse-java-literal |type|) "text/xml")))
+   `(equal ,|type| "text/xml")))
 
 (defun translate-uri-equals (element)
   (with-attributes
@@ -204,7 +211,7 @@
       element
     |isAbsolute|
    `(let ((uri ,(%intern |actual|)))
-      (and (string-equalp ,|scheme| (net.uri:uri-scheme uri))
+      (and (string-equal ,|scheme| (net.uri:uri-scheme uri))
            (equal ,|host| (net.uri:uri-host uri))
            (equal ,|path| (net.uri:uri-path uri))
            (equal ,|file| "???")
@@ -232,6 +239,7 @@
     ("assertURIEquals"	(translate-assert-uri-equals element))
     ("for-each"		(translate-for-each element))
     ("fail"		(translate-fail element))
+    ("hasFeature" (translate-has-feature element))
     ("if"		(translate-if element))
     ("increment"	(translate-unary-assignment '+ element))
     ("decrement"	(translate-unary-assignment '- element))
@@ -243,17 +251,19 @@
 
 (defun translate-binary-assignment (fn element)
   (with-attributes (|var| |op1| |op2|) element
-    `(maybe-setf ,(%intern |var|) (,fn ,(%intern |op1|) ,(%intern |op2|)))))
+    (maybe-setf (%intern |var|)
+                `(,fn ,(parse-java-literal |op1|)
+                      ,(parse-java-literal |op2|)))))
 
 (defun translate-unary-assignment (fn element)
   (with-attributes (|var| |value|) element
-    `(maybe-setf ,(%intern |var|)
-                 (,fn ,(%intern |var|) ,(parse-java-literal |value|)))))
+    (maybe-setf (%intern |var|)
+                `(,fn ,(%intern |var|) ,(parse-java-literal |value|)))))
 
 (defun translate-load (load)
   (with-attributes (|var| |href| |willBeModified|) load
-    `(maybe-setf ,(%intern |var|)
-                 (load-file ,|href| ,(parse-java-literal |willBeModified|)))))
+    (maybe-setf (%intern |var|)
+                `(load-file ,|href| ,(parse-java-literal |willBeModified|)))))
 
 (defun translate-call (call method)
   (let ((name (car method))
@@ -261,11 +271,19 @@
                         (parse-java-literal (dom:get-attribute call name)))
                       (cdr method))))
     (with-attributes (|var| |obj|) call
-      `(maybe-setf ,(%intern |var|) (,(intern-dom name) ,|obj| ,@args)))))
+      (maybe-setf (%intern |var|)
+                  `(,(intern-dom name) ,(%intern |obj|) ,@args)))))
 
 (defun translate-get (call name)
   (with-attributes (|var| |obj|) call
-    `(maybe-setf ,(%intern |var|) (,(intern-dom name) ,|obj|))))
+    (maybe-setf (%intern |var|) `(,(intern-dom name) ,(%intern |obj|)))))
+
+(defun translate-has-feature (element)
+  (with-attributes (|var| |feature| |version|) element
+    (maybe-setf (%intern |var|)
+                `(and (equal ,(parse-java-literal |feature|) "XML")
+                      (or (null ,(parse-java-literal |version|))
+                          (equal ,(parse-java-literal |version|) "1.0"))))))
 
 (defun translate-fail (element)
   (declare (ignore element))
@@ -296,7 +314,8 @@
 
 (defun translate-assert-size (element)
   (with-attributes (|collection| |size|) element
-    `(assert (eql (length ,(%intern |collection|)) ,(%intern |size|)))))
+    `(assert (eql (length ,(%intern |collection|))
+                  ,(parse-java-literal |size|)))))
 
 (defun translate-assert-instance-of (element)
   `(assert ,(translate-instance-of element)))
@@ -330,15 +349,16 @@
         `(progn
            ,@(translate-body c)
            ;; XXX haben noch keine Exceptions
-           (error "expected exception ~A" (dom:tag-name element)))))))
+           (error "expected exception ~A" ,(dom:tag-name element)))))))
 
 (defun translate-try (element)
-  (map-child-elements 'list
-                      (lambda (c)
-                        (if (equal (dom:tag-name c) "catch")
-                            nil
-                            (translate-statement c)))
-                      element)
+  `(progn
+     ,@(map-child-elements 'list
+                           (lambda (c)
+                             (if (equal (dom:tag-name c) "catch")
+                                 nil
+                                 (translate-statement c)))
+                           element))
   ;; XXX haben noch keine Exceptions
   )
 
@@ -346,7 +366,7 @@
   (with-attributes (|collection| |item|) element
     (let ((c (%intern |collection|))
           (i (%intern |item|)))
-      `(maybe-setf ,c (append ,c (list ,i))))))
+      (maybe-setf c `(append ,c (list ,i))))))
 
 (defun translate-assert-true (element)
   (with-attributes (|actual|) element
@@ -390,6 +410,7 @@
            title
            (variables '())
            (code '()))
+      (declare (ignore title))
       (do-child-elements (e test)
         (string-case (dom:tag-name e)
           ("metadata"
@@ -401,9 +422,16 @@
             (assert-have-implementation-attribute e))
           (t
             (push (translate-statement e) code))))
-      `(defun ,(%intern (concatenate 'string "test-" title)) ()
+      `(lambda ()
          (let (,@variables)
+           (declare (ignorable ,@variables))
            ,@(reverse code))))))
+
+(defun load-file (name &optional will-be-modified-p)
+  (declare (ignore will-be-modified-p))
+  (let ((directory (merge-pathnames "tests/level1/core/files/" *directory*)))
+    (xml:parse-file
+     (make-pathname :name name :type "xml" :defaults directory))))
 
 (defun test2 (&optional verbose)
   (let* ((test-directory (merge-pathnames "tests/level1/core/" *directory*))
@@ -411,7 +439,9 @@
           (dom:document-element
            (xml:parse-file (merge-pathnames "alltests.xml" test-directory))))
          (n 0)
-         (i 0))
+         (i 0)
+         (ntried 0)
+         (nfailed 0))
     (do-child-elements (member suite)
       (declare (ignore member))
       (incf n))
@@ -420,8 +450,17 @@
         (format t "~&~D/~D ~A~%" i n href)
         (let ((lisp (slurp-test (merge-pathnames href test-directory))))
           (when verbose
-            (print lisp))))
-      (incf i))))
+            (print lisp))
+          (when lisp
+            (incf ntried)
+            (handler-case
+                (funcall (compile nil lisp))
+              (serious-condition (c)
+                (incf nfailed)
+                (warn "test failed: ~A" c)))))
+      (incf i)))
+    (format t "~&~D/~D tests failed; ~D test~:P were skipped"
+            nfailed ntried (- n ntried))))
 
 #+(or)
 (test "attrname")
@@ -431,3 +470,6 @@
 
 #+(or)
 (test2)
+
+#+(or)
+(test2 t)
