@@ -585,8 +585,15 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       cannot be implemented on them.
     </p>
     <p>
-      <div class="def">Function CXML-XMLS:MAKE-XMLS-BUILDER ()</div>
+      <div class="def">Function CXML-XMLS:MAKE-XMLS-BUILDER (&key include-default-values)</div>
       Create a SAX handler which builds XMLS list structures.&nbsp;
+      If <tt>include-default-values</tt> is true, default values for
+      attributes declared in a DTD are included as attributes in the
+      xmls output.  <tt>include-default-values</tt> is true by default
+      and can be set to <tt>nil</tt> to suppress inclusion of default
+      values.
+    </p>
+    <p>
       Example:
     </p>
     <pre>(cxml:parse-file "test.xml" (cxml-xmls:make-xmls-builder))</pre>

@@ -66,10 +66,13 @@
 
 (defclass xmls-builder ()
     ((element-stack :initform nil :accessor element-stack)
-     (root :initform nil :accessor root)))
+     (root :initform nil :accessor root)
+     (include-default-values :initform t
+                             :initarg :include-default-values
+                             :accessor include-default-values)))
 
-(defun make-xmls-builder ()
-  (make-instance 'xmls-builder))
+(defun make-xmls-builder (&key (include-default-values t))
+  (make-instance 'xmls-builder :include-default-values include-default-values))
 
 (defmethod sax:end-document ((handler xmls-builder))
   (root handler))
@@ -79,10 +82,13 @@
   (declare (ignore namespace-uri))
   (setf local-name (or local-name qname))
   (let* ((attributes
-          (mapcar (lambda (attr)
-                    (list (sax:attribute-qname attr)
-                          (sax:attribute-value attr)))
-                  attributes))
+          (loop
+              for attr in attributes
+              when (or (sax:attribute-specified-p attr)
+                       (include-default-values handler))
+              collect
+                (list (sax:attribute-qname attr)
+                      (sax:attribute-value attr))))
          (node (make-node :name local-name
                           :ns (let ((lq (length qname))
                                     (ll (length local-name)))
