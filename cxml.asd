@@ -45,10 +45,12 @@
              #-rune-is-character "runes"
              #+rune-is-character "characters"
 	    :depends-on ("package" dependent))
-     (:file "syntax"
-	    :depends-on ("package" dependent runes))
-     (:file "util"
-	    :depends-on ("package" dependent))))
+     (:file "syntax" :depends-on ("package" dependent runes))
+     (:file "util" :depends-on ("package" dependent))
+     (:file "encodings" :depends-on ("package"))
+     (:file "encodings-data" :depends-on ("package" "encodings"))
+     (:file "xstream"
+            :depends-on ("package" dependent "syntax" "encodings-data"))))
 
 (asdf:defsystem :cxml
     :default-component-class closure-source-file
@@ -57,16 +59,13 @@
                (make-pathname :name nil :type nil :defaults *load-truename*))
     :components
     ((:file "package"         :depends-on ("dompack"))
-     (:file "encodings"       :depends-on ("package"))
-     (:file "encodings-data"  :depends-on ("package" "encodings"))
      (:file "sax-handler")
      (:file "dompack")
      (:file "characters"      :depends-on ("package"))
      (:file "dom-impl"        :depends-on ("package" "dompack" "characters"))
      (:file "dom-builder"     :depends-on ("package" "dom-impl" "sax-handler"))
-     (:file "xml-stream"      :depends-on ("package"))
      (:file "xml-name-rune-p" :depends-on ("package"))
-     (:file "xml-parse"       :depends-on ("package" "dom-impl" "sax-handler" "encodings" "xml-stream"))
+     (:file "xml-parse"       :depends-on ("package" "dom-impl" "sax-handler"))
      (:file "xml-canonic"     :depends-on ("package" "dompack" "xml-parse")))
     :depends-on (:runes))
 

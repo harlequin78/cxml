@@ -221,23 +221,6 @@
 
 (deftype read-element () 'rune)
 
-(defmethod figure-encoding ((stream null))
-  (values :utf-8 nil))
-
-(defmethod figure-encoding ((stream stream))
-  (let ((c0 (read-byte stream nil :eof)))
-    (cond ((eq c0 :eof)
-           (values :utf-8 nil))
-          (t
-           (let ((c1 (read-byte stream nil :eof)))
-             (cond ((eq c1 :eof)
-                    (values :utf-8 (list c0)))
-                   (t
-                    (cond ((and (= c0 #xFE) (= c1 #xFF)) (values :utf-16-big-endian nil))
-                          ((and (= c0 #xFF) (= c1 #xFE)) (values :utf-16-little-endian nil))
-                          (t
-                           (values :utf-8 (list c0 c1)))))))))))
-
 (defun call-with-open-xstream (continuation &rest open-args)
   (let ((input (apply #'open (car open-args) :element-type '(unsigned-byte 8) (cdr open-args))))
     (unwind-protect
@@ -280,6 +263,57 @@
 ;;
 ;;  defmethod DECODE-SEQUENCE ((encoding (eql :utf-8)) ...)
 ;;
+
+;;;; -------------------------------------------------------------------
+;;;; Rechnen mit Runen
+;;;;
+
+;; Let us first define fast fixnum arithmetric get rid of type
+;; checks. (After all we know what we do here).
+
+(defmacro fx-op (op &rest xs) 
+  `(the fixnum (,op ,@(mapcar (lambda (x) `(the fixnum ,x)) xs))))
+(defmacro fx-pred (op &rest xs) 
+  `(,op ,@(mapcar (lambda (x) `(the fixnum ,x)) xs)))
+
+(defmacro %+   (&rest xs) `(fx-op + ,@xs))
+(defmacro %-   (&rest xs) `(fx-op - ,@xs))
+(defmacro %*   (&rest xs) `(fx-op * ,@xs))
+(defmacro %/   (&rest xs) `(fx-op floor ,@xs))
+(defmacro %and (&rest xs) `(fx-op logand ,@xs))
+(defmacro %ior (&rest xs) `(fx-op logior ,@xs))
+(defmacro %xor (&rest xs) `(fx-op logxor ,@xs))
+(defmacro %ash (&rest xs) `(fx-op ash ,@xs))
+(defmacro %mod (&rest xs) `(fx-op mod ,@xs))
+
+(defmacro %=  (&rest xs)  `(fx-pred = ,@xs))
+(defmacro %<= (&rest xs)  `(fx-pred <= ,@xs))
+(defmacro %>= (&rest xs)  `(fx-pred >= ,@xs))
+(defmacro %<  (&rest xs)  `(fx-pred < ,@xs))
+(defmacro %>  (&rest xs)  `(fx-pred > ,@xs))
+
+;;; XXX Geschwindigkeit dieser Definitionen untersuchen!
+
+(defmacro rune-op (op &rest xs) 
+  `(code-rune (,op ,@(mapcar (lambda (x) `(rune-code ,x)) xs))))
+(defmacro rune-pred (op &rest xs) 
+  `(,op ,@(mapcar (lambda (x) `(rune-code ,x)) xs)))
+
+(defmacro %rune+   (&rest xs) `(rune-op + ,@xs))
+(defmacro %rune-   (&rest xs) `(rune-op - ,@xs))
+(defmacro %rune*   (&rest xs) `(rune-op * ,@xs))
+(defmacro %rune/   (&rest xs) `(rune-op floor ,@xs))
+(defmacro %rune-and (&rest xs) `(rune-op logand ,@xs))
+(defmacro %rune-ior (&rest xs) `(rune-op logior ,@xs))
+(defmacro %rune-xor (&rest xs) `(rune-op logxor ,@xs))
+(defmacro %rune-ash (a b) `(code-rune (ash (rune-code ,a) ,b)))
+(defmacro %rune-mod (&rest xs) `(rune-op mod ,@xs))
+
+(defmacro %rune=  (&rest xs)  `(rune-pred = ,@xs))
+(defmacro %rune<= (&rest xs)  `(rune-pred <= ,@xs))
+(defmacro %rune>= (&rest xs)  `(rune-pred >= ,@xs))
+(defmacro %rune<  (&rest xs)  `(rune-pred < ,@xs))
+(defmacro %rune>  (&rest xs)  `(rune-pred > ,@xs))
 
 ;;;; ---------------------------------------------------------------------------
 ;;;; rod hashtable
@@ -1856,10 +1890,7 @@
 (defun set-full-speed (input)
   (let ((xstream (car (zstream-input-stack input))))
     (when xstream
-      (setf (xstream-speed xstream)
-        (length (xstream-os-buffer xstream))))
-    '(warn "Reverting ~S to full speed." input)
-    ))
+      (set-to-full-speed xstream))))
 
 (defun p/ext-subset (input)
   (cond ((eq (peek-token input) :xml-pi)

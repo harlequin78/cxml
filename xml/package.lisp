@@ -1,11 +1,5 @@
 (in-package :cl-user)
 
-(defpackage :encoding
-  (:use :cl :runes)
-  (:export
-   #:find-encoding
-   #:decode-sequence))
-
 (defpackage :xml
   (:use :cl :runes :encoding)
   (:export
