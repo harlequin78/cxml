@@ -62,5 +62,11 @@
    #:parse-dtd-stream
    #:validity-error
    #:make-validator
+
+   #:*cache-all-dtds*
+   #:*dtd-cache*
+   #:getdtd
+   #:remdtd
+   #:clear-dtd-cache
    
    #:make-recoder))

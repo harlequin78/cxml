@@ -86,6 +86,7 @@
           <li><a href="#misc">Miscellaneous Utility Functions</a></li>
           <li><a href="#xmls">XMLS Compatibility</a></li>
           <li><a href="#rods">Dealing with Rods</a></li>
+          <li><a href="#dtdcache">Caching of DTD objects</a></li>
         </ul>
       </li>
       <li><a href="#sax">SAX Interface</a></li>
@@ -169,7 +170,7 @@
 
     <p>
       <b>Prerequisites.</b>
-      CXML required <a href="http://www.cliki.net/Puri">puri</a>.
+      CXML needs the <a href="http://www.cliki.net/Puri">puri</a> library.
     </p>
 
     <p>
@@ -181,7 +182,7 @@
     <pre>* (asdf:operate 'asdf:load-op :cxml)</pre>
 
     <p>
-      You can now try the <a href="#quickstart">quick-start example</a>.
+      You can then try the <a href="#quickstart">quick-start example</a>.
     </p>
 
     <a name="tests"/>
@@ -607,6 +608,53 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     </p>
     <pre>CL-USER(17): (parse-string "&lt;test/&gt;" (cxml:make-recoder (cxml-xmls:make-xmls-builder)))
 ("test" NIL)</pre>
+
+    <a name="dtdcache"/>
+    <h3>Caching of DTD objects</h3>
+    <p>
+      To avoid spending time parsing the same DTD over and over again,
+      CXML can cache DTD objects.  The parser consults
+      <tt>cxml:*dtd-cache*</tt> whenever it is looking for an external
+      subset in a document which does not have an internal subset and
+      uses the cached DTD instance if one is present in the cache for
+      the System ID in question.
+    </p>
+    <p>
+      Note that DTDs do not expire from the cache automatically.
+      (Future versions of CXML might introduce automatic checks for
+      outdated DTDs.)
+    </p>
+    <p>
+      <div class="def">Variable CXML:*DTD-CACHE*</div>
+      The DTD cache object consulted by the parser when it needs a DTD.
+    </p>
+    <p>
+      <div class="def">Variable CXML:*CACHE-ALL-DTDS*</div>
+      If true, instructs the parser to enter all DTDs that could have
+      been cached into <tt>*dtd-cache*</tt> if they were not cached
+      already.  Defaults to <tt>nil</tt>.
+    </p>
+    <p>
+      <div class="def">Reader CXML:GETDTD (uri dtd-cache)</div>
+      Return a cached instance of the DTD at <tt>uri</tt>, if present in
+      the cache, or <tt>nil</tt>.
+    </p>
+    <p>
+      <div class="def">Writer CXML:GETDTD (uri dtd-cache)</div>
+      Enter a new value for <tt>uri</tt> into <tt>dtd-cache</tt>.
+    </p>
+    <p>
+      <div class="def">Function CXML:REMDTD (uri dtd-cache)</div>
+      Ensure that no DTD is recorded for <tt>uri</tt> in the cache and
+      return true if such a DTD was present.
+    </p>
+    <p>
+      <div class="def">Function CXML:CLEAR-DTD-CACHE (dtd-cache)</div>
+      Remove all entries from <tt>dtd-cache</tt>.
+    </p>
+    <p>
+      <em>fixme:</em> thread-safety
+    </p>
 
     <a name="sax"/>
     <h2>SAX Interface</h2>

@@ -128,6 +128,21 @@
 ;;   reentrancy is still open]
 
 ;; o only parse the DTD on an option
+;;
+;;     Man koennte ueber eine Option nachdenken, die das Parsen des
+;;     external subsets deaktiviert.  Eine Keyword-Option 'standalone' mit
+;;     dem Effekt der gleichnamigen Deklaration im Dokument waere das
+;;     eine.  Zweitens waere ein Modus denkbar, in dem external parsed
+;;     entities (oder wie die heissen) nicht resolved werden.  Letzteres
+;;     macht aber ueberhaupt keinen Spass
+;;
+;;     Wenn's nach mir geht, ist so eine Option nicht wichtig.  Sollen die
+;;     Leute halt keine DTD angeben, wenn sie die dann nicht da haben. :-)
+;;
+;;     Eher noch wuerde ich erlauben, die DTD-Angabe zu ueberschreiben
+;;     unabhaengig vom Validieren, das machen wir ja ohnehin.  Dann muessen
+;;     Entities halt in der uebergebenen DTD definiert sein.
+;;       --david
 
 ;; o CR handling in utf-16 deocders
 ;;
@@ -253,7 +268,7 @@
 (defstruct (context (:conc-name nil))
   handler
   (namespace-bindings *default-namespace-bindings*)
-  (dtd (make-dtd))
+  (dtd nil)
   model-stack
   (referenced-notations '())
   (id-table (%make-rod-hash-table))
@@ -878,8 +893,8 @@
     (puri:merge-uris sysid base-sysid)))
 
 (defstruct extid
-  (public nil :type (or puri:uri null))
-  (system (error "missing argument") :type rod))
+  (public nil :type (or rod null))
+  (system (error "missing argument") :type (or puri:uri null)))
 
 (defun absolute-extid (source-stream extid)
   (let ((sysid (extid-system extid))
@@ -894,7 +909,7 @@
            (:general (dtd-gentities (dtd *ctx*)))
            (:parameter (dtd-pentities (dtd *ctx*))))))
     (unless (gethash name table)
-      (when (handler *ctx*)
+      (when (and source-stream (handler *ctx*))
         (report-entity (handler *ctx*) kind name def))
       (when (typep def 'external-entdef)
         (setf (entdef-extid def)
@@ -930,7 +945,7 @@
                              :entity-kind kind
                              :uri nil)))
         (external-entdef
-         (setf r (open-extid (entdef-extid def)))
+         (setf r (xstream-open-sysid (extid-system (entdef-extid def))))
          (setf (stream-name-entity-name (xstream-name r)) entity-name
                (stream-name-entity-kind (xstream-name r)) kind)))
       r)))
@@ -941,11 +956,12 @@
       (error "Entity '~A' is not defined." (rod-string name)))
     def))
 
-(defun open-extid (extid)
-  (let ((sysid (extid-system extid)))
-    (make-xstream (open-sysid sysid)
-                  :name (make-stream-name :uri sysid)
-                  :initial-speed 1)))
+(defun xstream-open-sysid (sysid)
+  (make-xstream (open (uri-to-pathname sysid)
+                      :element-type '(unsigned-byte 8)
+                      :direction :input)
+                :name (make-stream-name :uri sysid)
+                :initial-speed 1))
 
 (defun call-with-entity-expansion-as-stream (zstream cont name kind)
   ;; `zstream' is for error messages -- we need something better!
@@ -953,6 +969,11 @@
     (unwind-protect
         (funcall cont in)
       (close-xstream in))))
+
+(defun ensure-dtd ()
+  (unless (dtd *ctx*)
+    (setf (dtd *ctx*) (make-dtd))
+    (define-default-entities)))
 
 (defun define-default-entities ()
   (define-entity nil #"lt"   :general (make-internal-entdef #"&#60;"))
@@ -1004,8 +1025,30 @@
   (elements (%make-rod-hash-table))     ;elmdefs
   (gentities (%make-rod-hash-table))    ;general entities
   (pentities (%make-rod-hash-table))    ;parameter entities
-  (notations (%make-rod-hash-table))
-  )
+  (notations (%make-rod-hash-table)))
+
+(defun make-dtd-cache ()
+  (puri:make-uri-space))
+
+(defvar *cache-all-dtds* nil)
+(defvar *dtd-cache* (make-dtd-cache))
+
+(defun remdtd (uri dtd-cache)
+  (setf uri (puri:intern-uri uri dtd-cache))
+  (prog1
+      (and (getf (puri:uri-plist uri) 'dtd) t)
+    (puri:unintern-uri uri dtd-cache)))
+
+(defun clear-dtd-cache (dtd-cache)
+  (puri:unintern-uri t dtd-cache))
+
+(defun getdtd (uri dtd-cache)
+  (getf (puri:uri-plist (puri:intern-uri uri dtd-cache)) 'dtd))
+
+(defun (setf getdtd) (newval uri dtd-cache)
+  (setf (getf (puri:uri-plist (puri:intern-uri uri dtd-cache)) 'dtd) newval)
+  newval)
+
 
 ;;;;
 
@@ -2377,7 +2420,6 @@
 (defun p/doctype-decl (input)
   (let ()
     (let ((*expand-pe-p* nil)
-          (internal-subset-p nil)
           name extid)
       (expect input :|<!DOCTYPE|)
       (p/S input)
@@ -2395,7 +2437,7 @@
                      (and extid (extid-public extid))
                      (and extid (uri-rod (extid-system extid))))
       (when (eq (peek-token input) :\[ )
-        (setf internal-subset-p t)
+        (ensure-dtd)
         (consume-token input)
         (while (progn (p/S? input)
                       (not (eq (peek-token input) :\] )))
@@ -2403,7 +2445,7 @@
               (let ((name (nth-value 1 (read-token input))))
                 (recurse-on-entity input name :parameter
                                    (lambda (input)
-                                     (etypecase (checked-get-entitydef name :parameter)
+                                     (etypecase (checked-get-entdef name :parameter)
                                        (external-entdef
                                         (p/ext-subset input))
                                        (internal-entdef
@@ -2416,11 +2458,17 @@
         (p/S? input))
       (expect input :>)
       (when extid
-        ;; can we make this conditional on *validate*?
-        ;; (What about entity references then?)
-        (let* ((xi2 (open-extid (absolute-extid input extid)))
-               (zi2 (make-zstream :input-stack (list xi2))))
-          (p/ext-subset zi2)))
+        (let* ((sysid (extid-system (absolute-extid input extid)))
+               (fresh-dtd-p (null (dtd *ctx*)))
+               (cached-dtd (and fresh-dtd-p (getdtd sysid *dtd-cache*))))
+          (if cached-dtd
+              (setf (dtd *ctx*) cached-dtd)
+              (let* ((xi2 (xstream-open-sysid sysid))
+                     (zi2 (make-zstream :input-stack (list xi2))))
+                (ensure-dtd)
+                (p/ext-subset zi2)
+                (when (and fresh-dtd-p *cache-all-dtds*)
+                  (setf (getdtd sysid *dtd-cache*) (dtd *ctx*)))))))
       (sax:end-dtd (handler *ctx*))
       (let ((dtd (dtd *ctx*)))
         (sax:entity-resolver
@@ -2444,7 +2492,6 @@
 (defun p/document (input handler &key validate root)
   (let ((*ctx* (make-context))
         (*validate* (and validate t)))
-    (define-default-entities)
     (setf (handler *ctx*) handler)
     (sax:start-document handler)
     ;; document ::= XMLDecl? Misc* (doctypedecl Misc*)? element Misc*
@@ -2470,6 +2517,7 @@
           (p/misc*-2 input))
         ((and validate (not (dtd-p validate)))
           (validity-error "invalid document: no doctype")))
+      (ensure-dtd)
       ;; Switch to caller-supplied DTD if asked to
       (when (dtd-p validate)
         (setf (dtd *ctx*) validate)
@@ -2579,7 +2627,7 @@
           (recurse-on-entity input name :general
                              (lambda (input)
                                (prog1
-                                   (etypecase (checked-get-entitydef name :general)
+                                   (etypecase (checked-get-entdef name :general)
                                      (internal-entdef (p/content input))
                                      (external-entdef (p/ext-parsed-ent input)))
                                  (unless (eq (peek-token input) :eof)
@@ -2818,7 +2866,7 @@
           (*validate* t)
           (*data-behaviour* :DTD))
       (with-scratch-pads ()
-        (define-default-entities)
+        (ensure-dtd)
         (peek-rune input)
         (p/ext-subset zstream)
         (dtd *ctx*)))))
@@ -2912,12 +2960,6 @@
        (setf (zstream-token-category zstream) nil)
        '(consume-token zstream)) )
    name kind))
-
-(defun open-sysid (sysid)
-  (open (uri-to-pathname sysid)
-        :element-type '(unsigned-byte 8)
-        :direction :input))
-
 
 ;;;;
 
@@ -3204,7 +3246,7 @@
              input name :general
              (lambda (input)
                (prog1
-                   (etypecase (checked-get-entitydef name :general)
+                   (etypecase (checked-get-entdef name :general)
                      (internal-entdef (p/content input))
                      (external-entdef (p/ext-parsed-ent input)))
                  (unless (eq (peek-token input) :eof)

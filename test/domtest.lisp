@@ -630,7 +630,6 @@
                 (handler-case
                     (let ((cxml::*validate* nil))
                       (funcall (compile nil lisp)))
-                  #+(or)
                   (serious-condition (c)
                     (incf nfailed)
                     (warn "test failed: ~A" c))))))
