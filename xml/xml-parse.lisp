@@ -2601,14 +2601,17 @@
 
 ;;; XXX FIXME
 (defun resolve-entity (name entities)
-  (let ((*handler* (make-instance 'dom-impl::dom-builder))
-        (*namespace-bindings* *default-namespace-bindings*)
-        (*entities* entities)
-        (*dtd* (make-dtd)))
-    (declare (special *namespace-bindings*)) ;forward declaration for DEFVAR
-    (sax:start-document *handler*)
-    (ff (rod name))
-    (dom:child-nodes (sax:end-document *handler*))))
+  (if (assoc (list :general name) entities :test #'equalp) ;XXX
+      (let ((*handler* (make-instance 'dom-impl::dom-builder))
+            (*namespace-bindings* *default-namespace-bindings*)
+            (*entities* entities)
+            (*dtd* (make-dtd)))
+    
+        (declare (special *namespace-bindings*)) ;forward declaration for DEFVAR
+        (sax:start-document *handler*)
+        (ff (rod name))
+        (dom:child-nodes (sax:end-document *handler*)))
+      nil))
 
 (defun read-att-value-2 (input)
   (let ((delim (read-rune input)))
