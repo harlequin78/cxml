@@ -33,20 +33,6 @@
 ;;;                     #+(and allegro-version>= (version>= 5))
 ;;;
 
-(export 'glisp::read-byte-sequence :glisp)
-(export 'glisp::read-char-sequence :glisp)
-(export 'glisp::run-unix-shell-command :glisp)
-(export 'glisp::mp/process-run-function :glisp)
-(export 'glisp::mp/process-kill :glisp)
-(export 'glisp::mp/current-process :glisp)
-(export 'glisp::mp/seize-lock :glisp)
-(export 'glisp::mp/release-lock :glisp)
-(export 'glisp::mp/process-yield :glisp)
-(export 'glisp::mp/process-wait :glisp)
-(export 'glisp::getenv :glisp)
-
-(export 'glisp::make-server-socket :glisp)
-
 ;; ACL is incapable to define compiler macros on (setf foo)
 ;; Unfortunately it is also incapable to declaim such functions inline.
 ;; So we revoke the DEFUN hack from dep-gcl here.

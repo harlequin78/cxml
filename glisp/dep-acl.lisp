@@ -21,22 +21,6 @@
 ;;; along with this program; if not, write to the Free Software
 ;;; Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
-(export 'glisp::read-byte-sequence :glisp)
-(export 'glisp::read-char-sequence :glisp)
-(export 'glisp::run-unix-shell-command :glisp)
-(export 'glisp::mp/process-run-function :glisp)
-(export 'glisp::mp/process-kill :glisp)
-(export 'glisp::mp/seize-lock :glisp)
-(export 'glisp::mp/release-lock :glisp)
-(export 'glisp::mp/transfer-lock-owner :glisp)
-(export 'glisp::mp/current-process :glisp)
-(export 'glisp::mp/process-yield :glisp)
-(export 'glisp::mp/process-wait :glisp)
-(export 'glisp::getenv :glisp)
-
-(defun glisp::g/make-string (length &rest options)
-  (apply #'make-array length :element-type 'base-char options))
-
 ;; ACL is incapable to define compiler macros on (setf foo)
 ;; Unfortunately it is also incapable to declaim such functions inline.
 ;; So we revoke the DEFUN hack from dep-gcl here.

@@ -55,20 +55,6 @@
 (defmacro until (test &body body)
   `(do () (,test) ,@body))
 
-;;; --------------------------------------------------------------------------------
-;;;  Strings
-
-(defun white-space-p (ch)
-  ;;(declare #.cl-user:+optimize-very-fast-trusted+)
-  (or (eq ch #\Return)
-      (eq ch #\Newline)
-      (eq ch #\Space)
-      (eq ch #\Tab)
-      (eq ch #\Page)))
-
-(define-compiler-macro white-space-p (ch)
-  `(member ,ch '(#\Return #\Newline #\Space #\Tab #\Page)) )
-
 ;; prime numbers
 
 (defun primep (n)

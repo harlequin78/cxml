@@ -21,10 +21,6 @@
 ;;; along with this program; if not, write to the Free Software
 ;;; Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
-(export 'glisp::read-byte-sequence :glisp)
-(export 'glisp::read-char-sequence :glisp)
-(export 'glisp::run-unix-shell-command :glisp)
-
 (defmacro glisp::defsubst (name args &body body)
   `(progn
      (declaim (inline ,name))

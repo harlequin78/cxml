@@ -29,14 +29,6 @@
 
 (setq lisp:*load-paths* '(#P"./"))
 
-(import 'lisp:read-byte-sequence :glisp)
-(export 'lisp:read-byte-sequence :glisp)
-(import 'lisp:read-char-sequence :glisp)
-(export 'lisp:read-char-sequence :glisp)
-(export 'glisp::compile-file :glisp)
-(export 'glisp::run-unix-shell-command :glisp)
-(export 'glisp::make-server-socket :glisp)
-
 #+DEFINE-COMPILER-MACRO
 (cl:define-compiler-macro ldb (bytespec value &whole whole)
   (let (pos size)
