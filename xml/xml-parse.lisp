@@ -976,7 +976,7 @@
              (let ((c (peek-rune input)))
                (and (not (eq c :eof))
                     (space-rune-p c))))
-         (read-s? input)
+         (read-S? input)
          (cond ((eq (peek-rune input) :eof)
                 nil)
                ((name-start-rune-p (peek-rune input))
@@ -1006,7 +1006,7 @@
                (perror input "Expected \";\"."))
              (values :NAMED name))))))
 
-(defsubst read-s? (input)
+(defsubst read-S? (input)
   (while (member (peek-rune input) '(#/U+0020 #/U+0009 #/U+000A #/U+000D)
                  :test #'eq)
     (consume-rune input)))
@@ -1235,7 +1235,7 @@
             (read-pi-content input))))
 
 (defun read-pi-content (input &aux d)
-  (read-s? input)
+  (read-S? input)
   (with-rune-collector (collect)
     (block nil
       (tagbody
@@ -2021,6 +2021,7 @@
           (t
            (error "Expecting element.")))))
 
+
 (defun p/element-ns (input)
   (destructuring-bind (cat (name &rest attrs))
       (multiple-value-list (read-token input))
@@ -2469,20 +2470,20 @@
   (let ((input-var (gensym))
         (collect (gensym))
         (c (gensym)))
-    `(let ((,input-var ,input))
-       (multiple-value-bind (,res ,res-start ,res-end) 
-           (with-rune-collector/raw (,collect)
-             (loop
-               (let ((,c (peek-rune ,input-var)))
-                 (cond ((eq ,c :eof) 
+    `(LET ((,input-var ,input))
+       (MULTIPLE-VALUE-BIND (,res ,res-start ,res-end) 
+           (WITH-RUNE-COLLECTOR/RAW (,collect)
+             (LOOP
+               (LET ((,c (PEEK-RUNE ,input-var)))
+                 (COND ((EQ ,c :EOF) 
                         ;; xxx error message
-                        (return))
-                       ((funcall ,predicate ,c)
-                        (return))
+                        (RETURN))
+                       ((FUNCALL ,predicate ,c)
+                        (RETURN))
                        (t
                         (,collect ,c)
-                        (consume-rune ,input-var))))))
-         (locally
+                        (CONSUME-RUNE ,input-var))))))
+         (LOCALLY
            ,@body)))))
   
 (defun read-name-token (input)
