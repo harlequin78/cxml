@@ -350,6 +350,14 @@
 
 ;; dann fehlt noch can-adopt und attribute conventions fuer adoption
 
+;;; NodeList (implementieren wir zwar als Liste, hat aber Methoden)
+
+(defmethod dom:item ((self list) index)
+  (elt self index))
+
+(defmethod dom:length ((self list))
+  (length self))
+
 ;;; NAMED-NODE-MAP
 
 (defmethod dom:get-named-item ((self named-node-map) name)
