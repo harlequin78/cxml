@@ -179,6 +179,8 @@
 
 (defmethod dom:create-entity-reference ((document document) name)
   (setf name (rod name))
+  (unless (xml::valid-name-p name)
+    (dom-error :INVALID_CHARACTER_ERR "not a name: ~A" (rod-string name)))
   (make-instance 'entity-reference
     :name name
     :owner document))
