@@ -198,7 +198,7 @@
 ;;;; Validity constraints:
 ;;;; (00) Root Element Type                     like (03), c.f. MAKE-ROOT-MODEL
 ;;;; (01) Proper Declaration/PE Nesting
-;;;; (02) Standalone Document Declaration
+;;;; (02) Standalone Document Declaration       all over the place
 ;;;; (03) Element Valid                         VALIDATE-*-ELEMENT, -CHARACTERS
 ;;;; (04) Attribute Value Type                  VALIDATE-ATTRIBUTE
 ;;;; (05) Unique Element Type Declaration       DEFINE-ELEMENT
@@ -239,11 +239,12 @@
 (defstruct (context (:conc-name nil))
   handler
   (namespace-bindings *default-namespace-bindings*)
-  (entities nil)
+  (entities (make-hash-table :test 'equalp))
   (dtd (make-dtd))
   model-stack
   (referenced-notations '())
-  (id-table (make-hash-table :test 'equalp)))
+  (id-table (make-hash-table :test 'equalp))
+  (standalone-p nil))
 
 (defvar *expand-pe-p*)
 
@@ -669,6 +670,7 @@
   (error "Validity constraint violated: ~@?" x args))
 
 (defvar *validate* t)
+(defvar *markup-declaration-external-p* nil)
 
 (defun validate-start-element (ctx name)
   (when *validate*
@@ -700,6 +702,9 @@
       (unless (funcall (cdr pair) rod)
         (validity-error "(03) Element Valid: unexpected PCDATA")))))
 
+(defun standalone-check-necessary-p (elmdef)
+  (and *validate* (standalone-p *ctx*) (elmdef-external-p elmdef)))
+
 (defun process-attributes (ctx name attlist)
   (let ((e (find-element name (dtd ctx))))
     (cond
@@ -712,6 +717,8 @@
                 (validity-error "(18) Required Attribute: ~S not specified"
                                 (rod-string (attdef-name ad))))
               (t
+                (when (standalone-check-necessary-p e)
+                  (validity-error "(02) Standalone Document Declaration: missing attribute value"))
                 (push (build-attribute (attdef-name ad)
                                        (cadr (attdef-default ad))
                                        nil)
@@ -720,8 +727,11 @@
           (let* ((qname (attribute-qname a))
                  (adef (find-attribute e qname)))
             (when (and adef (not (eq (attdef-type adef) :CDATA)))
-              (setf (attribute-value a)
-                    (canon-not-cdata-attval (attribute-value a))))))
+              (let ((canon (canon-not-cdata-attval (attribute-value a))))
+                (when (and (standalone-check-necessary-p e)
+                           (not (rod= (attribute-value a) canon)))
+                  (validity-error "(02) Standalone Document Declaration: attribute value not normalized"))
+                (setf (attribute-value a) canon)))))
         (when *validate*                ;maybe validate attribute values
           (dolist (a attlist)
             (validate-attribute ctx e a))))
@@ -842,40 +852,44 @@
     (setf def
       (list (car def) (absolute-extid source-stream (cadr def)))))
   (setf name (intern-name name))
-  (setf (entities *ctx*)
-    (append (entities *ctx*)
-            (list (cons (list kind name)
-                        def)))))
+  (unless (gethash (list kind name) (entities *ctx*))
+    (setf (gethash (list kind name) (entities *ctx*))
+          (cons *markup-declaration-external-p* def))))
 
 (defun get-entity-definition (entity-name kind ctx)
-  (assoc (list kind entity-name) (entities ctx) :test #'equalp))
+  (destructuring-bind (extp &rest def)
+      (gethash (list kind entity-name) (entities ctx))
+    (when (and *validate* (standalone-p *ctx*) extp)
+      (validity-error "(02) Standalone Document Declaration: entity reference: ~S"
+                      (rod-string entity-name)))
+    def))
 
 (defun entity->xstream (entity-name kind &optional zstream)
   ;; `zstream' is for error messages
-  (let ((looked (get-entity-definition entity-name kind *ctx*)))
-    (unless looked
+  (let ((def (get-entity-definition entity-name kind *ctx*)))
+    (unless def
       (if zstream 
           (perror zstream "Entity '~A' is not defined." (rod-string entity-name))
         (error "Entity '~A' is not defined." (rod-string entity-name))))
     (let (r)
-      (ecase (cadr looked)
+      (ecase (car def)
         (:INTERNAL 
-         (setf r (make-rod-xstream (caddr looked)))
+         (setf r (make-rod-xstream (cadr def)))
          (setf (xstream-name r)
            (make-stream-name :entity-name entity-name
                              :entity-kind kind
                              :file-name nil)))
         (:EXTERNAL
-         (setf r (open-extid (caddr looked)))
+         (setf r (open-extid (cadr def)))
          (setf (stream-name-entity-name (xstream-name r)) entity-name
                (stream-name-entity-kind (xstream-name r)) kind)))
       r)))
 
 (defun entity-source-kind (name type)
-  (let ((looked (get-entity-definition name type *ctx*)))
-    (unless looked
+  (let ((def (get-entity-definition name type *ctx*)))
+    (unless def
       (error "Entity '~A' is not defined." (rod-string name)))
-    (cadr looked)))
+    (car def)))
 
 (defun open-extid (extid)
   (let ((nam (ecase (car extid)
@@ -934,6 +948,7 @@
   content       ;content model            [*]
   attributes    ;list of defined attributes
   compiled-cspec ;cons of validation function for contentspec
+  (external-p *markup-declaration-external-p*)
   )
 
 ;; [*] in XML it is possible to define attributes before the element
@@ -1927,7 +1942,8 @@
               (unless cspec
                 (validity-error "(03) Element Valid: no definition for ~A"
                                 (rod-string (elmdef-name e))))
-              (multiple-value-call #'cons (compile-cspec cspec))))))
+              (multiple-value-call #'cons
+                (compile-cspec cspec (standalone-check-necessary-p e)))))))
 
 (defun make-root-model (name)
   (cons (lambda (actual-name)
@@ -1959,7 +1975,7 @@
 (defun cmodel-done (actual-value)
   (null actual-value))
 
-(defun compile-cspec (cspec)
+(defun compile-cspec (cspec &optional standalone-check)
   (cond
     ((atom cspec)
       (ecase cspec
@@ -1975,7 +1991,10 @@
               (constantly t)))
     (t
       (values (compile-content-model cspec)
-              (lambda (rod) (every #'white-space-rune-p rod))))))
+              (lambda (rod)
+                (when standalone-check
+                  (validity-error "(02) Standalone Document Declaration: whitespace"))
+                (every #'white-space-rune-p rod))))))
 
 (defun compile-mixed (cspec)
   ;; das koennten wir theoretisch auch COMPILE-CONTENT-MODEL erledigen lassen
@@ -2292,9 +2311,9 @@
         ;; can we make this conditional on *validate*?
         ;; (What about entity references then?)
         (let* ((xi2 (open-extid (absolute-extid input extid)))
-               (zi2 (make-zstream :input-stack (list xi2))))
-          (let ()
-            (p/ext-subset zi2))))
+               (zi2 (make-zstream :input-stack (list xi2)))
+               (*markup-declaration-external-p* t))
+          (p/ext-subset zi2)))
       (sax:end-dtd (handler *ctx*))
       (list :DOCTYPE name extid))))
 
@@ -2328,6 +2347,7 @@
       ;; optional XMLDecl?
       (cond ((eq (peek-token input) :xml-pi)
              (let ((hd (parse-xml-pi (cdr (nth-value 1 (peek-token input))) t)))
+               (setf (standalone-p *ctx*) (eq (xml-header-standalone-p hd) :yes))
                (setup-encoding input hd))
              (read-token input)))
       (set-full-speed input)
@@ -2912,14 +2932,14 @@
                        res))))
 
 (defun internal-entity-expansion (name)
-  (let ((e (get-entity-definition name :general *ctx*)))
-    (unless e
+  (let ((def (get-entity-definition name :general *ctx*)))
+    (unless def
       (error "Entity '~A' is not defined." (rod-string name)))
-    (unless (eq :INTERNAL (cadr e))
+    (unless (eq :INTERNAL (car def))
       (error "Entity '~A' is not an internal entity." name))
-    (or (cadddr e)
+    (or (caddr def)
         (car
-         (setf (cdddr e)
+         (setf (cddr def)
            (cons (find-internal-entity-expansion name) nil))))))
 
 (defun find-internal-entity-expansion (name)
@@ -2983,7 +3003,7 @@
 
 ;;; XXX FIXME FIXME FIXME
 (defun resolve-entity (name entities)
-  (if (assoc (list :general name) entities :test #'equalp) ;XXX
+  (if (gethash (list :general name) entities) ;XXX
       (let* ((handler (funcall (find-symbol (symbol-name '#:make-dom-builder) :dom)))
              (*ctx* (make-context :handler handler :entities entities))
              (*validate* nil))          ;XXX
