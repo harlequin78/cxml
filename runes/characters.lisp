@@ -24,9 +24,9 @@
 
 (in-package :runes)
 
-(deftype rune () 'base-char)
-(deftype rod () 'base-string)
-(deftype simple-rod () 'simple-string)
+(deftype rune () 'character)
+(deftype rod () '(vector character))
+(deftype simple-rod () '(simple-array character))
 
 (defsubst rune (rod index)
   (char rod index))

@@ -2331,8 +2331,8 @@
   (let ((input (car (zstream-input-stack input))))
     (let ((level 0))
       (do ((c1 (read-rune input) (read-rune input))
-           (c2 0 c1)
-           (c3 0 c2))
+           (c2 #/U+0000 c1)
+           (c3 #/U+0000 c2))
           ((= level -1))
         (declare (type fixnum level))
         (cond ((eq c1 :eof)
@@ -2874,7 +2874,7 @@
         (make-uri :path path)
         (make-uri :scheme :file
                   :host (concatenate 'string
-                          (specific-or (pathname-host pathname))
+                          (string-or (host-namestring pathname))
                           "+"
                           (specific-or (pathname-device pathname)))
                   :path path))))
@@ -3354,7 +3354,7 @@
   (let ((delim (read-rune input)))
     (unless (member delim '(#/\" #/\') :test #'eql)
       (error "Bad attribute value delimiter ~S, must be either #\\\" or #\\\'."
-             (if (< delim char-code-limit) (code-char delim) delim)))
+             (rune-char delim delim)))
     (with-rune-collector-4 (collect)
       (loop
         (let ((c (read-rune input)))

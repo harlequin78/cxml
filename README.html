@@ -47,15 +47,17 @@
         (SAX layer; namespace support)
       </li>
       <li>
-        David Lichteblau at knowledgeTools (david at knowledgetools.de)<br/>
+        David Lichteblau for <a
+        href="http://www.knowledgetools.de">knowledgeTools</a>
         (conversion into an independent package; DOM bug fixing; validation)
+        and <a href="http://www.headcraft.de/">headcraft</a>
+        (cleanup of External ID handling, DTD caching).
       </li>
     </ul>
 
     <p>
-      Mailing list <a
-      href="http://common-lisp.net/mailman/listinfo/cxml-devel">cxml-devel</a>
-      is hosted on common-lisp.net.
+      Send bug reports to <a
+      href="mailto:david@lichteblau.com">david@lichteblau.com</a>.
     </p>
 
     <h2>Download</h2>
@@ -103,6 +105,7 @@
       <li>Semi-automatic caching of DTD instances.</li>
       <li>Support user-defined entity resolvers.</li>
       <li>Support for Oasis XML Catalogs.</li>
+      <li>Fixes for SBCL's unicode support.</li>
     </ul>
     <p class="nomargin"><tt>patch-306</tt> (2004-09-03)</p>
     <ul class="nomargin">
@@ -149,11 +152,28 @@
     <h2>Installation</h2>
     <p>
       CXML should be portable to all Common Lisp implementations
-      supporting gray streams.&nbsp; Currently assumed to work are ACL,
-      SBCL, CMUCL, and CLISP.&nbsp; (CLISP needs to be run with an
-      option like <tt>-E iso-8869-1</tt> teaching it to accept cxml's
-      non-ASCII source files.)
+      supporting gray streams.&nbsp; Currently assumed to work are:
     </p>
+    <ul>
+      <li>
+        ACL (with support for <tt>rune-is-character</tt> in the
+        unicode-enabled images)
+      </li>
+      <li>
+        SBCL.  The <tt>rune-is-character</tt> mode needs SBCL's Unicode
+        branch ("<tt>character_branch</tt>").  Note that cxml still uses
+        surrogate characters instead of utilizing full 21bit characters.
+        This will probably addressed in a future release.)
+      </li>
+      <li>
+        CMUCL (<em>no</em> support for <tt>rune-is-character</tt>)
+      </li>
+      <li>
+        CLISP (reported to work with and without <tt>rune-is-character</tt>).
+        CLISP needs to be run with an option like <tt>-E iso-8869-1</tt>
+        teaching it to accept cxml's non-ASCII source files.
+      </li>
+    </ul>
 
     <p>
       Optional configuration (skip this unless you know better): CXML
