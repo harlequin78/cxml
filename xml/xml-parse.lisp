@@ -1011,6 +1011,7 @@
                   (validity-error "(16) No Notation on Empty Element: ~S"
                                   (rod-string element-name)))))))
         (setf (elmdef-content e) content-model)
+        (setf (elmdef-external-p e) *markup-declaration-external-p*)
         e))))
 
 (defvar *redefinition-warning* t)
