@@ -117,7 +117,10 @@
           (write-char #\- out))))))
 
 (defun intern-dom (name)
-  (intern (replace-studly-caps name) :dom))
+  (setf name (replace-studly-caps name))
+  (when (eq :foo :FOO)
+    (setf name (string-upcase name)))
+  (intern name :dom))
 
 (defun child-elements (element)
   (map-child-elements 'list #'identity element))
