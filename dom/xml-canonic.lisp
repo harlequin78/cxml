@@ -62,30 +62,47 @@
 ;;
 ;; -- James Clark (jjc@jclark.com)
 
-(defvar *quux*)                         ;!!!BIG HACK!!!
 
-;; hack because of byte vs. char issues.  Simple streams would be nice
-;; to have, perhaps with an emulation layer based on gray-streams.
-(defvar *write-octet*)
+;;;; SINK: a rune output "stream"
 
-(defun write-to-character-stream (code sink)
-  (write-char (code-char code) sink))
+(defclass sink ()
+    ((high-surrogate :initform nil)))
 
-(defun write-to-vector (code sink)
-  (vector-push-extend code sink (length sink)))
+(defclass vector-sink (sink)
+    ((target-vector :initform (make-buffer))))
 
-(defun unparse-document (doc sink)
-  (let ((*write-octet* #'write-to-character-stream))
+(defclass character-stream-sink (sink)
+    ((target-stream :initarg :target-stream)))
+
+;; WRITE-OCTET als generisch zu machen ist vielleicht nicht die schnellste
+;; Loesung, aber die einfachste.
+(defgeneric write-octet (octet sink))
+
+(defun make-buffer ()
+  (make-array 1
+              :element-type '(unsigned-byte 8)
+              :adjustable t
+              :fill-pointer 0))
+
+(defmethod write-octet (octet (sink vector-sink))
+  (let ((target-vector (slot-value sink 'target-vector)))
+    (vector-push-extend octet target-vector (length target-vector))))
+
+(defmethod write-octet (octet (sink character-stream-sink))
+  (write-char (code-char octet) (slot-value sink 'target-stream)))
+
+(defun unparse-document (doc character-stream)
+  (let ((sink (make-instance 'character-stream-sink
+                :target-stream character-stream)))
     (map nil (rcurry #'unparse-node sink) (dom:child-nodes doc))))
 
 (defun unparse-document-to-octets (doc)
-  (let ((sink (make-array 1
-                          :element-type '(unsigned-byte 8)
-                          :adjustable t
-                          :fill-pointer 0))
-        (*write-octet* #'write-to-vector))
+  (let ((sink (make-instance 'vector-sink)))
     (map nil (rcurry #'unparse-node sink) (dom:child-nodes doc))
-    sink))
+    (slot-value sink 'target-vector)))
+
+
+;;;; DOM serialization
 
 (defun unparse-node (node sink)
   (cond ((dom:element-p node)
@@ -99,8 +116,7 @@
              (write-rod (dom:name a) sink)
              (write-rune #/= sink)
              (write-rune #/\" sink)
-             (let ((*quux* nil))
-               (map nil (lambda (c) (unparse-datachar c sink)) (dom:value a)))
+             (map nil (lambda (c) (unparse-datachar c sink)) (dom:value a))
              (write-rune #/\" sink)))
          (write-rod '#.(string-rod ">") sink)
          (dom:do-node-list (k (dom:child-nodes node))
@@ -116,9 +132,8 @@
            (write-rod (dom:data node) sink)
            (write-rod '#.(string-rod "?>") sink) ))
         ((dom:text-node-p node)
-         (let ((*quux* nil))
-           (map nil (lambda (c) (unparse-datachar c sink))
-                (dom:data node))))
+         (map nil (lambda (c) (unparse-datachar c sink))
+              (dom:data node)))
         ((dom:comment-p node))
         (t
          (error "Oops in unparse: ~S." node))))
@@ -134,24 +149,29 @@
         (t
          (write-rune c sink))))
 
+
+;;;; UTF-8 output for SINKs
+
 (defun write-rod (rod sink)
-  (let ((*quux* nil))
-    (map nil (lambda (c) (write-rune c sink)) rod)))
+  (map nil (lambda (c) (write-rune c sink)) rod))
 
 (defun write-rune (rune sink)
   (let ((code (rune-code rune)))
-    (cond ((<= #xD800 code #xDBFF)
-            (setf *quux* code))
-      ((<= #xDC00 code #xDFFF)
-        (let ((q (logior (ash (- *quux* #xD7C0) 10) (- code #xDC00))))
-          (write-rune-0 q sink))
-        (setf *quux* nil))
-      (t
-        (write-rune-0 code sink)))))
+    (with-slots (high-surrogate) sink
+      (cond
+        ((<= #xD800 code #xDBFF)
+          (setf high-surrogate code))
+        ((<= #xDC00 code #xDFFF)
+          (let ((q (logior (ash (- high-surrogate #xD7C0) 10)
+                           (- code #xDC00))))
+            (write-rune-0 q sink))
+          (setf high-surrogate nil))
+        (t
+          (write-rune-0 code sink))))))
 
 (defun write-rune-0 (code sink)
   (labels ((wr (x)
-             (funcall *write-octet* x sink)))
+             (write-octet x sink)))
     (cond ((<= #x00000000 code #x0000007F) 
            (wr code))
           ((<= #x00000080 code #x000007FF)
