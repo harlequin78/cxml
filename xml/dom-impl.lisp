@@ -481,7 +481,7 @@
 (defmethod dom:remove-named-item ((self named-node-map) name)
   (setf name (rod name))
   (with-slots (items) self
-    (dolist (k items nil)
+    (dolist (k items (dom-error :NOT_FOUND_ERR "~A not found in ~A" name self))
       (cond ((rod= name (dom:node-name k))
              (setf items (delete k items))
              (return k))))))
