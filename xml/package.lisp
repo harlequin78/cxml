@@ -67,6 +67,7 @@
    #:*dtd-cache*
    #:getdtd
    #:remdtd
+   #:make-dtd-cache
    #:clear-dtd-cache
    #:make-extid
 
