@@ -1,11 +1,16 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: CXML; readtable: runes; Encoding: utf-8; -*-
 ;;; ---------------------------------------------------------------------------
-;;;     Title: A prototype XML parser
+;;;     Title: XML parser
 ;;;   Created: 1999-07-17
 ;;;    Author: Gilbert Baumann <unk6@rz.uni-karlsruhe.de>
+;;;    Author: Henrik Motakef <hmot@henrik-motakef.de>
+;;;    Author: David Lichteblau <david@lichteblau.com>
 ;;;   License: LGPL (See file COPYING for details).
 ;;; ---------------------------------------------------------------------------
 ;;;  © copyright 1999 by Gilbert Baumann
+;;;  © copyright 2003 by Henrik Motakef
+;;;  © copyright 2004 knowledgeTools Int. GmbH
+;;;  © copyright 2004 David Lichteblau
 
 ;;; This library is free software; you can redistribute it and/or
 ;;; modify it under the terms of the GNU Library General Public

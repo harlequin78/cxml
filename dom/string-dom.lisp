@@ -1,7 +1,11 @@
+;;; XXX delete this file
+;;;
 ;;; A wrapper package STRING-DOM around the ordinary DOM presents
 ;;; DOMString as Lisp STRING.  This was a workaround until
 ;;; RUNE-IS-CHARACTER was implemented, but might still be useful on
 ;;; Lisps without Unicode support.
+;;;
+;;; Copyright (c) 2004 knowledgeTools Int. GmbH
 
 (defpackage :string-dom
   (:use))

@@ -1,3 +1,11 @@
+;;;; dom-sax.lisp -- DOM walker
+;;;;
+;;;; This file is part of the CXML parser, released under (L)LGPL.
+;;;; See file COPYING for details.
+;;;;
+;;;; Author: David Lichteblau <david@lichteblau.com>
+;;;; Copyright (c) 2004 knowledgeTools Int. GmbH
+
 (in-package :dom-impl)
 
 (defun dom:map-document

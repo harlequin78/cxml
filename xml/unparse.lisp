@@ -8,6 +8,8 @@
 ;;;   License: LGPL (See file COPYING for details).
 ;;; ---------------------------------------------------------------------------
 ;;;  © copyright 1999 by Gilbert Baumann
+;;;  © copyright 2004 by knowledgeTools Int. GmbH
+;;;  © copyright 2004 by David Lichteblau (for headcraft.de)
 
 ;;; This library is free software; you can redistribute it and/or
 ;;; modify it under the terms of the GNU Library General Public

@@ -1,3 +1,11 @@
+;;;; characters.lisp -- character class definitions
+;;;;
+;;;; This file is part of the CXML parser, released under (L)LGPL.
+;;;; See file COPYING for details.
+;;;;
+;;;; Author: David Lichteblau
+;;;; Copyright (C) 2004 knowledgeTools Int. GmbH
+
 ;;; XXX xml-name-rune-p.lisp habe ich erst nach dem Schreiben dieses
 ;;; Files gefunden...
 

@@ -1,3 +1,13 @@
+;;;; dom-builder.lisp -- DOM-building SAX handler
+;;;;
+;;;; This file is part of the CXML parser, released under (L)LGPL.
+;;;; See file COPYING for details.
+;;;;
+;;;; Author: Gilbert Baumann <unk6@rz.uni-karlsruhe.de>
+;;;; Author: Henrik Motakef <hmot@henrik-motakef.de>
+;;;; Author: David Lichteblau <david@lichteblau.com>
+;;;; Author: knowledgeTools Int. GmbH
+
 ;;; XXX this DOM builder knows too much about the specifics of the DOM
 ;;; implementation for my taste.  We need a sensible protocol for fast DOM
 ;;; building.

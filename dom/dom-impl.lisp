@@ -1,3 +1,12 @@
+;;;; dom-impl.lisp -- Implementation of DOM 1 Core
+;;;;
+;;;; This file is part of the CXML parser, released under (L)LGPL.
+;;;; See file COPYING for details.
+;;;;
+;;;; Author: Gilbert Baumann <unk6@rz.uni-karlsruhe.de>
+;;;; Author: David Lichteblau <david@lichteblau.com>
+;;;; Author: knowledgeTools Int. GmbH
+
 (defpackage :dom-impl
   (:use :cl :runes))
 
