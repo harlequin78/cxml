@@ -7,7 +7,8 @@
   (and (equal (dom:get-attribute test "TYPE") "valid")
        (let ((version (dom:get-attribute test "RECOMMENDATION")))
          (cond
-           ((equal version "XML1.0")
+           ((or (equal version "")      ;XXX
+                (equal version "XML1.0"))
              (cond
                ((equal (dom:get-attribute test "NAMESPACE") "no")
                  (format t "~A: test applies to parsers without namespace support, skipping~%"
@@ -19,7 +20,7 @@
              ;; not supported
              nil)
            (t
-             (warn "unrecognized RECOMMENDATION value: ~A" version)
+             (warn "unrecognized RECOMMENDATION value: ~S" version)
              nil)))))
 
 (defun test-pathnames (directory test)
@@ -27,12 +28,13 @@
           (loop
               for parent = test then (dom:parent-node parent)
               for base = (dom:get-attribute parent "xml:base")
-              until base
+              until (plusp (length base))
               finally (return (merge-pathnames base directory))))
          (uri (dom:get-attribute test "URI"))
          (output (dom:get-attribute test "OUTPUT")))
     (values (merge-pathnames uri sub-directory)
-            (when output (merge-pathnames output sub-directory)))))
+            (when (plusp (length output))
+              (merge-pathnames output sub-directory)))))
 
 (defun serialize-document (document)
   (map 'vector #'char-code
@@ -48,7 +50,7 @@
 
 (defun test-xml-conformance (directory)
   (let ((xmlconf (xml:parse-file (merge-pathnames "xmlconf.xml" directory))))
-    (dolist (test (dom:get-elements-by-tag-name xmlconf "TEST"))
+    (dom:do-node-list (test (dom:get-elements-by-tag-name xmlconf "TEST"))
       (when (relevant-test-p test)
         (multiple-value-bind (pathname output)
             (test-pathnames directory test)
@@ -74,8 +76,11 @@
                                              :if-exists :supersede)
                               (write-sequence (serialize-document document) s))
                             (error "well-formed, but output ~S not the expected ~S~%"
-                                   output error-output)))))))
+                                   error-output output)))))))
               ((and serious-condition (not excl:interrupt-signal)) (c)
                 (format t " FAILED:~%  ~A~%[~A]~%"
                         c
-                        (dom:data (car (dom:child-nodes test))))))))))))
+                        (dom:data (dom:item (dom:child-nodes test) 0)))))))))))
+
+#+(or)
+(xmlconf::test-xml-conformance "/mnt/debian/space/xmlconf/")
