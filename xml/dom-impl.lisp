@@ -634,7 +634,7 @@
 ;;; An attribute value can be read and set as a string using DOM:VALUE
 ;;; or frobbed by changing the attribute's children!
 ;;;
-;;; We store the value in a TEXT node and access this node's DATA slot
+;;; We store the value in a TEXT node and read this node's DATA slot
 ;;; when asked for our VALUE -- until the user changes the child nodes,
 ;;; in which case we have to compute VALUE by traversing the children.
 
@@ -655,16 +655,11 @@
   (assert-writeable node)
   (let ((rod (rod new-value)))
     (with-slots (children owner) node
-      (cond
-        ((and (eql (length children) 1)
-              (eq (dom:node-type (elt children 0)) :text))
-          ;; change TEXT-NODE child
-          (setf (dom:data (elt children 0)) rod))
-        (t
-          ;; remove children, add new TEXT-NODE child
-          (while (plusp (length children))
-            (dom:remove-child node (dom:last-child node)))
-          (dom:append-child node (dom:create-text-node owner rod))))))
+      ;; remove children, add new TEXT-NODE child
+      ;; (alas, we must not reuse an old TEXT-NODE)
+      (while (plusp (length children))
+        (dom:remove-child node (dom:last-child node)))
+      (dom:append-child node (dom:create-text-node owner rod))))
   new-value)
 
 (defun attribute-to-string (attribute)
