@@ -214,7 +214,7 @@
 ;;;; (17) Enumeration                           VALIDATE-ATTRIBUTE
 ;;;; (18) Required Attribute                    PROCESS-ATTRIBUTES
 ;;;; (19) Attribute Default Legal               DEFINE-ATTRIBUTE
-;;;; (20) Fixed Attribute Default
+;;;; (20) Fixed Attribute Default               VALIDATE-ATTRIBUTE
 ;;;; (21) Proper Conditional Section/PE Nesting
 ;;;; (22) Entity Declared
 ;;;; (23) Notation Declared
@@ -740,7 +740,14 @@
       (validate-attribute* ctx adef (attribute-value a)))))
 
 (defun validate-attribute* (ctx adef value)
-  (let ((type (attdef-type adef)))
+  (let ((type (attdef-type adef))
+        (default (attdef-default adef))) 
+    (when (and (listp default)
+               (eq (car default) :FIXED)
+               (not (rod= value (cadr default))))
+      (validity-error "(20) Fixed Attribute Default: expected ~S but got ~S"
+                      (rod-string (cadr default))
+                      (rod-string value)))
     (case (if (listp type) (car type) type)
       (:ID
         (unless (valid-name-p value)
