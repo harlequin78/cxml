@@ -42,7 +42,7 @@
 (defun serialize-document (document)
   (map 'vector #'char-code
        (with-output-to-string (s)
-         (cxml:unparse-document document s))))
+         (cxml:unparse-document document s :canonical 2))))
 
 (defun file-contents (pathname)
   (with-open-file (s pathname :element-type '(unsigned-byte 8))

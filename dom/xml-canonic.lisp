@@ -74,6 +74,10 @@
      (current-indentation :initform 0 :accessor current-indentation)))
 
 (defmethod initialize-instance :after ((instance sink) &key)
+  (when (eq (canonical instance) t)
+    (setf (canonical instance) 1))
+  (unless (member (canonical instance) '(nil 1 2))
+    (error "Invalid canonical form: ~A" (canonical instance)))
   (when (and (canonical instance) (indentation instance))
     (error "Cannot indent XML in canonical mode")))
 
@@ -108,12 +112,54 @@
   (let ((sink (apply #'make-instance 'character-stream-sink
                      :target-stream character-stream
                      initargs)))
-    (map nil (rcurry #'unparse-node sink) (dom:child-nodes doc))))
+    (do-unparse-document doc sink)))
 
 (defun unparse-document-to-octets (doc &rest initargs)
   (let ((sink (apply #'make-instance 'vector-sink initargs)))
-    (map nil (rcurry #'unparse-node sink) (dom:child-nodes doc))
+    (do-unparse-document doc sink)
     (slot-value sink 'target-vector)))
+
+(defun do-unparse-document (document sink)
+  (when (and (canonical sink)
+             (>= (canonical sink) 2)
+             (plusp (dom:length (dom:notations (dom:doctype document)))))
+    ;; need a doctype declaration
+    (write-rod #"<!DOCTYPE " sink)
+    (write-rod (dom:tag-name (dom:document-element document)) sink)
+    (write-rod #" [" sink)
+    (write-rune #/U+000A sink)
+    (let* ((ns-map (dom:notations (dom:doctype document)))
+           (ns (make-array (dom:length ns-map))))
+      ;; get them
+      (dotimes (i (dom:length ns-map))
+        (setf (elt ns i) (dom:item ns-map i)))
+      ;; sort them
+      (setf ns (sort ns #'rod< :key #'dom:name))
+      ;; output
+      (dotimes (i (dom:length ns-map))
+        (let ((notation (elt ns i)))
+          (write-rod #"<!NOTATION " sink)
+          (write-rod (dom:name notation) sink)
+          (cond
+            ((zerop (length (dom:public-id notation)))
+              (write-rod #" SYSTEM '" sink)
+              (write-rod (dom:system-id notation) sink)
+              (write-rune #/' sink))
+            ((zerop (length (dom:system-id notation)))
+              (write-rod #" PUBLIC '" sink)
+              (write-rod (dom:public-id notation) sink)
+              (write-rune #/' sink))
+            (t 
+              (write-rod #" PUBLIC '" sink)
+              (write-rod (dom:public-id notation) sink)
+              (write-rod "' '" sink)
+              (write-rod (dom:system-id notation) sink)
+              (write-rune #/' sink)))
+          (write-rune #/> sink)
+          (write-rune #/U+000A sink))))
+    (write-rod #"]>" sink)
+    (write-rune #/U+000A sink))
+  (map nil (rcurry #'unparse-node sink) (dom:child-nodes document)))
 
 
 ;;;; DOM serialization
