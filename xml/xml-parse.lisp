@@ -262,15 +262,23 @@
 
 (deftype read-element () 'rune)
 
-(defun call-with-open-xstream (continuation &rest open-args)
+(defun call-with-open-xstream (fn stream)
+  (unwind-protect
+      (funcall fn stream)
+    (close-xstream stream)))
+
+(defmacro with-open-xstream ((var value) &body body)
+  `(call-with-open-xstream (lambda (,var) ,@body) ,value))
+
+(defun call-with-open-xfile (continuation &rest open-args)
   (let ((input (apply #'open (car open-args) :element-type '(unsigned-byte 8) (cdr open-args))))
     (unwind-protect
         (progn
           (funcall continuation (make-xstream input)))
       (close input))))
 
-(defmacro with-open-xstream ((stream &rest open-args) &body body)
-  `(call-with-open-xstream (lambda (,stream) .,body) .,open-args))
+(defmacro with-open-xfile ((stream &rest open-args) &body body)
+  `(call-with-open-xfile (lambda (,stream) .,body) .,open-args))
 
 ;;; Decoders
 
@@ -663,7 +671,8 @@
 ;;;;  DTD
 ;;;;
 
-(define-condition validity-error (simple-error) ())
+(define-condition parser-error (simple-error) ())
+(define-condition validity-error (parser-error) ())
 
 (defun validity-error (x &rest args)
   (error 'validity-error
@@ -2744,7 +2753,7 @@
       component))
 
 (defun string-or (str &optional (alternative nil))
-  (if (equal str "")
+  (if (zerop (length str))
       alternative
       str))
 
@@ -2820,7 +2829,9 @@
   (let ((scheme (puri:uri-scheme uri))
         (path (puri:uri-parsed-path uri)))
     (unless (member scheme '(nil :file))
-      (error "URI scheme ~S not supported" scheme))
+      (error 'parser-error
+             :format-control "URI scheme ~S not supported"
+             :format-arguments (list scheme)))
     (if (eq (car path) :relative)
         (multiple-value-bind (name type)
             (parse-name.type (car (last path)))
@@ -2830,24 +2841,28 @@
         (multiple-value-bind (name type)
             (parse-name.type (car (last (cdr path))))
           (destructuring-bind (host device)
-              (split-sequence-if (lambda (x) (eql x #\+)) (puri:uri-host uri))
+              (split-sequence-if (lambda (x) (eql x #\+))
+                                 (or (puri:uri-host uri) "+"))
             (make-pathname :host (string-or host)
                            :device (string-or device)
                            :directory (cons :absolute (butlast (cdr path)))
                            :name name
                            :type type))))))
 
+(defun parse-xstream (xstream handler &rest args)
+  (let ((zstream (make-zstream :input-stack (list xstream))))
+    (peek-rune xstream)
+    (with-scratch-pads ()
+      (apply #'p/document zstream handler args))))
+
 (defun parse-file (filename handler &rest args)
-  (with-open-xstream (input filename)
+  (with-open-xfile (input filename)
     (setf (xstream-name input)
       (make-stream-name
        :entity-name "main document"
        :entity-kind :main
        :uri (pathname-to-uri filename)))
-    (let ((zstream (make-zstream :input-stack (list input))))
-      (peek-rune input)
-      (with-scratch-pads ()
-       (apply #'p/document zstream handler args)))))
+    (apply #'parse-xstream input handler args)))
 
 (defun resolve-synonym-stream (stream)
   (while (typep stream 'synonym-stream)
@@ -2860,17 +2875,15 @@
       nil))
 
 (defun parse-stream (stream handler &rest args)
-  (let* ((xstream 
-          (make-xstream 
-           stream
-           :name (make-stream-name
-                  :entity-name "main document"
-                  :entity-kind :main
-                  :uri (safe-stream-pathname stream))
-           :initial-speed 1))
-         (zstream (make-zstream :input-stack (list xstream))))
-    (with-scratch-pads ()
-      (apply #'p/document zstream handler args))))
+  (let ((xstream
+         (make-xstream 
+          stream
+          :name (make-stream-name
+                 :entity-name "main document"
+                 :entity-kind :main
+                 :uri (safe-stream-pathname stream))
+          :initial-speed 1)))
+    (apply #'parse-xstream xstream handler args)))
 
 (defun parse-dtd-file (filename)
   (with-open-file (s filename :element-type '(unsigned-byte 8))
