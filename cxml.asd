@@ -73,6 +73,7 @@
      (:file "split-sequence"  :depends-on ("package"))
      (:file "xml-parse"       :depends-on ("package" "sax-handler" "split-sequence" "xml-name-rune-p" "characters"))
      (:file "characters"      :depends-on ("package"))
+     (:file "unparse"         :depends-on ("xml-parse"))
      (:file "xmls-compat"     :depends-on ("xml-parse")))
     :depends-on (:runes))
 
@@ -85,7 +86,7 @@
     ((:file "package")
      (:file "dom-impl"        :depends-on ("package"))
      (:file "dom-builder"     :depends-on ("dom-impl"))
-     (:file "xml-canonic"     :depends-on ("package"))
+     (:file "unparse"         :depends-on ("package"))
      (:file "simple-dom"      :depends-on ("package"))
      (:file "dom-sax"         :depends-on ("package")))
     :depends-on (:xml))
