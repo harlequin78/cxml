@@ -3,23 +3,26 @@
 ;;;     Title: CMUCL dependent stuff + fixups
 ;;;   Created: 1999-05-25 22:32
 ;;;    Author: Gilbert Baumann <unk6@rz.uni-karlsruhe.de>
-;;;   License: GPL (See file COPYING for details).
+;;;   License: LLGPL (See file COPYING for details).
 ;;; ---------------------------------------------------------------------------
 ;;;  (c) copyright 1999 by Gilbert Baumann
 
-;;; This program is free software; you can redistribute it and/or modify
-;;; it under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation; either version 2 of the License, or
-;;; (at your option) any later version.
+;;; This code is free software; you can redistribute it and/or modify it
+;;; under the terms of the version 2.1 of the GNU Lesser General Public
+;;; License as published by the Free Software Foundation, as clarified
+;;; by the "Preamble to the Gnu Lesser General Public License" found in
+;;; the file COPYING.
 ;;;
-;;; This program is distributed in the hope that it will be useful,
-;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
+;;; This code is distributed in the hope that it will be useful,
+;;; but without any warranty; without even the implied warranty of
+;;; merchantability or fitness for a particular purpose.  See the GNU
+;;; Lesser General Public License for more details.
 ;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with this program; if not, write to the Free Software
-;;; Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+;;; Version 2.1 of the GNU Lesser General Public License is in the file
+;;; COPYING that was distributed with this file.  If it is not present,
+;;; you can access it from http://www.gnu.org/copyleft/lesser.txt (until
+;;; superseded by a newer version) or write to the Free Software
+;;; Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 (defmacro glisp::defsubst (name args &body body)
   `(progn
