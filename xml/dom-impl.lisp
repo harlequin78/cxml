@@ -128,6 +128,8 @@
 
 (defmethod dom:create-element ((document document) tag-name)
   (setf tag-name (rod tag-name))
+  (unless (xml::valid-name-p tag-name)
+    (dom-error :INVALID_CHARACTER_ERR "not a name: ~A" (rod-string tag-name)))
   (make-instance 'element 
     :tag-name tag-name
     :owner document))
@@ -157,6 +159,8 @@
 (defmethod dom:create-processing-instruction ((document document) target data)
   (setf target (rod target))
   (setf data (rod data))
+  (unless (xml::valid-name-p target)
+    (dom-error :INVALID_CHARACTER_ERR "not a name: ~A" (rod-string target)))
   (make-instance 'processing-instruction
     :owner document
     :target target
@@ -555,12 +559,9 @@
 (defmethod dom:set-attribute ((element element) name value)
   (assert-writeable element)
   (with-slots (owner) element
-    (dom:set-attribute-node 
-     element (make-instance 'attribute 
-               :owner owner
-               :name name
-               :value value
-               :specified-p t))
+    (let ((attr (dom:create-attribute owner name)))
+      (setf (dom:value attr) value)
+      (dom:set-attribute-node element attr))
     (values)))
 
 (defmethod dom:remove-attribute ((element element) name)
