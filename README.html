@@ -53,6 +53,7 @@
       <li><a href="#tests">Tests</a></li>
       <li><a href="#todo">To do</a></li>
       <li><a href="#using">Using the parser</a></li>
+      <li><a href="#sax">SAX interface</a></li>
     </ul>
 
     <a name="modules"/>
@@ -172,7 +173,8 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
         href="http://www.w3.org/TR/2001/REC-xml-c14n-20010315">Canonical
         XML</a> right now.&nbsp; In the future we want support for:
         Including doctype declarations in the output, ordinary output
-        with less entity noise, optional indentation, etc.
+        with less entity noise, optional indentation, user-specified
+        encoding, etc.
       </li>
       <li>
         There are still thread-safety issues.
@@ -204,5 +206,55 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       Create a SAX handler which builds a DOM document.&nbsp; Example:
     </p>
     <pre>(xml:parse-file "test.xml" (dom:make-dom-builder))</pre>
+
+    <p>
+      <div class="def">Function XML:UNPARSE-DOCUMENT (document stream)</div>
+      <div class="def">Function XML:UNPARSE-DOCUMENT-TO-OCTETS (document) => vector</div>
+      Serialize a document into <a
+      href="http://www.w3.org/TR/2001/REC-xml-c14n-20010315">canonical
+      form</a>.
+    </p>
+    <ul>
+      <li><tt>document</tt> -- a DOM document object</li>
+      <li><tt>stream</tt> -- a Common Lisp stream with element-type
+        <tt>character</tt></li>
+    </ul>
+    <p>
+      <tt>unparse-document-to-octets</tt> returns an <tt>(unsigned-byte
+      8)</tt> array, whereas <tt>unparse-document</tt> writes
+      characters.&nbsp; <tt>unparse-document</tt> is useful together
+      with <tt>with-output-to-string</tt>.&nbsp; However, note that the
+      resulting document in both cases is UTF-8 encoded, so the
+      characters written by <tt>unparse-document</tt> are really UTF-8
+      bytes encoded as characters.
+    </p>
+
+    <a name="sax"/>
+    <h2>SAX interface</h2>
+    <p>
+      A SAX handler is an arbitrary objects that implements some of the
+      generic functions in the SAX package.&nbsp; Note that no default
+      handler class is necessary, because all generic functions have default
+      methods which do nothing.&nbsp; SAX functions are:
+      <div class="def">Function SAX:START-DOCUMENT (handler)</div>
+      <div class="def">Function SAX:START-ELEMENT (handler namespace-uri local-name qname attributes)</div>
+      <div class="def">Function SAX:START-PREFIX-MAPPING (handler prefix uri)</div>
+      <div class="def">Function SAX:CHARACTERS (handler data)</div>
+      <div class="def">Function SAX:PROCESSING-INSTRUCTION (handler target data)</div>
+      <div class="def">Function SAX:END-PREFIX-MAPPING (handler prefix)</div>
+      <div class="def">Function SAX:END-ELEMENT (handler namespace-uri local-name qname attributes)</div>
+      <div class="def">Function SAX:END-DOCUMENT (handler)</div>
+      <div class="def">Function SAX:COMMENT (handler data)</div>
+      <div class="def">Function SAX:START-CDATA (handler)</div>
+      <div class="def">Function SAX:END-CDATA (handler)</div>
+      <div class="def">Function SAX:START-DTD (handler name public-id system-id)</div>
+      <div class="def">Function SAX:END-DTD (handler)</div>
+    </p>
+    <p>
+      <i>fixme</i>: For information on these functions refer to the docstrings.
+    </p>
+    <p>
+      <i>fixme</i>: Entity and notation processing isn't quite right yet.
+    </p>
   </body>
 </html>

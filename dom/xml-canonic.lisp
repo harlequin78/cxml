@@ -64,8 +64,28 @@
 
 (defvar *quux*)                         ;!!!BIG HACK!!!
 
+;; hack because of byte vs. char issues.  Simple streams would be nice
+;; to have, perhaps with an emulation layer based on gray-streams.
+(defvar *write-octet*)
+
+(defun write-to-character-stream (code sink)
+  (write-char (code-char code) sink))
+
+(defun write-to-vector (code sink)
+  (vector-push-extend code sink (length sink)))
+
 (defun unparse-document (doc sink)
-  (map nil (rcurry #'unparse-node sink) (dom:child-nodes doc)))
+  (let ((*write-octet* #'write-to-character-stream))
+    (map nil (rcurry #'unparse-node sink) (dom:child-nodes doc))))
+
+(defun unparse-document-to-octets (doc)
+  (let ((sink (make-array 1
+                          :element-type '(unsigned-byte 8)
+                          :adjustable t
+                          :fill-pointer 0))
+        (*write-octet* #'write-to-vector))
+    (map nil (rcurry #'unparse-node sink) (dom:child-nodes doc))
+    sink))
 
 (defun unparse-node (node sink)
   (cond ((dom:element-p node)
@@ -131,7 +151,7 @@
 
 (defun write-rune-0 (code sink)
   (labels ((wr (x)
-             (write-char (code-char x) sink)))
+             (funcall *write-octet* x sink)))
     (cond ((<= #x00000000 code #x0000007F) 
            (wr code))
           ((<= #x00000080 code #x000007FF)

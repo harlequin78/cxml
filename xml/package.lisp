@@ -41,4 +41,5 @@
    ;; #:parse-string
    #:parse-octets
 
-   #:unparse-document))
+   #:unparse-document
+   #:unparse-document-to-octets))
