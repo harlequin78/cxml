@@ -2273,7 +2273,9 @@
     (:|<!ATTLIST|  (p/attlist-decl input))
     (:|<!ENTITY|   (p/entity-decl input))
     (:|<!NOTATION| (p/notation-decl input))
-    (:PI           (consume-token input))
+    (:PI
+      (let ((sem (nth-value 1 (read-token input))))
+        (sax:processing-instruction (handler *ctx*) (car sem) (cdr sem))))
     (:COMMENT      (consume-token input))
     (otherwise
      (error "p/markup-decl ~S" (peek-token input)))))
