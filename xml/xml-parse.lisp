@@ -207,7 +207,7 @@
 ;;;; (10) ID Attribute Default                  DEFINE-ATTRIBUTE
 ;;;; (11) IDREF                                 VALIDATE-ATTRIBUTES, P/DOCUMENT
 ;;;; (12) Entity Name
-;;;; (13) Name Token
+;;;; (13) Name Token                            VALIDATE-ATTRIBUTES
 ;;;; (14) Notation Attributes
 ;;;; (15) One Notation Per Element Type
 ;;;; (16) No Notation on Empty Element
@@ -725,6 +725,18 @@
                   (validity-error "(11) IDREF: not a name: ~S" (rod-string name)))
                 (unless (gethash name (id-table ctx))
                   (setf (gethash name (id-table ctx)) nil)))))
+          (:nmtoken
+            (unless (valid-nmtoken-p (attribute-value a))
+              (validity-error "(13) Name Token: not a NMTOKEN: ~S"
+                              (rod-string (attribute-value a)))))
+          (:nmtokens
+            (let ((tokens (split-names (attribute-value a))))
+              (unless tokens
+                (validity-error "(13) Name Token: malformed NMTOKENS"))
+              (dolist (token tokens)
+                (unless (valid-nmtoken-p token)
+                  (validity-error "(13) Name Token: not a NMTOKEN: ~S"
+                                  (rod-string token))))))
           )))))
 
 (defun split-names (rod)

@@ -110,6 +110,10 @@
              (eql initial #/:)))
        (every #'rune-name-char-p rod)))
 
+(defun valid-nmtoken-p (rod)
+  (and (not (zerop (length rod)))
+       (every #'rune-name-char-p rod)))
+
 (defun rune-name-char-p (rune)
   (or (rune-in-range-p rune *base-char-ranges*)
       (rune-in-range-p rune *ideographic-ranges*)
