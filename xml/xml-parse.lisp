@@ -211,7 +211,7 @@
 ;;;; (14) Notation Attributes
 ;;;; (15) One Notation Per Element Type
 ;;;; (16) No Notation on Empty Element
-;;;; (17) Enumeration
+;;;; (17) Enumeration                           VALIDATE-ATTRIBUTES
 ;;;; (18) Required Attribute
 ;;;; (19) Attribute Default Legal
 ;;;; (20) Fixed Attribute Default
@@ -704,11 +704,12 @@
                       (rod-string name)))
     (dolist (a attlist)
       (let* ((qname (attribute-qname a))
-             (adef (find-attribute e qname)))
-        (unless adef
-          (validity-error "(04) Attribute Value Type: no definition ~A"
-                          (rod-string qname)))
-        (case (attdef-type adef)
+             (adef
+              (or (find-attribute e qname)
+                  (validity-error "(04) Attribute Value Type: not declared: ~A"
+                                  (rod-string qname))))
+             (type (attdef-type adef)))
+        (case (if (listp type) (car type) type)
           (:ID
             (let ((value (attribute-value a)))
               (unless (valid-name-p value)
@@ -725,11 +726,11 @@
                   (validity-error "(11) IDREF: not a name: ~S" (rod-string name)))
                 (unless (gethash name (id-table ctx))
                   (setf (gethash name (id-table ctx)) nil)))))
-          (:nmtoken
+          (:NMTOKEN
             (unless (valid-nmtoken-p (attribute-value a))
               (validity-error "(13) Name Token: not a NMTOKEN: ~S"
                               (rod-string (attribute-value a)))))
-          (:nmtokens
+          (:NMTOKENS
             (let ((tokens (split-names (attribute-value a))))
               (unless tokens
                 (validity-error "(13) Name Token: malformed NMTOKENS"))
@@ -737,7 +738,10 @@
                 (unless (valid-nmtoken-p token)
                   (validity-error "(13) Name Token: not a NMTOKEN: ~S"
                                   (rod-string token))))))
-          )))))
+          (:ENUMERATION
+            (unless (member (attribute-value a) (cdr type) :test #'rod=)
+              (validity-error "(17) Enumeration: value not declared: ~S"
+                              (rod-string (attribute-value a))))))))))
 
 (defun split-names (rod)
   (flet ((whitespacep (x)
