@@ -215,7 +215,7 @@
 ;;;; (18) Required Attribute                    PROCESS-ATTRIBUTES
 ;;;; (19) Attribute Default Legal               DEFINE-ATTRIBUTE
 ;;;; (20) Fixed Attribute Default               VALIDATE-ATTRIBUTE
-;;;; (21) Proper Conditional Section/PE Nesting
+;;;; (21) Proper Conditional Section/PE Nesting P/CONDITIONAL-SECT, ...
 ;;;; (22) Entity Declared                       [**]
 ;;;; (23) Notation Declared                     P/ENTITY-DEF, P/DOCUMENT
 ;;;; (24) Unique Notation Name                  DEFINE-NOTATION
@@ -2216,30 +2216,38 @@
 
 (defun p/conditional-sect (input)
   (expect input :<!\[ )
-  (p/S? input)
-  (multiple-value-bind (cat sem) (read-token input)
-    (cond ((and (eq cat :name)
-                (rod= sem '#.(string-rod "INCLUDE")))
-           (p/include-sect input))
-          ((and (eq cat :name)
-                (rod= sem '#.(string-rod "IGNORE")))
-           (p/ignore-sect input))
-          (t
-           (error "Expected INCLUDE or IGNORE after \"<![\".")))))
+  (let ((stream (car (zstream-input-stack input))))
+    (p/S? input)
+    (multiple-value-bind (cat sem) (read-token input)
+      (cond ((and (eq cat :name)
+                  (rod= sem '#.(string-rod "INCLUDE")))
+             (p/include-sect input stream))
+            ((and (eq cat :name)
+                  (rod= sem '#.(string-rod "IGNORE")))
+             (p/ignore-sect input stream))
+            (t
+             (error "Expected INCLUDE or IGNORE after \"<![\"."))))))
 
-(defun p/include-sect (input)
+(defun p/cond-expect (input cat initial-stream)
+  (expect input cat)
+  (when *validate*
+    (unless (eq (car (zstream-input-stack input)) initial-stream)
+      (validity-error "(21) Proper Conditional Section/PE Nesting"))))
+
+(defun p/include-sect (input initial-stream)
   ;; <![INCLUDE is already read.
   (p/S? input)
-  (expect input :\[)
+  (p/cond-expect input :\[ initial-stream)
   (p/ext-subset-decl input)
-  (expect input :\])
-  (expect input :\])
-  (expect input :\>) )
+  (p/cond-expect input :\] initial-stream)
+  (p/cond-expect input :\] initial-stream)
+  (p/cond-expect input :\> initial-stream))
 
-(defun p/ignore-sect (input)
+(defun p/ignore-sect (input initial-stream)
   ;; <![IGNORE is already read.
+  ;; XXX Is VC 21 being checked for nested sections?
   (p/S? input)
-  (expect input :\[)
+  (p/cond-expect input :\[ initial-stream)
   (let ((input (car (zstream-input-stack input))))
     (let ((level 0))
       (do ((c1 (read-rune input) (read-rune input))
@@ -2252,7 +2260,9 @@
         (cond ((and (rune= c3 #/<) (rune= c2 #/!) (rune= c1 #/\[))
                (incf level)))
         (cond ((and (rune= c3 #/\]) (rune= c2 #/\]) (rune= c1 #/>))
-               (decf level))) ))))
+               (decf level))) )))
+  (unless (eq (car (zstream-input-stack input)) initial-stream)
+    (validity-error "(21) Proper Conditional Section/PE Nesting")))
 
 (defun p/ext-subset-decl (input)
   ;; ( markupdecl | conditionalSect | S )*
