@@ -7,7 +7,7 @@
             (if (member var '(cdom:data cdom:name cdom:value cdom:tag-name
                               cdom:node-name cdom:node-value
                               cdom:substring-data cdom:get-attribute
-                              cdom:set-attribute))
+                              cdom:set-attribute cdom:public-id cdom:system-id))
                 :string-dom
                 :cdom))
            (symbol (intern (symbol-name var) home-package)))
@@ -46,3 +46,9 @@
 
 (defun string-dom:set-attribute (elt name value)
   (cdom:set-attribute elt (glisp:rod name) (glisp:rod value)))
+
+(defun string-dom:public-id (node)
+  (rod-to-string (cdom:public-id node)))
+
+(defun string-dom:system-id (node)
+  (rod-to-string (cdom:system-id node)))
