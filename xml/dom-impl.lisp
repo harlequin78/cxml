@@ -241,7 +241,7 @@
     old-child))
 
 (defmethod dom:remove-child ((node node) (old-child node))
-  (with-slots (children) old-child
+  (with-slots (children) node
     (setf children (remove old-child children))
     (setf (slot-value old-child 'parent) nil)
     old-child))
