@@ -996,7 +996,6 @@
         e)
       (t
         (when *validate*
-          #+(or)
           (when (elmdef-content e)
             (validity-error "(05) Unique Element Type Declaration"))
           (when (eq content-model :EMPTY)
