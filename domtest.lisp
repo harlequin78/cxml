@@ -448,16 +448,30 @@
              ,@(translate-body c)
              (error "expected exception ~A" ,(dom:tag-name c))))))))
 
+(defun translate-catch (catch return)
+  `(lambda (c)
+     ,@(map-child-elements
+        'list
+        (lambda (exception)
+          `(when (eq (dom-impl::dom-exception-key c)
+                     ,(intern (dom:get-attribute exception "code") :keyword))
+             ,@(translate-body exception)
+             ,return))
+        catch)))
+
 (defun translate-try (element)
-  `(progn
-     ,@(map-child-elements 'list
-                           (lambda (c)
-                             (if (equal (dom:tag-name c) "catch")
-                                 nil
-                                 (translate-statement c)))
-                           element))
-  ;; XXX haben noch keine Exceptions
-  )
+  `(block try
+     (handler-bind
+         ((dom-impl::dom-exception
+           ,(translate-catch
+             (do-child-elements (c element :name "catch") (return c))
+             '(return-from try))))
+       ,@(map-child-elements 'list
+                             (lambda (c)
+                               (if (equal (dom:tag-name c) "catch")
+                                   nil
+                                   (translate-statement c)))
+                             element))))
 
 (defun translate-append (element)
   (with-attributes (|collection| |item|) element
