@@ -66,7 +66,8 @@
      (:file "sax-handler")
      (:file "characters"      :depends-on ("package"))
      (:file "xml-name-rune-p" :depends-on ("package"))
-     (:file "xml-parse"       :depends-on ("package" "sax-handler"))
+     (:file "split-sequence"  :depends-on ("package"))
+     (:file "xml-parse"       :depends-on ("package" "sax-handler" "split-sequence"))
      (:file "characters"      :depends-on ("package")))
     :depends-on (:runes))
 

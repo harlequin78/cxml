@@ -205,7 +205,7 @@
 ;;;; (08) ID                                    VALIDATE-ATTRIBUTES
 ;;;; (09) One ID per Element Type               DEFINE-ATTRIBUTE
 ;;;; (10) ID Attribute Default                  DEFINE-ATTRIBUTE
-;;;; (11) IDREF
+;;;; (11) IDREF                                 VALIDATE-ATTRIBUTES, P/DOCUMENT
 ;;;; (12) Entity Name
 ;;;; (13) Name Token
 ;;;; (14) Notation Attributes
@@ -713,10 +713,25 @@
             (let ((value (attribute-value a)))
               (unless (valid-name-p value)
                 (validity-error "(08) ID: not a name: ~S" (rod-string value)))
-              (when (gethash value (id-table ctx))
+              (when (eq (gethash value (id-table ctx)) t)
                 (validity-error "(08) ID: ~S not unique" (rod-string value)))
               (setf (gethash value (id-table ctx)) t)))
+          (:IDREF
+            (dolist (value (split-names (attribute-value a)))
+              (unless (valid-name-p value)
+                (validity-error "(11) IDREF: not a name: ~S" (rod-string value)))
+              (unless (gethash value (id-table ctx))
+                (setf (gethash value (id-table ctx)) nil))))
           )))))
+
+(defun split-names (rod)
+  (split-sequence-if (lambda (x)
+                       (or (rune= x #/U+0009)
+                           (rune= x #/U+000A)
+                           (rune= x #/U+000D)
+                           (rune= x #/U+0020)))
+                     rod
+                     :remove-empty-subseqs t))
 
 (defun absolute-uri (sysid source-stream)
   (setq sysid (rod-string sysid))
@@ -2229,6 +2244,10 @@
       (p/misc*-2 input)
       (unless (eq (peek-token input) :eof)
         (error "Garbage at end of document."))
+      (maphash (lambda (k v)
+                 (unless v
+                   (validity-error "(11) IDREF: ~S not defined" (rod-string k))))
+               (id-table *ctx*))
       (sax:end-document handler))))
 
 (defun p/element (input)
