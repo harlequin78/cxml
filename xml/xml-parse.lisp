@@ -1,4 +1,4 @@
-;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: CXML; readtable: runes; Encoding: utf-8; -*-
+;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: CXML; readtable: runes; -*-
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: XML parser
 ;;;   Created: 1999-07-17
@@ -40,8 +40,7 @@
 ;; handler in case of stream underflows. This will yield to quite a
 ;; performance boost vs calling READ-BYTE per character.
 
-;; Also we need to do encoding and character set conversion on input,
-;; this better done at large chunks of data rather than on a character
+;; Also we need to do encoding t conversion on ; this better done at large chunks of data rather than on a character
 ;; by character basis. This way we need a dispatch on the active
 ;; encoding only once in a while, instead of for each character. This
 ;; allows us to use a CLOS interface to do the underflow handling.
@@ -246,7 +245,7 @@
   (id-table (%make-rod-hash-table))
   (standalone-p nil)
   (entity-resolver nil)
-  (ignore-external-subset-p nil))
+  (disallow-internal-subset nil))
 
 (defvar *expand-pe-p*)
 
@@ -867,15 +866,19 @@
         nil
         (split-sequence-if #'whitespacep rod :remove-empty-subseqs t))))
 
-(defun absolute-uri (sysid source-stream)
+(defun zstream-base-sysid (zstream)
   (let ((base-sysid
-         (dolist (k (zstream-input-stack source-stream))
+         (dolist (k (zstream-input-stack zstream))
            (let ((base-sysid (stream-name-uri (xstream-name k))))
              (when base-sysid (return base-sysid))))))
+    base-sysid))
+
+(defun absolute-uri (sysid source-stream)
+  (let ((base-sysid (zstream-base-sysid source-stream)))
     (assert (not (null base-sysid)))
     (puri:merge-uris sysid base-sysid)))
 
-(defstruct extid
+(defstruct (extid (:constructor make-extid (public system)))
   (public nil :type (or rod null))
   (system (error "missing argument") :type (or puri:uri null)))
 
@@ -1952,7 +1955,7 @@
   (multiple-value-bind (cat sem) (read-token input)
     (cond ((and (eq cat :name) (equalp sem '#.(string-rod "SYSTEM")))
            (p/S input)
-           (make-extid :system (p/system-literal input)))
+           (make-extid nil (p/system-literal input)))
           ((and (eq cat :name) (equalp sem '#.(string-rod "PUBLIC")))
            (let (pub sys)
              (p/S input)
@@ -1964,7 +1967,7 @@
              (when (and (not public-only-ok-p)
                         (null sys))
                (error "System identifier needed for this PUBLIC external identifier."))
-             (make-extid :public pub :system sys)))
+             (make-extid pub sys)))
           (t
            (error "Expected external-id: ~S / ~S." cat sem)))))
 
@@ -2406,7 +2409,7 @@
   (unless (eq (peek-token input) :eof)
     (error "Trailing garbage - ~S." (peek-token input))))
 
-(defun p/doctype-decl (input)
+(defun p/doctype-decl (input &optional dtd-extid)
   (let ()
     (let ((*expand-pe-p* nil)
           name extid)
@@ -2420,12 +2423,16 @@
         (unless (or (eq (peek-token input) :\[ )
                     (eq (peek-token input) :\> ))
           (setf extid (p/external-id input t))))
+      (when dtd-extid
+        (setf extid dtd-extid))
       (p/S? input)
       (sax:start-dtd (handler *ctx*)
                      name
                      (and extid (extid-public extid))
                      (and extid (uri-rod (extid-system extid))))
       (when (eq (peek-token input) :\[ )
+        (when (disallow-internal-subset *ctx*)
+          (error "document includes an internal subset"))
         (ensure-dtd)
         (consume-token input)
         (while (progn (p/S? input)
@@ -2446,13 +2453,14 @@
         (consume-token input)
         (p/S? input))
       (expect input :>)
-      (when (and extid (not (ignore-external-subset-p *ctx*)))
-        (let* ((sysid (extid-system (absolute-extid input extid)))
+      (when extid
+        (let* ((merged-extid (absolute-extid input extid))
+               (sysid (extid-system merged-extid))
                (fresh-dtd-p (null (dtd *ctx*)))
                (cached-dtd (and fresh-dtd-p (getdtd sysid *dtd-cache*))))
           (if cached-dtd
               (setf (dtd *ctx*) cached-dtd)
-              (let* ((xi2 (xstream-open-sysid sysid))
+              (let* ((xi2 (xstream-open-extid merged-extid))
                      (zi2 (make-zstream :input-stack (list xi2))))
                 (ensure-dtd)
                 (p/ext-subset zi2)
@@ -2478,11 +2486,13 @@
          (cdr (nth-value 1 (peek-token input))))))
     (consume-token input)))
   
-(defun p/document (input handler &key validate dtd root entity-resolver)
+(defun p/document
+    (input handler
+     &key validate dtd root entity-resolver disallow-internal-subset)
   (let ((*ctx*
          (make-context :handler handler
                        :entity-resolver entity-resolver
-                       :ignore-external-subset-p (and dtd t)))
+                       :disallow-internal-subset disallow-internal-subset))
         (*validate* validate))
     (sax:start-document handler)
     ;; document ::= XMLDecl? Misc* (doctypedecl Misc*)? element Misc*
@@ -2504,16 +2514,20 @@
       ;; (doctypedecl Misc*)?
       (cond
         ((eq (peek-token input) :<!DOCTYPE)
-          (p/doctype-decl input)
+          (p/doctype-decl input dtd)
           (p/misc*-2 input))
+        (dtd
+          (let ((dummy (string->xstream "<!DOCTYPE dummy>")))
+            (setf (xstream-name dummy)
+                  (make-stream-name
+                   :entity-name "dummy doctype"
+                   :entity-kind :main
+                   :uri (zstream-base-sysid input)))
+            (p/doctype-decl (make-zstream :input-stack (list dummy)) dtd)))
         ((and validate (not dtd))
           (validity-error "invalid document: no doctype")))
       (ensure-dtd)
-      ;; Switch to caller-supplied DTD if asked to
-      (when dtd
-        (setf (dtd *ctx*) dtd)
-        (setf (model-stack *ctx*)
-              (list (cons (lambda (x) x (constantly :dummy)) (constantly t)))))
+      ;; Override expected root element if asked to
       (when root
         (setf (model-stack *ctx*) (list (make-root-model root))))
       ;; element
@@ -3152,8 +3166,8 @@
              (setf ,res buf ,res-start p0 ,res-end rptr)
              (return) )
             (t
-             ;; we continue
-             (setf rptr (%+ rptr 1))) ))
+            we continue
+             (sf rptr (%+ rptr 1))) ))
     ,@body )) 
 ||#
 

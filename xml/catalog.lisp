@@ -15,8 +15,6 @@
 ;;;     and will will fail to parse files using other parser's extensions.
 ;;;     (Jedenfalls behauptet das die Spec.)
 ;;;     A long-term solution might be an XML Schema validator.
-;;;
-;;; XXX Das mit dem :dtd geht natuerlich gar nicht.  Die Option muss weg. 
 
 (defvar *prefer* nil)
 (defvar *catalog*

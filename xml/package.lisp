@@ -68,5 +68,6 @@
    #:getdtd
    #:remdtd
    #:clear-dtd-cache
+   #:make-extid
    
    #:make-recoder))
