@@ -1,4 +1,4 @@
-(in-package :dom-impl)
+b(in-package :dom-impl)
 
 (defun dom:map-document
     (handler document

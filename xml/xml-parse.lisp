@@ -2727,6 +2727,7 @@
           (*ctx* (make-context :handler nil))
           (*validate* t)
           (*data-behaviour* :DTD))
+      (define-default-entities)
       (peek-rune input)
       (p/ext-subset zstream)
       (dtd *ctx*))))
