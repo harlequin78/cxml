@@ -439,5 +439,6 @@
   data)
 
 (defun text (data)
+  (maybe-emit-start-tag)
   (sax:characters *sink* data)
   data)
