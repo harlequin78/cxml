@@ -242,7 +242,7 @@
     (flet ((entity-resolver (public system)
              (declare (ignore public))
              (if (puri:uri= system dtd-sysid)
-                 (print (make-octet-input-stream *catalog-dtd*))
+                 (make-octet-input-stream *catalog-dtd*)
                  nil)))
       (with-open-stream (s (open (uri-to-pathname uri)
                                  :element-type '(unsigned-byte 8)
