@@ -139,7 +139,7 @@
     :name name
     :owner document))
 
-(defmethod dom:get-elements-by-tag-name ((document document) tag-name)
+(defmethod get-elements-by-tag-name-internal (node tag-name)
   (setf tag-name (rod tag-name))
   (let ((result nil))
     (setf tag-name (rod tag-name))
@@ -149,8 +149,11 @@
                             (or wild-p (rod= tag-name (dom:node-name n))))
                    (push n result))
                  (mapc #'walk (dom:child-nodes n))))
-        (walk document)
+        (walk node)
         (reverse result)))))
+
+(defmethod dom:get-elements-by-tag-name ((document document) tag-name)
+  (get-elements-by-tag-name-internal document tag-name))
 
 ;;; Node
 
@@ -468,8 +471,7 @@
       (error "Attribute not found."))))
 
 (defmethod dom:get-elements-by-tag-name ((element element) name)
-  name
-  (error "Not implemented."))
+  (get-elements-by-tag-name-internal element name))
 
 (defmethod dom:normalize ((element element))
   (labels ((walk (n)
