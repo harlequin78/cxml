@@ -2771,7 +2771,7 @@
     ;;
     ;; 1. is checked by read-tag-2, so we only deal with 2 here
     (do ((sublist attributes (cdr sublist)))
-	((null sublist) attributes)
+	((null sublist) (reverse attributes))
       (let ((attr-1 (car sublist)))
 	(when (and (attribute-namespace-uri attr-1)
 		   (find-if #'(lambda (attr-2)
