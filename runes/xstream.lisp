@@ -65,7 +65,7 @@
 ;; XSTREAM/CLOSE os-stream
 ;;
 
-(eval-when (eval compile load)
+(eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter *fast* '(optimize (speed 3) (safety 0)))
   ;;(defparameter *fast* '(optimize (speed 2) (safety 3)))
   )

@@ -198,7 +198,7 @@
 #+allegro
 (setf (excl:named-readtable :runes) *readtable*)
 
-(eval-when (eval compile load)
+(eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter *fast* '(optimize (speed 3) (safety 0)))
   ;;(defparameter *fast* '(optimize (speed 2) (safety 3)))
   )
@@ -335,7 +335,7 @@
    :size size
    :table (make-array size :initial-element nil)))
 
-(eval-when (compile eval load)
+(eval-when (:compile-toplevel :load-toplevel :execute)
   (defconstant +fixnum-bits+
       (1- (integer-length most-positive-fixnum))
     "Pessimistic approximation of the number of bits of fixnums.")
@@ -1425,6 +1425,9 @@
 
 (defvar *handler*)
 
+;; forward declaration for DEFVAR
+(declaim (special *namespace-bindings* *default-namespace-bindings*))
+
 (defun p/S (input)
   ;; S ::= (#x20 | #x9 | #xD | #xA)+
   (expect input :S)
@@ -1960,13 +1963,11 @@
          (cdr (nth-value 1 (peek-token input))))))
     (consume-token input)))
   
-
 (defun p/document (input handler)
   (let ((*handler* handler)
 	(*namespace-bindings* *default-namespace-bindings*)
         (*entities* nil)
         (*dtd* (make-dtd)))
-    (declare (special *namespace-bindings* *default-namespace-bindings*)) ;forward declaration for DEFVAR
     (define-default-entities)
     (sax:start-document *handler*)
     ;; document ::= XMLDecl? Misc* (doctypedecl Misc*)? element Misc*
@@ -2593,8 +2594,6 @@
             (*namespace-bindings* *default-namespace-bindings*)
             (*entities* entities)
             (*dtd* (make-dtd)))
-    
-        (declare (special *namespace-bindings*)) ;forward declaration for DEFVAR
         (sax:start-document *handler*)
         (ff (rod name))
         (funcall (find-symbol "child-nodes" :dom) (sax:end-document *handler*)))
