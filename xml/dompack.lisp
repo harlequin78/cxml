@@ -1,4 +1,6 @@
-(defpackage :dom
+(in-package :cl-user)
+
+(defpackage :cdom
   (:use)
   (:export
    
@@ -62,6 +64,7 @@
    #:system-id
    #:notation-name
    #:target
+   #:import-node
    
    ;; protocol classes
    #:dom-implementation

@@ -133,7 +133,10 @@
   (let ((result nil))
     (setf tag-name (rod tag-name))
     (let ((wild-p (rod= tag-name '#.(string-rod "*"))))
-      (labels ((walk (n)
+      (labels ((tag-name-eq (a b)
+                 ;; XXX ist das richtig?  TAG-NAME-EQ war undefiniert
+                 (rod= a b))
+               (walk (n)
                  (when (and (dom:element-p n)
                             (or wild-p (tag-name-eq tag-name (dom:node-name n))))
                    (push n result))
@@ -234,6 +237,12 @@
              (setf (slot-value new-child 'parent) node)
              (setf (slot-value old-child 'parent) nil)
              (return))))
+    old-child))
+
+(defmethod dom:remove-child ((node node) (old-child node))
+  (with-slots (children) old-child
+    (setf children (remove old-child children))
+    (setf (slot-value old-child 'parent) nil)
     old-child))
 
 (defmethod dom:append-child ((node node) (new-child node))
@@ -510,3 +519,63 @@
 
 (defmethod dom:named-node-map-p ((object named-node-map)) t)
 (defmethod dom:named-node-map-p ((object t)) nil)
+
+
+;; importNode
+
+(defmethod import-node-internal (class document node deep &rest initargs)
+  (let ((result (apply #'make-instance class :owner document initargs)))
+    (when deep
+      (dolist (child (dom:child-nodes node))
+        (dom:append-child result (dom:import-node document child t))))))
+
+(defmethod dom:import-node ((document document) (node attribute) deep)
+  (declare (ignore deep))
+  (import-node-internal 'attribute document node t
+                        :name (dom:name node)
+                        :value (dom:value node)))
+
+(defmethod dom:import-node ((document document) (node document-fragment) deep)
+  (import-node-internal 'document-fragment document node deep))
+
+(defmethod dom:import-node ((document document) (node element) deep)
+  (let ((result (import-node-internal 'element document node deep
+                                      :tag-name (dom:tag-name node))))
+    (dolist (attribute (dom:items (dom:attributes node)))
+      (when (dom:specified attribute)
+        (dom:set-attribute result (dom:name attribute) (dom:value attribute))))
+    result))
+
+(defmethod dom:import-node ((document document) (node entity) deep)
+  (import-node-internal 'entity document node deep
+                        :public-id (dom:public-id node)
+                        :system-id (dom:system-id node)
+                        :notation-name (dom:notation-name node)))
+
+(defmethod dom:import-node ((document document) (node entity-reference) deep)
+  (declare (ignore deep))
+  #+(or)
+  (import-node-internal 'entity-reference document node nil
+                        :name (dom:name node))
+  ;; XXX If the document being imported into provides a definition for
+  ;; this entity name, its value is assigned.
+  (error "not implemented"))
+
+(defmethod dom:import-node ((document document) (node notation) deep)
+  (import-node-internal 'notation document node deep
+                        :name (dom:name node)
+                        :public-id (dom:public-id node)
+                        :system-id (dom:system-id node)))
+
+(defmethod dom:import-node
+    ((document document) (node processing-instruction) deep)
+  (import-node-internal 'notation document node deep
+                        :name (dom:name node)
+                        :public-id (dom:public-id node)
+                        :system-id (dom:system-id node)))
+
+;; TEXT_NODE, CDATA_SECTION_NODE, COMMENT_NODE
+(defmethod dom:import-node
+    ((document document) (node character-data) deep)
+  (import-node-internal (class-of node) document node deep
+                        :data (dom:data node)))
