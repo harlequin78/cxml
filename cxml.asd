@@ -84,7 +84,9 @@
 
 (asdf:defsystem :cxml-test
     :default-component-class closure-source-file
-    :pathname (make-pathname :name nil :type nil :defaults *load-truename*)
+    :pathname (merge-pathnames
+               "test/"
+               (make-pathname :name nil :type nil :defaults *load-truename*))
     :components ((:file "domtest") (:file "xmlconf"))
     :depends-on (:xml :dom))
 
