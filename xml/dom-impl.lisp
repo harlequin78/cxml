@@ -329,6 +329,11 @@
     (setf (slot-value old-child 'parent) nil)
     old-child))
 
+(defmethod dom:replace-child
+    ((node node) (new-child document-fragment) (old-child node))
+  (dom:insert-before node new-child old-child)
+  (dom:remove-child node old-child))
+
 (defmethod dom:remove-child ((node node) (old-child node))
   (assert-writeable node)
   (with-slots (children) node
