@@ -23,8 +23,6 @@
       ;; FreeBSD
       "/usr/local/share/xml/catalog.ports"))
 
-(defparameter *catalog-dtd* nil)
-
 (defun parse-catalog (files)
   (let ((result '()))
     (loop
@@ -45,19 +43,18 @@
 (defun parse-catalog-file/strict (uri)
   (when (stringp uri)
     (setf uri (puri:parse-uri uri)))
-  (unless *catalog-dtd*
-    (let ((cxml
-           (slot-value (asdf:find-system :cxml) 'asdf::relative-pathname)))
-      (setf *catalog-dtd*
-            (parse-dtd-file (merge-pathnames "catalog.dtd" cxml)))))
-  (with-open-stream (s (open (uri-to-pathname uri)
-                             :element-type '(unsigned-byte 8)
-                             :direction :input))
-    (parse-stream s
-                  (make-instance 'catalog-parser :uri uri)
-                  :validate t
-                  ;; XXX das geht nicht
-                  :dtd *catalog-dtd*)))
+  (let* ((cxml
+          (slot-value (asdf:find-system :cxml) 'asdf::relative-pathname))
+         (dtd
+          (pathname-to-uri (merge-pathnames "catalog.dtd" cxml))))
+    (with-open-stream (s (open (uri-to-pathname uri)
+                               :element-type '(unsigned-byte 8)
+                               :direction :input))
+      (parse-stream s
+                    (make-instance 'catalog-parser :uri uri)
+                    :validate t
+                    :dtd (make-extid nil dtd)
+                    :root #"catalog"))))
 
 (defclass catalog-parser ()
   ((entries :initform '() :accessor entries)

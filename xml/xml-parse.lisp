@@ -2883,9 +2883,9 @@
     (setf stream (symbol-value (synonym-stream-symbol stream))))
   stream)
 
-(defun safe-stream-pathname (stream)
+(defun safe-stream-sysid (stream)
   (if (typep (resolve-synonym-stream stream) 'file-stream)
-      (pathname stream)
+      (pathname-to-uri (pathname stream))
       nil))
 
 (defun parse-stream (stream handler &rest args)
@@ -2895,7 +2895,7 @@
           :name (make-stream-name
                  :entity-name "main document"
                  :entity-kind :main
-                 :uri (safe-stream-pathname stream))
+                 :uri (safe-stream-sysid stream))
           :initial-speed 1)))
     (apply #'parse-xstream xstream handler args)))
 
@@ -2909,7 +2909,7 @@
           (make-stream-name
            :entity-name "dtd"
            :entity-kind :main
-           :uri (safe-stream-pathname stream)))
+           :uri (safe-stream-sysid stream)))
     (let ((zstream (make-zstream :input-stack (list input)))
           (*ctx* (make-context :handler nil))
           (*validate* t)
