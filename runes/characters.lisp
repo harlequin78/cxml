@@ -134,9 +134,6 @@
 (defun rodp (object)
   (stringp object))
 
-(defun really-rod-p (object)
-  (stringp object))
-
 (defun rod-subseq (source start &optional (end (length source)))
   (unless (stringp source)
     (error "~S is not of type ~S." source 'rod))

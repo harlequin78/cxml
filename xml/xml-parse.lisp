@@ -146,7 +146,7 @@
 ;;
 ;; o xstreams auslagern, documententieren und dann auch in SGML und
 ;;   CSS parser verwenden. (halt alles was zeichen liest).
-::   [ausgelagert sind sie; dokumentiert "so la la"; die Reintegration
+;;   [ausgelagert sind sie; dokumentiert "so la la"; die Reintegration
 ;;   in Closure ist ein ganz anderes Thema]
 ;;
 ;; o merge node representation with SGML module
@@ -241,6 +241,9 @@
 ;;; parser context
 
 (defvar *ctx*)
+
+;; forward declaration for DEFVAR
+(declaim (special *default-namespace-bindings*))
 
 (defstruct (context (:conc-name nil))
   handler
@@ -2419,9 +2422,6 @@
          (cdr (nth-value 1 (peek-token input))))))
     (consume-token input)))
   
-;; forward declaration for DEFVAR
-(declaim (special *default-namespace-bindings*))
-
 (defun p/document (input handler &key validate root)
   (let ((*ctx* (make-context))
         (*validate* (and validate t)))

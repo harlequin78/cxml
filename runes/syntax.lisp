@@ -178,19 +178,4 @@
                (format stream "\\u~4,'0X" x))))
   (princ #\" stream))
 
-#-rune-is-character
-(set-pprint-dispatch '(satisfies really-rod-p) #'rod-printer)
-
 (set-dispatch-macro-character #\# #\" 'rod-reader)
-
-#||
-(defun longish-array-p (arr)
-  (and (arrayp arr)
-       (> (array-total-size arr) 10)))
-
-(set-pprint-dispatch '(satisfies longish-array-p)
-                     #'(lambda (stream object)
-                         (let ((*print-array* nil)
-                               (*print-pretty* nil))
-                           (prin1 object stream))))
-||#

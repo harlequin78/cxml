@@ -5,6 +5,10 @@
   (:use :asdf :cl))
 (in-package :cxml-system)
 
+;; XXX das sollte natuerlich erst beim laden stattfinden
+#+cmu
+(require :gray-streams)
+
 (defclass closure-source-file (cl-source-file) ())
 
 #+sbcl
