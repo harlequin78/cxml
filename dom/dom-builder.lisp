@@ -101,7 +101,7 @@
 
 (defmethod sax:processing-instruction ((handler dom-builder) target data)
   (with-slots (document element-stack) handler
-    (let ((node (dom:create-processing-isntruction document target data))
+    (let ((node (dom:create-processing-instruction document target data))
           (parent (car element-stack)))
       (setf (slot-value node 'dom-impl::parent) parent)
       (fast-push node (slot-value (car element-stack) 'dom-impl::children)))))

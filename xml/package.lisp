@@ -42,4 +42,6 @@
    #:parse-octets
 
    #:unparse-document
-   #:unparse-document-to-octets))
+   #:unparse-document-to-octets
+
+   #:validity-error))

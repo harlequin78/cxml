@@ -122,8 +122,6 @@
 
 ;; o only parse the DTD on an option
 
-;; o make the invalid tests pass.
-;;
 ;; o CR handling in utf-16 deocders
 ;;
 ;; o UCS-4 reader
@@ -673,9 +671,12 @@
 ;;;;  DTD
 ;;;;
 
+(define-condition validity-error (simple-error) ())
+
 (defun validity-error (x &rest args)
-  ;; XXX define a special condition class for this kind of error
-  (error "Validity constraint violated: ~@?" x args))
+  (error 'validity-error
+         :format-control "Validity constraint violated: ~@?"
+         :format-arguments (list x args)))
 
 (defvar *validate* t)
 (defvar *markup-declaration-external-p* nil)
@@ -2622,10 +2623,6 @@
         (x)))
 
 ;;;; ---------------------------------------------------------------------------
-;;;;
-;;;;  canonical XML according to James Clark
-;;;;
-
 ;;;; User inteface ;;;;
 
 (defun parse-file (filename handler)
