@@ -266,35 +266,35 @@ xmltest$ patch -p0 -R &amp;lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     </p>
 
     <p>Create a test file called <tt>example.xml</tt>:</p>
-    <pre>* (with-open-file (s "example.xml" :direction :output)
-    (write-string "&lt;test a='b'&gt;&lt;child/&gt;&lt;/test>" s))</pre>
+    <pre>* <b>(with-open-file (s "example.xml" :direction :output)
+    (write-string "&lt;test a='b'&gt;&lt;child/&gt;&lt;/test>" s))</b></pre>
 
     <p>Parse <tt>example.xml</tt> into a DOM tree (<a href="#parser">read
     more</a>):</p>
-    <pre>* (cxml:parse-file "example.xml" (dom:make-dom-builder))
+    <pre>* <b>(cxml:parse-file "example.xml" (dom:make-dom-builder))</b>
 #&lt;DOM-IMPL::DOCUMENT @ #x72206172>
 ;; save result for later:
-* (defparameter *example* *)
+* <b>(defparameter *example* *)</b>
 *EXAMPLE*</pre>
 
     <p>Inspect the DOM tree (<a href="#dom">read more</a>):</p>
-    <pre>* (dom:document-element *example*)
+    <pre>* <b>(dom:document-element *example*)</b>
 #&lt;DOM-IMPL::ELEMENT test @ #x722b6ba2&gt;
-* (dom:tag-name (dom:document-element *example*))
+* <b>(dom:tag-name (dom:document-element *example*))</b>
 "test"
-* (dom:child-nodes (dom:document-element *example*))
+* <b>(dom:child-nodes (dom:document-element *example*))</b>
 #(#&lt;DOM-IMPL::ELEMENT child @ #x722b6d8a&gt;)
-* (dom:get-attribute (dom:document-element *example*) "a")
+* <b>(dom:get-attribute (dom:document-element *example*) "a")</b>
 "b"</pre>
 
     <p>Serialize the DOM document back into a stream (<a
     href="#serialization">read more</a>):</p>
-    <pre>(cxml:unparse-document *example* *standard-output*)
+    <pre><b>(cxml:unparse-document *example* *standard-output*)</b>
 &lt;test a="b"&gt;&lt;child&gt;&lt;/child>&lt;/test></pre>
 
     <p>As an alternative to DOM, parse into xmls-compatible list
     structure (<a href="#xmls">read more</a>):</p>
-    <pre>* (cxml:parse-file "example.xml" (cxml-xmls:make-xmls-builder))
+    <pre>* <b>(cxml:parse-file "example.xml" (cxml-xmls:make-xmls-builder))</b>
 ("test" (("a" "b")) ("child" NIL))</pre>
 
     <a name="parser"/>
