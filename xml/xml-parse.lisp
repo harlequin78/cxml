@@ -203,8 +203,8 @@
 ;;;; (06) Proper Group/PE Nesting
 ;;;; (07) No Duplicate Types
 ;;;; (08) ID                                    VALIDATE-ATTRIBUTES
-;;;; (09) One ID per Element Type		DEFINE-ATTRIBUTE
-;;;; (10) ID Attribute Default
+;;;; (09) One ID per Element Type               DEFINE-ATTRIBUTE
+;;;; (10) ID Attribute Default                  DEFINE-ATTRIBUTE
 ;;;; (11) IDREF
 ;;;; (12) Entity Name
 ;;;; (13) Name Token
@@ -881,10 +881,13 @@
                    (rod-string element))))
           (t
            (when *validate*
-             (when (and (eq type :ID)
-                        (find :ID (elmdef-attributes e) :key #'attdef-type))
-               (validity-error "(09) One ID per Element Type: element ~A"
-                               (rod-string element))))
+             (when (eq type :ID)
+               (when (find :ID (elmdef-attributes e) :key #'attdef-type)
+                 (validity-error "(09) One ID per Element Type: element ~A"
+                                 (rod-string element)))
+               (unless (member default '(:REQUIRED :IMPLIED))
+                 (validity-error "(10) ID Attribute Default: ~A"
+                                 (rod-string element)))))
            (push adef (elmdef-attributes e))))))
 
 (defun find-attribute (elmdef name)
