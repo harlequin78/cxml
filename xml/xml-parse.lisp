@@ -720,15 +720,18 @@
 
 ;;;;
 
+(defvar *redefinition-warning* t)
+
 (defun define-attribute (dtd element name type default)
   (let ((adef (make-attdef :element element
                            :name name
                            :type type
                            :default default)))
     (cond ((find-attribute dtd element name)
-           (warn "Attribute \"~A\" of \"~A\" not redefined."
-                 (rod-string name)
-                 (rod-string element)))
+           (when *redefinition-warning*
+             (warn "Attribute \"~A\" of \"~A\" not redefined."
+                   (rod-string name)
+                   (rod-string element))))
           (t
            (push adef (dtd-attdefs dtd))))))
 
