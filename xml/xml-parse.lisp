@@ -874,7 +874,7 @@
 
 (defun get-entity-definition (entity-name kind ctx)
   (destructuring-bind (extp &rest def)
-      (gethash (list kind entity-name) (entities ctx))
+      (gethash (list kind entity-name) (entities ctx) '(nil))
     (when (and *validate* (standalone-p *ctx*) extp)
       (validity-error "(02) Standalone Document Declaration: entity reference: ~S"
                       (rod-string entity-name)))
