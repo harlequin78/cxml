@@ -266,10 +266,6 @@
   entity-kind
   uri)
 
-(defun print-xstream (self sink depth)
-  (declare (ignore depth))
-  (format sink "#<~S ~S>" (type-of self) (mu (xstream-name self))))
-
 (deftype read-element () 'rune)
 
 (defun call-with-open-xstream (continuation &rest open-args)

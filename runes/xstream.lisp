@@ -154,6 +154,10 @@
   ;; `buffer-start'.
   )
 
+(defun print-xstream (self sink depth)
+  (declare (ignore depth))
+  (format sink "#<~S ~S>" (type-of self) (xstream-name self)))
+
 (defmacro read-rune (input)
   "Read a single rune off the xstream `input'. In case of end of file :EOF 
    is returned."
