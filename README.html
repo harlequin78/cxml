@@ -40,7 +40,7 @@
       </li>
       <li>
         David Lichteblau at knowledgeTools (david at knowledgetools.de)<br/>
-        (conversion into an independent package; DOM bug fixing)
+        (conversion into an independent package; DOM bug fixing; validation)
       </li>
     </ul>
 
@@ -64,6 +64,16 @@
     </p>
 
     <p>
+      <b>Recent Changes</b>
+    </p>
+    <ul>
+      <li>Validation</li>
+      <li>Fixed a long-standing case-sensitivity bug triggered by the XHTML DTD.</li>
+      <li>Renamed package <tt>XML</tt> to <tt>CXML</tt>.</li>
+      <li>The unparse functions support non-canonical output now.</li>
+    </ul>
+
+    <p>
       <b>Contents</b>
     </p>
     <ul>
@@ -76,15 +86,6 @@
       <li><a href="#dom">DOM notes</a></li>
     </ul>
 
-    <p>
-      <b>Changes</b>
-    </p>
-    <ul>
-      <li>Renamed package <tt>XML</tt> to <tt>CXML</tt>.</li>
-      <li>The unparse functions support non-canonical output now.</li>
-      <li>Fixed a long-standing case-sensitivity bug triggered by the XHTML DTD.</li>
-    </ul>
-
     <a name="modules"/>
     <h2>CXML Modules</h2>
     <p>CXML provides three packages:</p>
@@ -93,7 +94,8 @@
         <tt>RUNES</tt>, a portable implementation of Unicode strings.
       </li>
       <li>
-        <tt>CXML</tt>, a namespace-aware SAX parser implementing the <a
+        <tt>CXML</tt>, a namespace-aware validating SAX parser
+        implementing the <a
         href="http://www.w3.org/TR/2000/REC-xml-20001006">XML 1.0
         specification</a>.
       </li> 
@@ -150,7 +152,7 @@ $ cvs co 2001/DOM-Test-Suite</pre>
     <pre>* (xmlconf:run-all-tests "/path/to/2001/XML-Test-Suite/xmlconf/")
 0/556 tests failed; 1606 tests were skipped
 * (domtest:run-all-tests "/path/to/2001/DOM-Test-Suite/")
-0/440 tests failed; 81 tests were skipped</pre>
+0/450 tests failed; 71 tests were skipped</pre>
 
     <p>
       <i>fixme</i>: Add an explanation of xml/sax-tests here.
@@ -203,7 +205,11 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
         There are still thread-safety issues.
       </li>
       <li>
-        Validation!
+        <strike>Validation!</strike> (done)
+      </li>
+      <li>
+        Review the namespace handling.&nbsp; Upgrade the DOM
+        implementation to DOM Level 2 for complete namespace support.
       </li>
       <li>
         Unless <tt>rune-is-character</tt> is enabled, rod hashing
