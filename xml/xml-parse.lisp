@@ -717,6 +717,13 @@
          (elmdef (elmdef-external-p def))
          (attdef (attdef-external-p def)))))
 
+(defstruct attribute
+  namespace-uri
+  local-name
+  qname
+  value
+  specified-p)
+
 (defun process-attributes (ctx name attlist)
   (let ((e (find-element name (dtd ctx))))
     (cond
@@ -3246,13 +3253,6 @@
   (dolist (ns-decl ns-decls)
     (setf (namespace-bindings *ctx*) (delete ns-decl (namespace-bindings *ctx*)))
     (sax:end-prefix-mapping (handler *ctx*) (car ns-decl))))
-
-(defstruct attribute
-  namespace-uri
-  local-name
-  qname
-  value
-  specified-p)
 
 (defun build-attribute-list-no-ns (attr-alist)
   (mapcar #'(lambda (pair) (make-attribute :qname (car pair) :value (cdr pair) :specified-p t))
