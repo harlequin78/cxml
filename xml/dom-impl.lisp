@@ -396,6 +396,10 @@
 
 ;;; CHARACTER-DATA
 
+(defmethod (setf dom:data) (newval (self character-data))
+  (setf newval (rod newval))
+  (setf (slot-value newval 'value) newval))
+
 (defmethod dom:length ((node character-data))
   (length (slot-value node 'value)))
 
@@ -505,7 +509,12 @@
 ;;; NOTATION -- nix
 ;;; ENTITY -- nix
 ;;; ENTITY-REFERENCE -- nix
-;;; PROCESSING-INSTRUCTION -- nix
+
+;;; PROCESSING-INSTRUCTION
+
+(defmethod (setf dom:data) (newval (self processing-instruction))
+  (setf newval (rod newval))
+  (setf (slot-value newval 'data) newval))
 
 ;; Notbehelf!
 (defun can-adopt-p (x y) x y t)
