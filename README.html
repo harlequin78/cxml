@@ -208,8 +208,9 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     <h2>To do</h2>
     <ul>
       <li>
-        David's changes might have affected performance.&nbsp; Some
-        benchmarking needs to be done here.
+        <strike>David's changes might have affected performance.&nbsp; Some
+        benchmarking needs to be done here.</strike> (The actual parser
+        seems to be faster than xmls -- good enough for me.)
       </li>
       <li>
         DOM in general is pretty heavyweight.&nbsp; There is/was a
@@ -217,11 +218,9 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
         reviving.
       </li>
       <li>
-        For those who don't like DOM at all, it would be a very simple
+        <strike>For those who don't like DOM at all, it would be a very simple
         exercise to write a SAX handler for "Lisp-XML" output instead of
-        DOM.&nbsp; Other ideas include Erik Naggum's <a
-        href="http://groups.google.com/groups?hl=en&amp;lr=&amp;ie=UTF-8&amp;selm=3283503882585065KL2065E_-_%40naggum.no">quad</a>s.
-      </li>
+        DOM.</strike> (done)
       <li>
         <strike>The serializer supports only <a
         href="http://www.w3.org/TR/2001/REC-xml-c14n-20010315">Canonical
