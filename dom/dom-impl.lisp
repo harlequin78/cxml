@@ -115,18 +115,19 @@
 (defun move (from to from-start to-start length)
   ;; like (setf (subseq to to-start (+ to-start length))
   ;;            (subseq from from-start (+ from-start length)))
-  ;; but without creating the garbage
+  ;; but without creating the garbage.
+  ;; Also, this is using AREF not ELT so that fill-pointers are ignored.
   (if (< to-start from-start)
       (loop
           repeat length
           for i from from-start
           for j from to-start
-          do (setf (elt to j) (elt from i)))
+          do (setf (aref to j) (aref from i)))
       (loop
           repeat length
           for i downfrom (+ from-start length -1)
           for j downfrom (+ to-start length -1)
-          do (setf (elt to j) (elt from i)))))
+          do (setf (aref to j) (aref from i)))))
 
 (defun adjust-vector-exponentially (vector new-dimension set-fill-pointer-p)
   (let ((d (array-dimension vector 0)))
