@@ -23,6 +23,10 @@
       ;; FreeBSD
       "/usr/local/share/xml/catalog.ports"))
 
+(defstruct (catalog (:constructor %make-catalog ()))
+  main-files
+  (file-table (puri:make-uri-space)))
+
 (defstruct (entry-file (:conc-name ""))
   (system-entries)                      ;extid 2
   (rewrite-system-entries)              ;      3
@@ -127,40 +131,78 @@
             ;; FIXME
             (resolve-extid public system to)))))))
 
+(defun match-exact (key table &optional check-prefer)
+  (dolist (pair table)
+    (destructuring-bind (from to &optional prefer) pair
+      (when (and (equal key from) (or (not check-prefer) (eq prefer :public)))
+        (return to)))))
+
+(defun match-prefix/rewrite (key table &optional check-prefer)
+  (let ((match nil)
+        (match-length -1))
+    (dolist (pair table)
+      (destructuring-bind (from to &optional prefer) pair
+        (when (and (or (not check-prefer) (eq prefer :public))
+                   (starts-with-p key from)
+                   (> (length from) match-length))
+          (setf match-length (length from))
+          (setf match to))))
+    (if match
+        (concatenate 'string
+          match
+          (subseq key match-length))
+        nil)))
+
+(defun match-prefix/sorted (key table &optional check-prefer)
+  (let ((result '()))
+    (dolist (pair table)
+      (destructuring-bind (from to &optional prefer) pair
+        (when (and (or (not check-prefer) (eq prefer :public))
+                   (starts-with-p key from))
+          (push (cons (length from) to) result))))
+    (mapcar #'cdr (sort result #'> :key #'car))))
+
 (defun resolve-uri (uri catalog)
   (setf uri (normalize-uri uri))
   (when (starts-with-p uri "urn:publicid:")
-    (return-from resolve-uri (resolve-extid (unwrap-publicid uri) nil catalog)))
-  (dolist (entry catalog)
-    (destructuring-bind (type from to) entry
-      (case type
-        (:uri
-          (when (equal from uri)
-            (return to)))
-        (:rewrite-uri
-          (when (starts-with-p uri from)
-            (return
-              ;; XXX choose longest match
-              (concatenate 'string
-                to
-                (subseq uri 0 (length from))))))
-        (:delegate-uri
-          (when (starts-with-p uri from)
-            ;; FIXME
-            (resolve-uri uri to)))))))
+    (return-from resolve-uri
+      (resolve-extid (unwrap-publicid uri) nil catalog)))
+  (let ((files (catalog-main-files catalog))
+        (seen '()))
+    (while files
+      (let ((file (pop files)))
+        (unless (typep file 'entry-file)
+          (setf file (find-catalog-file file catalog)))
+        (unless (member file seen)
+          (push file seen)
+          (let ((result
+                 (or (match-exact uri (uri-entries file))
+                     (match-prefix/rewrite uri (rewrite-uri-entries file))
+                     (let* ((delegate-entries
+                             (delegate-uri-entries file))
+                            (delegates
+                             (match-prefix/sorted uri delegate-entries)))
+                       (when delegates
+                         (setf files delegates))
+                       nil))))
+            (when result
+              (return result)))
+          (setf files (append (next-catalog-entries file) files)))))))
 
 (defun find-catalog-file (uri catalog)
   (setf uri (if (stringp uri) (safe-parse-uri uri) uri))
   (let ((file (parse-catalog-file uri)))
     (when file
-      (setf (getf (puri:uri-plist (puri:intern-uri uri catalog)) 'catalog)
-            file))
+      (let ((interned (puri:intern-uri uri (catalog-file-table catalog))))
+        (setf (getf (puri:uri-plist interned) 'catalog) file)))
     file))
 
-(defun make-catalog (files)
-  (let ((result (puri:make-uri-space)))
-    (dolist (file files)
-      (find-catalog-file file result)) 
+(defun make-catalog (uris)
+  (let ((result (%make-catalog)))
+    (setf (catalog-main-files result)
+          (loop
+              for uri in uris
+              collect (find-catalog-file uri result)))
     result))
 
 (defun parse-catalog-file (uri)
