@@ -70,7 +70,7 @@
             (with-simple-restart (skip-test "Skip this test")
               (handler-case
                   (progn
-                    (mp:with-timeout (60)
+                    (#+allegro mp:with-timeout #+allegro (60) #-allegro progn
                       (let ((document
                              (xml:parse-file pathname (dom:make-dom-builder))))
                         (cond
@@ -88,7 +88,7 @@
                                 (write-sequence (serialize-document document) s))
                               (error "well-formed, but output ~S not the expected ~S~%"
                                      error-output output)))))))
-                ((and serious-condition (not excl:interrupt-signal)) (c)
+                ((and serious-condition #+allegro (not excl:interrupt-signal)) (c)
                   (incf nfailed)
                   (format t " FAILED:~%  ~A~%[~A]~%"
                           c
