@@ -2740,6 +2740,47 @@
       alternative
       str))
 
+(defun make-uri (&rest initargs &key path query &allow-other-keys)
+  (apply #'make-instance
+         'puri:uri
+         :path (and path (escape-path path))
+         :query (and query (escape-query query))
+         initargs))
+
+(defun escape-path (list)
+  (puri::render-parsed-path list t))
+
+(defun escape-query (pairs)
+  (flet ((escape (str)
+           (puri::encode-escaped-encoding str puri::*reserved-characters* t)))
+    (let ((first t))
+      (with-output-to-string (s)
+        (dolist (pair pairs)
+          (if first
+              (setf first nil)
+              (write-char #\& s)) 
+          (write-string (escape (car pair)) s)
+          (write-char #\= s)
+          (write-string (escape (cdr pair)) s))))))
+
+(defun uri-parsed-query (uri)
+  (flet ((unescape (str)
+           (puri::decode-escaped-encoding str t puri::*reserved-characters*)))
+    (let ((str (puri:uri-query uri)))
+      (cond
+        (str
+          (let ((pairs '()))
+            (dolist (s (split-sequence-if (lambda (x) (eql x #\&)) str))
+              (destructuring-bind (name value)
+                  (split-sequence-if (lambda (x) (eql x #\=)) s)
+                (push (cons (unescape name) (unescape value)) pairs)))
+            (reverse pairs)))
+        (t
+          nil)))))
+
+(defun query-value (name alist)
+  (cdr (assoc name alist :test #'equal)))
+
 (defun pathname-to-uri (pathname)
   (let ((path
          (append (pathname-directory pathname)
@@ -2749,18 +2790,16 @@
                         (pathname-name pathname)
                         "."
                         (pathname-type pathname))
-                      (pathname-name pathname))))))
+                      (pathname-name pathname)))))
+        (device (specific-or (pathname-device pathname))))
     (if (eq (car path) :relative)
-        (make-instance 'puri:uri
-          :path (puri::render-parsed-path path t))
-        (make-instance 'puri:uri
-          :scheme :file
-          :host (specific-or (pathname-host pathname))
-          :path (puri::render-parsed-path
-                 (list* :absolute
-                        (specific-or (pathname-device pathname) "")
-                        (cdr path))
-                 t)))))
+        (make-uri :path path)
+        (make-uri :scheme :file
+                  :host (concatenate 'string
+                          (specific-or (pathname-host pathname))
+                          "+"
+                          (specific-or (pathname-device pathname)))
+                  :path path))))
 
 (defun parse-name.type (str)
   (if str
@@ -2782,12 +2821,14 @@
                          :name name
                          :type type))
         (multiple-value-bind (name type)
-            (parse-name.type (car (last (cddr path))))
-          (make-pathname :host (puri:uri-host uri)
-                         :device (string-or (cadr path))
-                         :directory (list* :absolute (butlast (cddr path)))
-                         :name name
-                         :type type)))))
+            (parse-name.type (car (last (cdr path))))
+          (destructuring-bind (host device)
+              (split-sequence-if (lambda (x) (eql x #\+)) (puri:uri-host uri))
+            (make-pathname :host (string-or host)
+                           :device (string-or device)
+                           :directory (cons :absolute (butlast (cdr path)))
+                           :name name
+                           :type type))))))
 
 (defun parse-file (filename handler &rest args)
   (with-open-xstream (input filename)
