@@ -43,8 +43,6 @@
 ;;   * The whole ErrorHandler class, this is better handled using
 ;;     conditions (but isn't yet)
 ;;   * The LexicalHandler (start-cdata etc) would be nice  [-- partly done]
-;;   * The DeclHandler interface (element-decl, attribute-decl...)
-;;     is useful, but the Java interface sucks.
 ;; o Despite all the namespace-uri etc arguments, namespaces are not
 ;;   really supported yet, the xml parser always passes nil. This will
 ;;   hopefully change Real Soon Now, and I didn't want to have to
@@ -80,6 +78,8 @@
            #:external-entity-declaration
            #:internal-entity-declaration
            #:notation-declaration
+           #:element-declaration
+           #:attribute-declaration
            #:entity-resolver))
 
 (in-package :sax)
@@ -289,6 +289,28 @@ other textual content.")
    "Called when a notation declaration is seen while parsing a DTD.")
   (:method ((handler t) name public-id system-id)
     (declare (ignore name public-id system-id))
+    nil))
+
+(defgeneric element-declaration (handler name model)
+  (:documentation
+   "Called when a element declaration is seen in a DTD.  Model is not a string,
+    but a nested list, with *, ?, +, OR, and AND being the operators, rods
+    as names, :EMPTY and :PCDATA as special tokens.  (AND represents
+    sequences.)")
+  (:method ((handler t) name model)
+    (declare (ignore name model))
+    nil))
+
+(defgeneric attribute-declaration
+    (handler element-name attribute-name type default)
+  (:documentation
+   "Called when an attribute declaration is seen in a DTD.
+    type        one of :CDATA, :ID, :IDREF, :IDREFS,
+                :ENTITY, :ENTITIES, :NMTOKEN, :NMTOKENS,
+                (:NOTATION <name>*), or (:ENUMERATION <name>*)
+    default     :REQUIRED, :IMPLIED, (:FIXED content), or (:DEFAULT content)")
+  (:method ((handler t) element-name attribute-name type value)
+    (declare (ignore element-name attribute-name type value))
     nil))
 
 (defgeneric entity-resolver

@@ -1029,6 +1029,7 @@
                 (when (and (listp type) (eq (car type) :NOTATION))
                   (validity-error "(16) No Notation on Empty Element: ~S"
                                   (rod-string element-name)))))))
+        (sax:element-declaration (handler *ctx*) element-name content-model)
         (setf (elmdef-content e) content-model)
         (setf (elmdef-external-p e) *markup-declaration-external-p*)
         e))))
@@ -1042,6 +1043,10 @@
                            :default default))
         (e (or (find-element element dtd)
                (define-element dtd element))))
+    (when (and *validate* (listp default))
+      (unless (eq (attdef-type adef) :CDATA)
+        (setf (second default) (canon-not-cdata-attval (second default))))
+      (validate-attribute* *ctx* adef (second default)))
     (cond ((find-attribute e name)
            (when *redefinition-warning*
              (warn "Attribute \"~A\" of \"~A\" not redefined."
@@ -1066,11 +1071,8 @@
                  (when (eq (elmdef-content e) :EMPTY)
                    (validity-error "(16) No Notation on Empty Element: ~S"
                                    (rod-string element))))))
-           (push adef (elmdef-attributes e))))
-    (when (and *validate* (listp default))
-      (unless (eq (attdef-type adef) :CDATA)
-        (setf (second default) (canon-not-cdata-attval (second default))))
-      (validate-attribute* *ctx* adef (second default)))))
+           (sax:attribute-declaration (handler *ctx*) element name type default)
+           (push adef (elmdef-attributes e))))))
 
 (defun find-attribute (elmdef name)
   (find name (elmdef-attributes elmdef) :key #'attdef-name :test #'rod=))
