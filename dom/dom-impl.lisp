@@ -124,8 +124,8 @@
           do (setf (elt to j) (elt from i)))
       (loop
           repeat length
-          for i from (+ from-start length -1) by -1
-          for j from (+ to-start length -1) by -1
+          for i downfrom (+ from-start length -1)
+          for j downfrom (+ to-start length -1)
           do (setf (elt to j) (elt from i)))))
 
 (defun adjust-vector-exponentially (vector new-dimension set-fill-pointer-p)
