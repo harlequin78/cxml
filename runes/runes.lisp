@@ -152,10 +152,9 @@
   (code-rune (char-code char)))
 
 (defun rune-char (rune &optional (default #\?))
-  #+CMU
-  (if (< rune 256) (code-char rune) default)
-  #-CMU
-  (or (code-char rune) default))
+  (if (>= rune char-code-limit)
+      nil
+      (or (code-char rune) default)))
 
 (defun rod-string (rod &optional (default-char #\?))
   (map 'string (lambda (x) (rune-char x default-char)) rod))
