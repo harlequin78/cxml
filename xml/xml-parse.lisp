@@ -198,20 +198,20 @@
 ;;;; (01) Proper Declaration/PE Nesting
 ;;;; (02) Standalone Document Declaration
 ;;;; (03) Element Valid                         VALIDATE-*-ELEMENT, -CHARACTERS
-;;;; (04) Attribute Value Type                  VALIDATE-ATTRIBUTES
+;;;; (04) Attribute Value Type                  VALIDATE-ATTRIBUTE
 ;;;; (05) Unique Element Type Declaration       DEFINE-ELEMENT
 ;;;; (06) Proper Group/PE Nesting
 ;;;; (07) No Duplicate Types
-;;;; (08) ID                                    VALIDATE-ATTRIBUTES
+;;;; (08) ID                                    VALIDATE-ATTRIBUTE
 ;;;; (09) One ID per Element Type               DEFINE-ATTRIBUTE
 ;;;; (10) ID Attribute Default                  DEFINE-ATTRIBUTE
-;;;; (11) IDREF                                 VALIDATE-ATTRIBUTES, P/DOCUMENT
+;;;; (11) IDREF                                 VALIDATE-ATTRIBUTE, P/DOCUMENT
 ;;;; (12) Entity Name
-;;;; (13) Name Token                            VALIDATE-ATTRIBUTES
+;;;; (13) Name Token                            VALIDATE-ATTRIBUTE
 ;;;; (14) Notation Attributes
 ;;;; (15) One Notation Per Element Type
 ;;;; (16) No Notation on Empty Element
-;;;; (17) Enumeration                           VALIDATE-ATTRIBUTES
+;;;; (17) Enumeration                           VALIDATE-ATTRIBUTE
 ;;;; (18) Required Attribute
 ;;;; (19) Attribute Default Legal
 ;;;; (20) Fixed Attribute Default
@@ -703,45 +703,48 @@
       (validity-error "(xy) Attribute Value Type: no definition for element ~A"
                       (rod-string name)))
     (dolist (a attlist)
-      (let* ((qname (attribute-qname a))
-             (adef
-              (or (find-attribute e qname)
-                  (validity-error "(04) Attribute Value Type: not declared: ~A"
-                                  (rod-string qname))))
-             (type (attdef-type adef)))
-        (case (if (listp type) (car type) type)
-          (:ID
-            (let ((value (attribute-value a)))
-              (unless (valid-name-p value)
-                (validity-error "(08) ID: not a name: ~S" (rod-string value)))
-              (when (eq (gethash value (id-table ctx)) t)
-                (validity-error "(08) ID: ~S not unique" (rod-string value)))
-              (setf (gethash value (id-table ctx)) t)))
-          (:IDREF
-            (let ((names (split-names (attribute-value a))))
-              (unless names
-                (validity-error "(11) IDREF: malformed names"))
-              (dolist (name names)
-                (unless (valid-name-p name)
-                  (validity-error "(11) IDREF: not a name: ~S" (rod-string name)))
-                (unless (gethash name (id-table ctx))
-                  (setf (gethash name (id-table ctx)) nil)))))
-          (:NMTOKEN
-            (unless (valid-nmtoken-p (attribute-value a))
+      (validate-attribute ctx e a))))
+
+(defun validate-attribute (ctx e a)
+  (let* ((qname (attribute-qname a))
+         (adef
+          (or (find-attribute e qname)
+              (validity-error "(04) Attribute Value Type: not declared: ~A"
+                              (rod-string qname))))
+         (type (attdef-type adef)))
+    (case (if (listp type) (car type) type)
+      (:ID
+        (let ((value (attribute-value a)))
+          (unless (valid-name-p value)
+            (validity-error "(08) ID: not a name: ~S" (rod-string value)))
+          (when (eq (gethash value (id-table ctx)) t)
+            (validity-error "(08) ID: ~S not unique" (rod-string value)))
+          (setf (gethash value (id-table ctx)) t)))
+      (:IDREF
+        (let ((names (split-names (attribute-value a))))
+          (unless names
+            (validity-error "(11) IDREF: malformed names"))
+          (dolist (name names)
+            (unless (valid-name-p name)
+              (validity-error "(11) IDREF: not a name: ~S" (rod-string name)))
+            (unless (gethash name (id-table ctx))
+              (setf (gethash name (id-table ctx)) nil)))))
+      (:NMTOKEN
+        (unless (valid-nmtoken-p (attribute-value a))
+          (validity-error "(13) Name Token: not a NMTOKEN: ~S"
+                          (rod-string (attribute-value a)))))
+      (:NMTOKENS
+        (let ((tokens (split-names (attribute-value a))))
+          (unless tokens
+            (validity-error "(13) Name Token: malformed NMTOKENS"))
+          (dolist (token tokens)
+            (unless (valid-nmtoken-p token)
               (validity-error "(13) Name Token: not a NMTOKEN: ~S"
-                              (rod-string (attribute-value a)))))
-          (:NMTOKENS
-            (let ((tokens (split-names (attribute-value a))))
-              (unless tokens
-                (validity-error "(13) Name Token: malformed NMTOKENS"))
-              (dolist (token tokens)
-                (unless (valid-nmtoken-p token)
-                  (validity-error "(13) Name Token: not a NMTOKEN: ~S"
-                                  (rod-string token))))))
-          (:ENUMERATION
-            (unless (member (attribute-value a) (cdr type) :test #'rod=)
-              (validity-error "(17) Enumeration: value not declared: ~S"
-                              (rod-string (attribute-value a))))))))))
+                              (rod-string token))))))
+      (:ENUMERATION
+        (unless (member (attribute-value a) (cdr type) :test #'rod=)
+          (validity-error "(17) Enumeration: value not declared: ~S"
+                          (rod-string (attribute-value a))))))))
 
 (defun split-names (rod)
   (flet ((whitespacep (x)
