@@ -1,6 +1,6 @@
 Changes to Gilbert Baumann's Code
 ========================================
-(Stand dieser Liste: patch-54)
+(Stand dieser Liste: patch-80)
 
 base-0
     Import of Closure's src/xml and src/glisp
@@ -84,7 +84,32 @@ patch-51
     fixed special cases in dom:substring-data
 patch-52
     fixed patch-36, my (setf dom:data) implementation was bogus
-
+patch-55
+    temporary fix: attributes are created with value ""
+patch-58
+    START-DTD, END-DTD, DOCUMENT-TYPE initialisation
+patch-60
+    neu: CLONE-NODE
+patch-65, patch-66
+    verify attribute name syntax in createAttribute
+patch-67
+    more NAME syntax checks: CREATE-ELEMENT, SET-ATTRIBUTE
+patch-68
+    CREATE-ATTRIBUTE: set SPECIFIED to true
+patch-69, patch-70
+    INUSE_ATTRIBUTE_ERR
+patch-71
+    hacked my resolve-entity function to return NIL for undefined entities
+patch-72
+    INVALID_CHARACTER_ERR in create-entity-reference, too
+patch-73
+    Implement no-op methods on (setf node-value) where required...
+patch-74
+    fixed get-elements-by-tag-name not to include the argument itself
+patch-76, patch-77
+    implemented DOM:SPLIT-TEXT
+patch-80
+    noch unfertig: initialisiere dom:enitities richtig, erzeuge Entity-Knoten
 
 xml-parse.lisp changes
 ----------------
@@ -98,6 +123,7 @@ patch-41
     Warnung ueber (nicht) redefinierte Attribute abschalten koennen
 patch-54
     call sax:comment; create comment nodes
+(See also: patch-58, patch-80)
 
 
 String-Handling
@@ -114,11 +140,23 @@ patch-9
     print elements with their tag-name
 patch-11
     print attributes with name and value
+patch-56
+    Aenderungsliste
 
 patch-10
    (reverted by patch-10)
 patch-12
     REVERT patch-10
+
+
+SAX
+----------------
+patch-57
+    Warnungen beseitigt ("undefined variable")
+patch-75
+    fixed PARENT slot initialization and added a rant about the current implementation
+
+(See also: patch-58, patch-80)
 
 
 domtest.cl
@@ -139,6 +177,18 @@ patch-42
     implementationAttribute-Probleme zwar ausgeben, aber kein WARN machen
 patch-53
     domtest fixes fuer <var/> und <nodeType>
+patch-59
+    for-each fuer named-node-map
+patch-61
+    parse-java-literal: translate \n
+patch-62
+    <member> in <var> verstehen
+patch-64
+    workaround: normalize documents explicitly
+patch-78
+    named-node-map-hack auch fuer assertSize
+patch-79
+    ignore element order in <equals>
 
 
 xmlconf.cl
@@ -149,3 +199,7 @@ patch-15
     run only tests for namespace-aware XML-1.0 parsers
 patch-16
     mit korrektem OUTPUT abgleichen
+
+NOCH:
+patch-63
+    Reihenfolge der Attribute erhalten
