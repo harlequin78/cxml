@@ -8,7 +8,7 @@
                 #+clisp :gray
                 #-(or sbcl allegro cmu clisp) ...
                 #:fundamental-binary-input-stream
-                #:stream-read-sequence
+                #-clisp #:stream-read-sequence
                 stream-read-byte)
   (:export
    ;; xstreams
