@@ -311,9 +311,9 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     <a name="parser"/>
     <h3>Parsing and Validating</h3>
     <p>
-      <div class="def">Function CXML:PARSE-FILE (pathname handler &key validate dtd root)</div>
-      <div class="def">Function CXML:PARSE-STREAM (stream handler &key validate dtd root)</div>
-      <div class="def">Function CXML:PARSE-OCTETS (octets handler &key validate dtd root)</div>
+      <div class="def">Function CXML:PARSE-FILE (pathname handler &key validate dtd root entity-resolver)</div>
+      <div class="def">Function CXML:PARSE-STREAM (stream handler &key validate dtd root entity-resolver)</div>
+      <div class="def">Function CXML:PARSE-OCTETS (octets handler &key validate dtd root entity-resolver)</div>
       Parse an XML document.&nbsp;
       Return values from this function depend on the SAX handler used.<br/>
       Arguments:
@@ -345,7 +345,20 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
         document must be declared in the overriding DTD.
       </li>
       <li><tt>root</tt> -- the expected root element
-        name, or <tt>nil</tt> (the default).</li>
+        name, or <tt>nil</tt> (the default).
+      </li>
+      <li>
+        <tt>entity-resolver</tt> -- <tt>nil</tt> or a function of two
+        arguments which is invoked for every entity referenced by the
+        document with the entity's Public ID (a rod) and System ID (an
+        URI object) as arguments.  The function may either return
+        nil, CXML will then try to resolve the entity as usual.
+        Alternatively it may return a Common Lisp stream specialized on
+        <tt>(unsigned-byte 8)</tt> which will be used instead.  (It may
+        also signal an error, of course, which can be useful to prohibit
+        parsed XML documents from including arbitrary files readable by
+        the parser.)
+      </li>
     </ul>
     <p>
       When validating, argument <tt>root</tt> can be used to override the

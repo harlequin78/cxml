@@ -245,6 +245,7 @@
   (referenced-notations '())
   (id-table (%make-rod-hash-table))
   (standalone-p nil)
+  (entity-resolver nil)
   (ignore-external-subset-p nil))
 
 (defvar *expand-pe-p*)
@@ -918,7 +919,7 @@
                              :entity-kind kind
                              :uri nil)))
         (external-entdef
-         (setf r (xstream-open-sysid (extid-system (entdef-extid def))))
+         (setf r (xstream-open-extid (entdef-extid def)))
          (setf (stream-name-entity-name (xstream-name r)) entity-name
                (stream-name-entity-kind (xstream-name r)) kind)))
       r)))
@@ -929,12 +930,18 @@
       (error "Entity '~A' is not defined." (rod-string name)))
     def))
 
-(defun xstream-open-sysid (sysid)
-  (make-xstream (open (uri-to-pathname sysid)
-                      :element-type '(unsigned-byte 8)
-                      :direction :input)
-                :name (make-stream-name :uri sysid)
-                :initial-speed 1))
+(defun xstream-open-extid (extid)
+  (let* ((sysid (extid-system extid))
+         (stream
+          (or (funcall (or (entity-resolver *ctx*) (constantly nil))
+                       (extid-public extid)
+                       (extid-system extid))
+              (open (uri-to-pathname sysid)
+                    :element-type '(unsigned-byte 8)
+                    :direction :input))))
+    (make-xstream stream
+                  :name (make-stream-name :uri sysid)
+                  :initial-speed 1)))
 
 (defun call-with-entity-expansion-as-stream (zstream cont name kind)
   ;; `zstream' is for error messages -- we need something better!
@@ -2462,11 +2469,12 @@
          (cdr (nth-value 1 (peek-token input))))))
     (consume-token input)))
   
-(defun p/document (input handler &key validate dtd root)
-  (let ((*ctx* (make-context))
+(defun p/document (input handler &key validate dtd root entity-resolver)
+  (let ((*ctx*
+         (make-context :handler handler
+                       :entity-resolver entity-resolver
+                       :ignore-external-subset-p (and dtd t)))
         (*validate* validate))
-    (setf (handler *ctx*) handler)
-    (setf (ignore-external-subset-p *ctx*) (and dtd t))
     (sax:start-document handler)
     ;; document ::= XMLDecl? Misc* (doctypedecl Misc*)? element Misc*
     ;; Misc ::= Comment | PI |  S
@@ -2790,8 +2798,7 @@
                         (pathname-name pathname)
                         "."
                         (pathname-type pathname))
-                      (pathname-name pathname)))))
-        (device (specific-or (pathname-device pathname))))
+                      (pathname-name pathname))))))
     (if (eq (car path) :relative)
         (make-uri :path path)
         (make-uri :scheme :file
