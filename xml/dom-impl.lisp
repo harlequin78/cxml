@@ -747,6 +747,8 @@
 (defmethod dom:normalize ((element element))
   (assert-writeable element)
   (labels ((walk (n)
+             (when (eq (dom:node-type n) :element)
+               (map nil #'walk (dom:items (dom:attributes n))))
              (let ((children (dom:child-nodes n))
                    (i 0)
                    (previous nil))
