@@ -512,20 +512,20 @@
 ;;;;  rod collector
 ;;;;
 
-(defparameter *scratch-pad*
-    (make-array 1024 :element-type 'rune))
-
-(defparameter *scratch-pad-2*
-    (make-array 1024 :element-type 'rune))
-
-(defparameter *scratch-pad-3*
-    (make-array 1024 :element-type 'rune))
-
-(defparameter *scratch-pad-4*
-    (make-array 1024 :element-type 'rune))
+(defvar *scratch-pad*)
+(defvar *scratch-pad-2*)
+(defvar *scratch-pad-3*)
+(defvar *scratch-pad-4*)
 
 (declaim (type (simple-array rune (*))
                *scratch-pad* *scratch-pad-2* *scratch-pad-3* *scratch-pad-4*))
+
+(defmacro with-scratch-pads (() &body body)
+  `(let ((*scratch-pad* (make-array 1024 :element-type 'rune))
+         (*scratch-pad-2* (make-array 1024 :element-type 'rune))
+         (*scratch-pad-3* (make-array 1024 :element-type 'rune))
+         (*scratch-pad-4* (make-array 1024 :element-type 'rune)))
+     ,@body))
 
 (defmacro %put-unicode-char (code-var put)
   `(progn
@@ -2696,7 +2696,7 @@
        :file-name filename))
     (let ((zstream (make-zstream :input-stack (list input))))
       (peek-rune input)
-      (progn 'time
+      (with-scratch-pads ()
        (apply #'p/document zstream handler args)))))
 
 (defun parse-stream (stream handler &rest args)
@@ -2710,7 +2710,8 @@
                                  *default-pathname-defaults*))
            :initial-speed 1))
          (zstream (make-zstream :input-stack (list xstream))))
-    (apply #'p/document zstream handler args)))
+    (with-scratch-pads ()
+      (apply #'p/document zstream handler args))))
 
 (defun parse-dtd-file (filename)
   (with-open-file (s filename :element-type '(unsigned-byte 8))
@@ -2727,10 +2728,11 @@
           (*ctx* (make-context :handler nil))
           (*validate* t)
           (*data-behaviour* :DTD))
-      (define-default-entities)
-      (peek-rune input)
-      (p/ext-subset zstream)
-      (dtd *ctx*))))
+      (with-scratch-pads ()
+        (define-default-entities)
+        (peek-rune input)
+        (p/ext-subset zstream)
+        (dtd *ctx*)))))
 
 (defun parse-string (string handler)
   ;; XXX this function mis-handles encoding
@@ -3106,15 +3108,16 @@
         (let* ((*ctx* (make-context :handler handler :dtd dtd))
                (input (make-zstream))
                (*data-behaviour* :DOC))
-          (recurse-on-entity
-           input name :general
-           (lambda (input)
-             (prog1
-                 (ecase (entity-source-kind name :general)
-                   (:INTERNAL (p/content input))
-                   (:EXTERNAL (p/ext-parsed-ent input)))
-               (unless (eq (peek-token input) :eof)
-                 (error "Trailing garbage. - ~S" (peek-token input)))))))
+          (with-scratch-pads ()
+            (recurse-on-entity
+             input name :general
+             (lambda (input)
+               (prog1
+                   (ecase (entity-source-kind name :general)
+                     (:INTERNAL (p/content input))
+                     (:EXTERNAL (p/ext-parsed-ent input)))
+                 (unless (eq (peek-token input) :eof)
+                   (error "Trailing garbage. - ~S" (peek-token input))))))))
         nil)))
 
 (defun read-att-value-2 (input)
