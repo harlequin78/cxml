@@ -152,7 +152,14 @@
            (write-rod (dom:target node) sink)
            (write-rune #/space sink)
            (write-rod (dom:data node) sink)
-           (write-rod '#.(string-rod "?>") sink) ))
+           (write-rod '#.(string-rod "?>") sink)))
+        ((dom:cdata-section-p node)
+         (when indentation
+           (sink-fresh-line sink))
+         (write-rod #"<![CDATA[" sink)
+         ;; XXX signal error if body is unprintable?
+         (map nil (lambda (c) (write-rune c sink)) (dom:data node))
+         (write-rod #"]]>" sink))
         ((dom:text-node-p node)
          (if indentation
              (unparse-indented-text (dom:data node) sink)
