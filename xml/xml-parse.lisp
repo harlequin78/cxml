@@ -1,4 +1,4 @@
-;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: XML; readtable: runes; Encoding: utf-8; -*-
+;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: CXML; readtable: runes; Encoding: utf-8; -*-
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: A prototype XML parser
 ;;;   Created: 1999-07-17
@@ -192,6 +192,33 @@
 ;;
 ;; not-wf/sa/128        is false a alarm
 ;;
+
+;;;; Validity constraints:
+;;;; (00) Root Element Type
+;;;; (01) Proper Declaration/PE Nesting
+;;;; (02) Standalone Document Declaration
+;;;; (03) Element Valid
+;;;; (04) Attribute Value Type
+;;;; (05) Unique Element Type Declaration       DEFINE-ELEMENT
+;;;; (06) Proper Group/PE Nesting
+;;;; (07) No Duplicate Types
+;;;; (08) ID
+;;;; (09) One ID per Element Type
+;;;; (10) ID Attribute Default
+;;;; (11) IDREF
+;;;; (12) Entity Name
+;;;; (13) Name Token
+;;;; (14) Notation Attributes
+;;;; (15) One Notation Per Element Type
+;;;; (16) No Notation on Empty Element
+;;;; (17) Enumeration
+;;;; (18) Required Attribute
+;;;; (19) Attribute Default Legal
+;;;; (20) Fixed Attribute Default
+;;;; (21) Proper Conditional Section/PE Nesting
+;;;; (22) Entity Declared
+;;;; (23) Notation Declared
+;;;; (24) Unique Notation Name
 
 (in-package :cxml)
 
@@ -625,6 +652,12 @@
 (defparameter *entities* nil)
 (defvar *dtd*)
 
+(defun validity-error (x &rest args)
+  ;; XXX define a special condition class for this kind of error
+  (error "Validity constraint violated: ~@?" x args))
+
+(defvar *validate* t)
+
 (defun absolute-uri (sysid source-stream)
   (setq sysid (rod-string sysid))
   (let ((base-sysid
@@ -653,15 +686,6 @@
     (append *entities*
             (list (cons (list kind name)
                         def)))))
-
-#||
-(defun define-element (zinput dtd element-name content-model)
-  ;; zinput is for source code location recoding
-  (let ((elmdef (make-elmdef :name element-name
-                             :content content-model
-                             )))
-    ()))
-||#
 
 (defun entity->xstream (entity-name kind &optional zstream)
   ;; `zstream' is for error messages
@@ -744,23 +768,41 @@
 (defstruct elmdef
   ;; an element definition
   name          ;name of the element
-  content       ;content model
-  attributes    ;list of defined attribtes
-  defined-p)    ;is this element defined? [*]
+  content       ;content model            [*]
+  attributes    ;list of defined attributes
+  )
 
-;; [*] in XML it is possible to define attributes, before the element
+;; [*] in XML it is possible to define attributes before the element
 ;; itself is defined and since we hang attribute definitions into the
-;; relevant element definitions, this flag indicates, whether an
-;; element was actually defined.
+;; relevant element definitions, the `content' slot indicates whether an
+;; element was actually defined.  It is NIL until set to a concent model
+;; when the element type declaration is processed.
 
 (defstruct dtd
-  elements      ;hashtable or whatnot of all elements
-  attdefs       ;
+  (elements                             ;hashtable of elements
+   (make-hash-table :test 'equal))
   gentities     ;general entities
   pentities     ;parameter entities
   )
 
 ;;;;
+
+(defun find-element (name dtd)
+  (gethash name (dtd-elements dtd)))
+
+(defun define-element (dtd element-name &optional content-model)
+  (let ((e (find-element element-name dtd)))
+    (cond
+      ((null e)
+        (setf (gethash element-name (dtd-elements dtd))
+              (make-elmdef :name element-name :content content-model)))
+      ((null content-model)
+        e)
+      (t
+        (when (elmdef-content e)
+          (validity-error "(05) Unique Element Type Declaration"))
+        (setf (elmdef-content e) content-model)
+        e))))
 
 (defvar *redefinition-warning* t)
 
@@ -768,26 +810,24 @@
   (let ((adef (make-attdef :element element
                            :name name
                            :type type
-                           :default default)))
-    (cond ((find-attribute dtd element name)
+                           :default default))
+        (e (or (find-element element dtd)
+               (define-element dtd element))))
+    (cond ((find-attribute e name)
            (when *redefinition-warning*
              (warn "Attribute \"~A\" of \"~A\" not redefined."
                    (rod-string name)
                    (rod-string element))))
           (t
-           (push adef (dtd-attdefs dtd))))))
+           (push adef (elmdef-attributes e))))))
 
-(defun find-attribute (dtd element name)
-  (dolist (k (dtd-attdefs dtd))
-    (cond ((and (eq element (attdef-element k))
-                (eq name (attdef-name k)))
-           (return k)))))
+(defun find-attribute (elmdef name)
+  (find name (elmdef-attributes elmdef) :key #'attdef-name :test #'equal))
 
 (defun map-all-attdefs-for-element (dtd element continuation)
   (declare (dynamic-extent continuation));this does not help under ACL
-  (dolist (k (dtd-attdefs dtd))
-    (cond ((eq element (attdef-element k))
-           (funcall continuation k)))))
+  (dolist (k (elmdef-attributes (find-element element dtd)))
+    (funcall continuation k)))
 
 ;;;; ---------------------------------------------------------------------------
 ;;;;  z streams and lexer
@@ -1706,6 +1746,8 @@
       (warn "Illegal content model: ~S." (mu content)))
     (p/S? input)
     (expect input :\>)
+    (when *validate*
+      (define-element *dtd* name content))
     (list :element name content)))
 
 (defun legal-content-model-p (cspec)
