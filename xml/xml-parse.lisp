@@ -194,7 +194,7 @@
 ;;
 
 ;;;; Validity constraints:
-;;;; (00) Root Element Type
+;;;; (00) Root Element Type			like (03), c.f. MAKE-ROOT-MODEL
 ;;;; (01) Proper Declaration/PE Nesting
 ;;;; (02) Standalone Document Declaration
 ;;;; (03) Element Valid                         VALIDATE-***
