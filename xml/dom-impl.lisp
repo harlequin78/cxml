@@ -37,7 +37,8 @@
 (defclass attribute (node)
   ((name        :initarg :name          :reader dom:name)
    (value       :initarg :value         :reader dom:value)
-   (specified-p :initarg :specified-p   :reader dom:specified)))
+   (specified-p :initarg :specified-p   :reader dom:specified)
+   (element     :initform nil)))
 
 (defmethod print-object ((object attribute) stream)
   (print-unreadable-object (object stream :type t :identity t)
@@ -548,6 +549,11 @@
 
 (defmethod dom:set-attribute-node ((element element) (new-attr attribute))
   (assert-writeable element)
+  (let ((old-element (slot-value new-attr 'element)))
+    (when (and old-element (not (eq old-element element)))
+      (dom-error :INUSE_ATTRIBUTE_ERR "Attribute node already has an element"
+                 new-attr)))
+  (setf (slot-value new-attr 'element) element)
   (dom:set-named-item (dom:attributes element) new-attr))
 
 (defmethod dom:get-attribute ((element element) name)
