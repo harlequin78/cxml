@@ -715,13 +715,6 @@
          (elmdef (elmdef-external-p def))
          (attdef (attdef-external-p def)))))
 
-(defstruct attribute
-  namespace-uri
-  local-name
-  qname
-  value
-  specified-p)
-
 (defun process-attributes (ctx name attlist)
   (let ((e (find-element name (dtd ctx))))
     (cond
@@ -742,14 +735,14 @@
                                        nil)
                       attlist)))))
         (dolist (a attlist)             ;normalize non-CDATA values
-          (let* ((qname (attribute-qname a))
+          (let* ((qname (sax:attribute-qname a))
                  (adef (find-attribute e qname)))
             (when (and adef (not (eq (attdef-type adef) :CDATA)))
-              (let ((canon (canon-not-cdata-attval (attribute-value a))))
+              (let ((canon (canon-not-cdata-attval (sax:attribute-value a))))
                 (when (and (standalone-check-necessary-p adef)
-                           (not (rod= (attribute-value a) canon)))
+                           (not (rod= (sax:attribute-value a) canon)))
                   (validity-error "(02) Standalone Document Declaration: attribute value not normalized"))
-                (setf (attribute-value a) canon)))))
+                (setf (sax:attribute-value a) canon)))))
         (when *validate*                ;maybe validate attribute values
           (dolist (a attlist)
             (validate-attribute ctx e a))))
@@ -759,16 +752,16 @@
   attlist)
 
 (defun get-attribute (name attributes)
-  (member name attributes :key #'attribute-qname :test #'rod=))
+  (member name attributes :key #'sax:attribute-qname :test #'rod=))
 
 (defun validate-attribute (ctx e a)
-  (when (attribute-specified-p a)       ;defaults checked by DEFINE-ATTRIBUTE
-    (let* ((qname (attribute-qname a))
+  (when (sax:attribute-specified-p a)   ;defaults checked by DEFINE-ATTRIBUTE
+    (let* ((qname (sax:attribute-qname a))
            (adef
             (or (find-attribute e qname)
                 (validity-error "(04) Attribute Value Type: not declared: ~A"
                                 (rod-string qname)))))
-      (validate-attribute* ctx adef (attribute-value a)))))
+      (validate-attribute* ctx adef (sax:attribute-value a)))))
 
 (defun validate-attribute* (ctx adef value)
   (let ((type (attdef-type adef))
@@ -2516,7 +2509,7 @@
                (attlist
                 (remove-if-not (lambda (a)
                                  (or sax:*include-xmlns-attributes*
-                                     (not (xmlns-attr-p (attribute-qname a)))))
+                                     (not (xmlns-attr-p (sax:attribute-qname a)))))
                                (process-attributes *ctx* name raw-attlist))))
           (cond ((eq cat :ztag)
 		 (sax:start-element (handler *ctx*) ns-uri local-name name attlist)
@@ -3271,7 +3264,10 @@
     (sax:end-prefix-mapping (handler *ctx*) (car ns-decl))))
 
 (defun build-attribute-list-no-ns (attr-alist)
-  (mapcar #'(lambda (pair) (make-attribute :qname (car pair) :value (cdr pair) :specified-p t))
+  (mapcar #'(lambda (pair)
+              (sax:make-attribute :qname (car pair)
+                                  :value (cdr pair)
+                                  :specified-p t))
 	  attr-alist))
 
 ;; FIXME: Use a non-braindead way to enforce attribute uniqueness
@@ -3292,33 +3288,33 @@
     (do ((sublist attributes (cdr sublist)))
 	((null sublist) attributes)
       (let ((attr-1 (car sublist)))
-	(when (and (attribute-namespace-uri attr-1)
+	(when (and (sax:attribute-namespace-uri attr-1)
 		   (find-if #'(lambda (attr-2)
-				(and (rod= (attribute-namespace-uri attr-1)
-					   (attribute-namespace-uri attr-2))
-				     (rod= (attribute-local-name attr-1)
-					   (attribute-local-name attr-2))))
+				(and (rod= (sax:attribute-namespace-uri attr-1)
+					   (sax:attribute-namespace-uri attr-2))
+				     (rod= (sax:attribute-local-name attr-1)
+					   (sax:attribute-local-name attr-2))))
 		       (cdr sublist)))
 	  (error "Multiple definitions of attribute ~S in namespace ~S."
-		 (mu (attribute-local-name attr-1))
-		 (mu (attribute-namespace-uri attr-1))))))))
+		 (mu (sax:attribute-local-name attr-1))
+		 (mu (sax:attribute-namespace-uri attr-1))))))))
     
 (defun build-attribute (name value specified-p)
   (multiple-value-bind (prefix local-name) (split-qname name)
     (declare (ignorable local-name))
     (if (or (not prefix) ;; default namespace doesn't apply to attributes
 	    (and (rod= #"xmlns" prefix) (not sax:*use-xmlns-namespace*)))
-	(make-attribute :qname name
-                        :value value
-                        :specified-p specified-p)
+	(sax:make-attribute :qname name
+                            :value value
+                            :specified-p specified-p)
 	(multiple-value-bind (uri prefix local-name)
 	    (decode-qname name)
 	  (declare (ignore prefix))
-	  (make-attribute :qname name
-			  :value value
-			  :namespace-uri uri
-			  :local-name local-name
-                          :specified-p specified-p)))))
+	  (sax:make-attribute :qname name
+                              :value value
+                              :namespace-uri uri
+                              :local-name local-name
+                              :specified-p specified-p)))))
     
 ;;; Faster constructors
 

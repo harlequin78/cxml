@@ -56,11 +56,11 @@
           (anodes '()))
       (dolist (attr attributes)
 	(let ((anode
-               (dom:create-attribute document (cxml::attribute-qname attr)))
+               (dom:create-attribute document (sax:attribute-qname attr)))
               (text
-               (dom:create-text-node document (cxml::attribute-value attr))))
+               (dom:create-text-node document (sax:attribute-value attr))))
           (setf (slot-value anode 'dom-impl::specified-p)
-                (cxml::attribute-specified-p attr))
+                (sax:attribute-specified-p attr))
           (dom:append-child anode text)
           (push anode anodes)))
       (setf (slot-value element 'dom-impl::parent) parent)

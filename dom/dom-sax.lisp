@@ -53,8 +53,8 @@
       (when (and (or defaultp (dom:specified a))
                  (or xmlnsp (not (cxml::xmlns-attr-p (dom:name a)))))
         (push
-         (cxml::make-attribute :qname (dom:name a)
-                               :value (dom:value a)
-                               :specified-p (dom:specified a))
+         (sax:make-attribute :qname (dom:name a)
+                             :value (dom:value a)
+                             :specified-p (dom:specified a))
          results)))
     (reverse results)))

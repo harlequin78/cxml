@@ -55,6 +55,13 @@
   (:export #:*namespace-processing*
 	   #:*include-xmlns-attributes*
 	   #:*use-xmlns-namespace*
+
+           #:make-attribute
+           #:attribute-namespace-uri
+           #:attribute-local-name
+           #:attribute-qname
+           #:attribute-value
+           #:attribute-specified-p
 	   
 	   #:start-document
 	   #:start-prefix-mapping
@@ -122,6 +129,13 @@ qname:                 #\"xmlns:ex\"
 
 Setting this variable has no effect unless both
 `*namespace-processing*' and `*include-xmlns-attributes*' are non-nil.")
+
+(defstruct attribute
+  namespace-uri
+  local-name
+  qname
+  value
+  specified-p)
 
 (defgeneric start-document (handler)
   (:documentation "Called at the beginning of the parsing process,
