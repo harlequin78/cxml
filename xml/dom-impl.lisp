@@ -30,6 +30,10 @@
    (attributes  :initarg :attributes    :reader dom:attributes
                 :initform (make-instance 'named-node-map))))
 
+(defmethod print-object ((object element) stream)
+  (print-unreadable-object (object stream :type t :identity t)
+    (princ (rod-string (dom:tag-name object)) stream)))
+
 (defclass text (character-data)
   ())
 
