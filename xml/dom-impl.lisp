@@ -48,8 +48,7 @@
 
 (defclass element (node)
   ((tag-name    :initarg :tag-name      :reader dom:tag-name)
-   (attributes  :initarg :attributes    :reader dom:attributes
-                :initform (make-instance 'named-node-map))))
+   (attributes  :initarg :attributes    :reader dom:attributes)))
 
 (defmethod print-object ((object element) stream)
   (print-unreadable-object (object stream :type t :identity t)
@@ -89,7 +88,8 @@
 
 (defclass named-node-map ()
   ((items         :initarg :items         :reader dom:items
-                  :initform nil) ))
+                  :initform nil)
+   (owner         :initarg :owner         :reader dom:owner-document)))
 
 
 ;;; Implementation
@@ -133,7 +133,8 @@
     (dom-error :INVALID_CHARACTER_ERR "not a name: ~A" (rod-string tag-name)))
   (make-instance 'element 
     :tag-name tag-name
-    :owner document))
+    :owner document
+    :attributes (make-instance 'named-node-map :owner document)))
 
 (defmethod dom:create-document-fragment ((document document))
   (make-instance 'document-fragment
@@ -462,6 +463,10 @@
              (return k))))))
 
 (defmethod dom:set-named-item ((self named-node-map) arg)
+  (unless (eq (dom:owner-document self) (dom:owner-document arg))
+    (dom-error :WRONG_DOCUMENT_ERR
+               "~S cannot adopt ~S, since it was created by a different document."
+               self arg))
   (let ((old-map (slot-value arg 'map)))
     (when (and old-map (not (eq old-map self)))
       (dom-error :INUSE_ATTRIBUTE_ERR "Attribute node already mapped" arg)))
@@ -587,11 +592,6 @@
 
 (defmethod dom:set-attribute-node ((element element) (new-attr attribute))
   (assert-writeable element)
-  (unless (eq (dom:owner-document element) 
-              (dom:owner-document new-attr))
-    (dom-error :WRONG_DOCUMENT_ERR
-               "~S cannot adopt attribute node ~S, since it was created by a different document."
-               element new-attr))
   (dom:set-named-item (dom:attributes element) new-attr))
 
 (defmethod dom:get-attribute ((element element) name)
@@ -758,8 +758,10 @@
   (import-node-internal 'document-fragment document node deep))
 
 (defmethod dom:import-node ((document document) (node element) deep)
-  (let ((result (import-node-internal 'element document node deep
-                                      :tag-name (dom:tag-name node))))
+  (let* ((attributes (make-instance 'named-node-map :owner document))
+         (result (import-node-internal 'element document node deep
+                                       :attributes attributes
+                                       :tag-name (dom:tag-name node))))
     (dolist (attribute (dom:items (dom:attributes node)))
       (when (or (dom:specified attribute) *clone-not-import*)
         (dom:set-attribute result (dom:name attribute) (dom:value attribute))))

@@ -38,11 +38,13 @@
 
 (defmethod sax:start-dtd ((handler dom-builder) name publicid systemid)
   (declare (ignore publicid systemid))
-  (let ((document (document handler))
-	(doctype (make-instance 'dom-impl::document-type
-                   :name name
-                   :notations (make-instance 'dom-impl::named-node-map)
-                   :entities (make-instance 'dom-impl::named-node-map))))
+  (let* ((document (document handler))
+         (doctype (make-instance 'dom-impl::document-type
+                    :name name
+                    :notations (make-instance 'dom-impl::named-node-map
+                                 :owner document)
+                    :entities (make-instance 'dom-impl::named-node-map
+                                :owner document))))
     (setf (slot-value doctype 'dom-impl::owner) document
 	  (slot-value document 'dom-impl::doc-type) doctype)))
 
@@ -86,6 +88,7 @@
     ((handler dom-builder) name public-id system-id notation-name)
   (dom:set-named-item (dom:entities (dom:doctype (document handler)))
                       (make-instance 'dom-impl::entity
+                        :owner (document handler)
                         :name name
                         :public-id public-id
                         :system-id system-id
@@ -95,6 +98,7 @@
     ((handler dom-builder) name public-id system-id)
   (dom:set-named-item (dom:notations (dom:doctype (document handler)))
                       (make-instance 'dom-impl::notation
+                        :owner (document handler)
                         :name name
                         :public-id public-id
                         :system-id system-id)))
