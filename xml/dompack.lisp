@@ -52,7 +52,7 @@
    #:tag-name
    #:get-attribute
    #:set-attribute
-   #:remove-atttribute
+   #:remove-attribute
    #:get-attribute-node
    #:set-attribute-node
    #:remove-attribute-node
