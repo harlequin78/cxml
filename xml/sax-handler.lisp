@@ -147,7 +147,9 @@ local-name properties, the same rules as for the element name
 apply. Additionally, namespace-declaring attributes (those whose name
 is \"xmlns\" or starts with \"xmlns:\") are only included if
 *namespace-prefixes* is non-nil.")
-  (:method ((handler t) namespace-uri local-name qname attributes) nil))
+  (:method ((handler t) namespace-uri local-name qname attributes)
+    (declare (ignore namespace-uri local-name qname attributes))
+    nil))
 
 (defgeneric start-prefix-mapping (handler prefix uri)
   (:documentation "Called when the scope of a new prefix -> namespace-uri mapping begins.
@@ -159,7 +161,7 @@ Clients don't usually have to implement this except under special
 circumstances, for example when they have to deal with qualified names
 in textual content. The parser will handle namespaces of elements and
 attributes on its own.")
-  (:method ((handler t) prefix uri) nil))
+  (:method ((handler t) prefix uri) (declare (ignore prefix uri)) nil))
 
 (defgeneric characters (handler data)
   (:documentation "Called for textual element content.
@@ -167,13 +169,13 @@ attributes on its own.")
 The data is passed as a rod, with all entity references resolved.
 It is possible that the character content of an element is reported
 via multiple subsequent calls to this generic function.")
-  (:method ((handler t) data) nil))
+  (:method ((handler t) data) (declare (ignore data)) nil))
 
 (defgeneric processing-instruction (handler target data)
   (:documentation "Called when a processing instruction is read.
 
 Both target and data are rods.")
-  (:method ((handler t) target data) nil))
+  (:method ((handler t) target data) (declare (ignore target data)) nil))
 
 (defgeneric end-prefix-mapping (handler prefix)
   (:documentation "Called when a prefix -> namespace-uri mapping goes out of scope.
@@ -186,14 +188,16 @@ Clients don't usually have to implement this except under special
 circumstances, for example when they have to deal with qualified names
 in textual content. The parser will handle namespaces of elements and
 attributes on its own.")
-  (:method ((handler t) prefix) nil))
+  (:method ((handler t) prefix) prefix nil))
 
 (defgeneric end-element (handler namespace-uri local-name qname)
   (:documentation "Called to report the end of an element.
 
 See the documentation for `start-element' for a description of the
 parameters.")
-  (:method ((handler t) namespace-uri local-name qname) nil))
+  (:method ((handler t) namespace-uri local-name qname)
+    (declare (ignore namespace-uri local-name qname))
+    nil))
 
 (defgeneric end-document (handler)
   (:documentation "Called at the end of parsing a document.
@@ -206,7 +210,7 @@ is significant, it will be returned by the parse-file/stream/string function.")
 ;; LexicalHandler
 
 (defgeneric comment (handler data)
-  (:method ((handler t) data) nil))
+  (:method ((handler t) data) data nil))
 
 (defgeneric start-cdata (handler)
   (:documentation "Called at the beginning of parsing a CDATA section.
