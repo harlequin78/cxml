@@ -38,4 +38,6 @@
    
    #:parse-file
    #:parse-stream
-   #:parse-string) )
+   #:parse-string
+
+   #:unparse-document))
