@@ -821,23 +821,23 @@
 
 ;; das koennte man auch mit einer GF machen
 (defun can-adopt-p (parent child)
-  (typep child
-         (let ((default '(or element processing-instruction comment text
-                          cdata-section entity-reference)))
-           (etypecase parent
-             (document
-               '(or element processing-instruction comment document-type))
-             (document-fragment default)
-             (document-type 'nil)
-             (entity-reference default)
-             (element default)
-             (attribute '(or text entity-reference))
-             (processing-instruction 'nil)
-             (comment 'nil)
-             (text 'nil)
-             (cdata-section 'nil)
-             (entity default)
-             (notation 'nil)))))
+  (member (dom:node-type child)
+          (let ((default '(:element :processing-instruction :comment :text
+                           :cdata-section :entity-reference)))
+            (etypecase parent
+              (document
+                '(:element :processing-instruction :comment :document-type))
+              (document-fragment default)
+              (document-type nil)
+              (entity-reference default)
+              (element default)
+              (attribute '(:text :entity-reference))
+              (processing-instruction nil)
+              (comment nil)
+              (text nil)
+              (cdata-section nil)
+              (entity default)
+              (notation nil)))))
 
 
 ;;; predicates
