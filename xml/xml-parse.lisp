@@ -147,7 +147,7 @@
 ;; o xstreams auslagern, documententieren und dann auch in SGML und
 ;;   CSS parser verwenden. (halt alles was zeichen liest).
 ::   [ausgelagert sind sie; dokumentiert "so la la"; die Reintegration
-;;   is Closure ist ein ganz anderes Thema]
+;;   in Closure ist ein ganz anderes Thema]
 ;;
 ;; o merge node representation with SGML module
 ;;   [???]
@@ -220,7 +220,7 @@
 ;;;; (21) Proper Conditional Section/PE Nesting
 ;;;; (22) Entity Declared
 ;;;; (23) Notation Declared
-;;;; (24) Unique Notation Name
+;;;; (24) Unique Notation Name                  DEFINE-NOTATION
 
 (in-package :cxml)
 
@@ -914,14 +914,15 @@
 ;; [*] in XML it is possible to define attributes before the element
 ;; itself is defined and since we hang attribute definitions into the
 ;; relevant element definitions, the `content' slot indicates whether an
-;; element was actually defined.  It is NIL until set to a concent model
+;; element was actually defined.  It is NIL until set to a content model
 ;; when the element type declaration is processed.
 
 (defstruct dtd
-  (elements                             ;hashtable of elements
+  (elements                             ;maps element names to elmdefs
    (make-hash-table :test 'equal))
   gentities     ;general entities
   pentities     ;parameter entities
+  (notations (make-hash-table :test 'equalp))
   )
 
 ;;;;
@@ -975,6 +976,12 @@
 
 (defun find-attribute (elmdef name)
   (find name (elmdef-attributes elmdef) :key #'attdef-name :test #'equal))
+
+(defun define-notation (dtd name id)
+  (let ((ns (dtd-notations dtd)))
+    (when (gethash name ns)
+      (validity-error "(24) Unique Notation Name: ~S" (rod-string name)))
+    (setf (gethash name ns) id)))
 
 ;;;; ---------------------------------------------------------------------------
 ;;;;  z streams and lexer
@@ -2087,6 +2094,8 @@
         (sax:notation-declaration (handler *ctx*) name nil (cadr id)))
       (:PUBLIC
         (sax:notation-declaration (handler *ctx*) name (cadr id) (caddr id))))
+    (when *validate*
+      (define-notation (dtd *ctx*) name id))
     (list :notation-decl name id)))
 
 ;;;
