@@ -2203,7 +2203,7 @@
 
 ;;;; User inteface ;;;;
 
-(defun parse-file (filename &optional (handler (make-instance 'dom-impl::dom-builder)))
+(defun parse-file (filename handler)
   (with-open-xstream (input filename)
     (setf (xstream-name input)
       (make-stream-name
@@ -2215,7 +2215,7 @@
       (progn 'time
        (p/document zstream handler)))))
 
-(defun parse-stream (stream &optional (handler (make-instance 'dom-impl::dom-builder)))
+(defun parse-stream (stream handler)
   (let* ((xstream 
           (make-xstream 
            stream
@@ -2228,7 +2228,7 @@
          (zstream (make-zstream :input-stack (list xstream))))
     (p/document zstream handler)))
 
-(defun parse-string (string &optional (handler (make-instance 'dom-impl::dom-builder)))
+(defun parse-string (string handler)
   ;; XXX this function mis-handles encoding
   (let* ((x (string->xstream string))
          (z (make-zstream :input-stack (list x))))
@@ -2293,6 +2293,8 @@
 
 
 ;;;;
+
+#|
 
 (defparameter *test-files*
     '(;;"jclark:xmltest;not-wf;*;*.xml"
@@ -2364,8 +2366,11 @@
           (t
            (warn "**** negative test failed on ~S." filename)))))
 
+|#
+
 ;;;;
 
+#+(or)                                  ;was ist das?
 (progn
 
   (defmethod dom:create-processing-instruction ((document null) target data)
@@ -2393,51 +2398,6 @@
     nil)
   )
 
-
-;;; Implementation of a simple but faster DOM.
-
-(defclass simple-document () 
-  ((children :initform nil :accessor simple-document-children)))
-
-(defstruct node 
-  parent)
-
-(defstruct (processing-instruction (:include node))
-  target
-  data)
-
-(defstruct (text (:include node)
-                 (:constructor make-text-boa (parent data)))
-  data)
-
-(defstruct (element (:include node))
-  gi
-  attributes
-  children)
-
-(defmethod dom:create-processing-instruction ((document simple-document) target data)
-  (make-processing-instruction :target target :data data))
-
-(defmethod dom:append-child ((node element) child)
-  (setf (node-parent child) node)
-  (push child (element-children node)))
-
-(defmethod dom:append-child ((node simple-document) child)
-  (push child (simple-document-children node))
-  nil)
-
-(defmethod dom:create-element ((document simple-document) name)
-  (make-element :gi name))
-
-(defmethod dom:set-attribute ((node element) name value)
-  (push (cons name value)
-        (element-attributes node)))
-
-(defmethod dom:create-text-node ((document simple-document) data)
-  (make-text-boa nil data))
-
-(defmethod dom:create-cdata-section ((document simple-document) data)
-  (make-text-boa nil data))
 
 #||
 (defmacro read-data-until* ((predicate input res res-start res-end) &body body)
@@ -2628,7 +2588,7 @@
 ;;; XXX FIXME
 (defun resolve-entity (name entities)
   (if (assoc (list :general name) entities :test #'equalp) ;XXX
-      (let ((*handler* (make-instance 'dom-impl::dom-builder))
+      (let ((*handler* (funcall (find-symbol "make-dom-builder" :dom)))
             (*namespace-bindings* *default-namespace-bindings*)
             (*entities* entities)
             (*dtd* (make-dtd)))
@@ -2636,7 +2596,7 @@
         (declare (special *namespace-bindings*)) ;forward declaration for DEFVAR
         (sax:start-document *handler*)
         (ff (rod name))
-        (dom:child-nodes (sax:end-document *handler*)))
+        (funcall (find-symbol "child-nodes" :dom) (sax:end-document *handler*)))
       nil))
 
 (defun read-att-value-2 (input)

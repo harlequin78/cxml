@@ -1,3 +1,6 @@
+;;; XXX Die vielen verschiedenen Systeme hier sollten vielleicht
+;;; Module eines grossen Systems CXML werden?
+
 (defpackage :cxml-system
   (:use :asdf :cl))
 (in-package :cxml-system)
@@ -52,25 +55,37 @@
      (:file "xstream"
             :depends-on ("package" dependent "syntax" "encodings-data"))))
 
-(asdf:defsystem :cxml
+(asdf:defsystem :xml
     :default-component-class closure-source-file
     :pathname (merge-pathnames
                "xml/"
                (make-pathname :name nil :type nil :defaults *load-truename*))
     :components
-    ((:file "package"         :depends-on ("dompack"))
+    ((:file "package")
      (:file "sax-handler")
-     (:file "dompack")
      (:file "characters"      :depends-on ("package"))
-     (:file "dom-impl"        :depends-on ("package" "dompack" "characters"))
-     (:file "dom-builder"     :depends-on ("package" "dom-impl" "sax-handler"))
      (:file "xml-name-rune-p" :depends-on ("package"))
-     (:file "xml-parse"       :depends-on ("package" "dom-impl" "sax-handler"))
-     (:file "xml-canonic"     :depends-on ("package" "dompack" "xml-parse")))
+     (:file "xml-parse"       :depends-on ("package" "sax-handler"))
+     (:file "characters"      :depends-on ("package")))
     :depends-on (:runes))
+
+(asdf:defsystem :dom
+    :default-component-class closure-source-file
+    :pathname (merge-pathnames
+               "dom/"
+               (make-pathname :name nil :type nil :defaults *load-truename*))
+    :components
+    ((:file "package")
+     (:file "dom-impl"        :depends-on ("package"))
+     (:file "dom-builder"     :depends-on ("dom-impl"))
+     (:file "xml-canonic"     :depends-on ("package"))
+     (:file "simple-dom"      :depends-on ("package")))
+    :depends-on (:xml))
 
 (asdf:defsystem :cxml-test
     :default-component-class closure-source-file
     :pathname (make-pathname :name nil :type nil :defaults *load-truename*)
     :components ((:file "domtest") (:file "xmlconf"))
-    :depends-on (:cxml))
+    :depends-on (:xml :dom))
+
+(asdf:defsystem :cxml :components () :depends-on (:dom :cxml-test))

@@ -51,10 +51,12 @@
       result)))
 
 (defun test-xml-conformance (directory)
-  (let ((xmlconf (xml:parse-file (merge-pathnames "xmlconf.xml" directory)))
-        (ntried 0)
-        (nfailed 0)
-        (nskipped 0))
+  (let* ((pathname (merge-pathnames "xmlconf.xml" directory))
+         (builder (dom:make-dom-builder))
+         (xmlconf (xml:parse-file pathname builder))
+         (ntried 0)
+         (nfailed 0)
+         (nskipped 0))
     (dom:do-node-list (test (dom:get-elements-by-tag-name xmlconf "TEST"))
       (cond
         ((relevant-test-p test)
@@ -68,7 +70,8 @@
               (handler-case
                   (progn
                     (mp:with-timeout (60)
-                      (let ((document (xml:parse-file pathname)))
+                      (let ((document
+                             (xml:parse-file pathname (dom:make-dom-builder))))
                         (cond
                           ((null output)
                             (format t " ok (output not checked)~%"))

@@ -1,4 +1,4 @@
-(defpackage :domtest
+-(defpackage :domtest
   (:use :cl :xml))
 (defpackage :domtest-tests
   (:use))
@@ -165,7 +165,8 @@
 
 (defun read-members (&optional (directory *directory*))
   (let* ((pathname (merge-pathnames "patches/dom1-interfaces.xml" directory))
-         (library (dom:document-element (xml:parse-file pathname)))
+         (builder (dom:make-dom-builder))
+         (library (dom:document-element (xml:parse-file pathname builder)))
          (methods '())
          (fields '()))
     (do-child-elements (interface library :name "interface")
@@ -541,7 +542,8 @@
   (unless *fields*
     (multiple-value-setq (*methods* *fields*) (read-members *directory*)))
   (catch 'give-up
-    (let* ((test (dom:document-element (xml:parse-file pathname)))
+    (let* ((builder (dom:make-dom-builder))
+           (test (dom:document-element (xml:parse-file pathname builder)))
            title
            (bindings '())
            (code '()))
@@ -583,7 +585,8 @@
   (let* ((directory (merge-pathnames "tests/level1/core/files/" *directory*))
          (document
           (xml:parse-file
-           (make-pathname :name name :type "xml" :defaults directory))))
+           (make-pathname :name name :type "xml" :defaults directory)
+           (dom:make-dom-builder))))
     document))
 
 (defparameter *bad-tests*
@@ -592,9 +595,9 @@
 (defun test2 (&optional verbose)
   (let* ((xml::*redefinition-warning* nil)
          (test-directory (merge-pathnames "tests/level1/core/" *directory*))
-         (suite
-          (dom:document-element
-           (xml:parse-file (merge-pathnames "alltests.xml" test-directory))))
+         (all-tests (merge-pathnames "alltests.xml" test-directory))
+         (builder (dom:make-dom-builder))
+         (suite (dom:document-element (xml:parse-file all-tests builder)))
          (n 0)
          (i 0)
          (ntried 0)
