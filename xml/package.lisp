@@ -46,4 +46,5 @@
 
    #:parse-dtd-file
    #:parse-dtd-stream
-   #:validity-error))
+   #:validity-error
+   #:make-validator))

@@ -3380,3 +3380,43 @@
 (defun xml-parse (system-id &key document standalone-p)
   )
 ||#
+
+;;;;;;;;;;;;;;;;;
+
+;;; SAX validation handler
+
+(defclass validator ()
+    ((context :initarg :context :accessor context)
+     (cdatap :initform nil :accessor cdatap)))
+
+(defun make-validator (dtd root)
+  (make-instance 'validator
+    :context (make-context
+              :handler nil
+              :dtd dtd
+              :model-stack (list (make-root-model root)))))
+
+(macrolet ((with-context ((validator) &body body)
+             `(let ((*ctx* (context ,validator))
+                    (*validate* t))
+                ,@body)))
+  (defmethod sax:start-element ((handler validator) uri lname qname attributes)
+    uri lname
+    (with-context (handler)
+      (validate-start-element *ctx* qname)
+      (process-attributes *ctx* qname attributes)))
+
+  (defmethod sax:start-cdata ((handler validator))
+    (setf (cdatap handler) t))
+
+  (defmethod sax:characters ((handler validator) data)
+    (with-context (handler)
+      (validate-characters *ctx* (if (cdatap handler) #"hack" data))))
+
+  (defmethod sax:end-cdata ((handler validator))
+    (setf (cdatap handler) nil))
+
+  (defmethod sax:end-element ((handler validator) uri lname qname)
+    uri lname
+    (with-context (handler)
+      (validate-end-element *ctx* qname))))

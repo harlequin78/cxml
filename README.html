@@ -202,13 +202,13 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
         indentation</strike> (done), user-specified encoding, etc.
       </li>
       <li>
-        There are still thread-safety issues.
+        <b>There are still thread-safety issues.</b>
       </li>
       <li>
         <strike>Validation!</strike> (done)
       </li>
       <li>
-        Review the namespace handling.&nbsp; Upgrade the DOM
+        <b>Review and fix namespace handling.</b>&nbsp; Upgrade the DOM
         implementation to DOM Level 2 for complete namespace support.
       </li>
       <li>
@@ -269,10 +269,10 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     <p>
       <div class="def">Function CXML:PARSE-DTD-FILE (pathname)</div>
       <div class="def">Function CXML:PARSE-DTD-STREAM (stream)</div>
-      Parse a <a
+      Parse <a
       href="http://www.w3.org/TR/2000/REC-xml-20001006#NT-extSubset">declarations</a>
-      from a stand-alone file and return an opaque instance representing
-      the DTD, suitable as an argument to <tt>validate</tt>.
+      from a stand-alone file and return an object representing the DTD,
+      suitable as an argument to <tt>validate</tt>.
     </p>
     <ul>
       <li><tt>pathname</tt> -- a Common Lisp pathname</li>
@@ -337,6 +337,26 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       resulting document in both cases is UTF-8 encoded, so the
       characters written by <tt>unparse-document</tt> are really UTF-8
       bytes encoded as characters.
+    </p>
+
+    <p>
+      <div class="def">Function CXML:MAKE-VALIDATOR (dtd root)</div>
+      Create a SAX handler which validates against a DTD instance.&nbsp;
+      The document's root element must be named <tt>root</tt>.&nbsp; 
+      Used with <tt>dom:map-document</tt>, this validates a document
+      object as if by re-reading it with a validating parser, except
+      that declarations recorded in the document instance are completely
+      ignored.<br/>
+      Example:
+    </p>
+    <pre>(let ((d (parse-file "~/test.xml" (dom:make-dom-builder)))
+      (x (parse-dtd-file "~/test.dtd")))
+  (dom:map-document (cxml:make-validator x #"foo") d))</pre>
+
+    <p>
+      <div class="def">Function DOM:MAP-DOCUMENT (handler document &key include-xmlns-attributes include-default-values)</div>
+      Traverse a DOM document and call SAX functions as if an XML
+      representation of the document were processed by a SAX parser.
     </p>
 
     <a name="sax"/>

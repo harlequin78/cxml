@@ -109,4 +109,5 @@
 
    #:map-node-list
    #:do-node-list
-   #:create-document))
+   #:create-document
+   #:map-document))
