@@ -2001,9 +2001,17 @@
           (rod (puri:render-uri uri nil)))
       nil))
 
+(defun safe-parse-uri (str)
+  ;; puri doesn't like strings starting with file:///, although that is a very
+  ;; common is practise.  Cut it away, we don't distinguish between scheme
+  ;; :FILE and NIL anway.
+  (when (eql (search "file://" str) 0)
+    (setf str (subseq str (length "file://"))))
+  (puri:parse-uri str))
+
 (defun p/system-literal (input)
   (let* ((rod (p/id input))
-         (result (puri:parse-uri (rod-string rod))))
+         (result (safe-parse-uri (rod-string rod))))
     (setf (getf (puri:uri-plist result) 'original-rod) rod)
     result))
 

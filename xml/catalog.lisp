@@ -42,7 +42,7 @@
 
 (defun parse-catalog-file/strict (uri)
   (when (stringp uri)
-    (setf uri (puri:parse-uri uri)))
+    (setf uri (safe-parse-uri uri)))
   (let* ((cxml
           (slot-value (asdf:find-system :cxml) 'asdf::relative-pathname))
          (dtd
@@ -91,7 +91,7 @@
         (base-stack handler))
   (flet ((geturi (lname)
            (puri:merge-uris
-            (puri:parse-uri (rod-string (get-attribute/lname lname attrs)))
+            (safe-parse-uri (rod-string (get-attribute/lname lname attrs)))
             (base handler))))
     (cond
       ((rod= lname #"public")
