@@ -454,7 +454,11 @@
   (length (slot-value node 'value)))
 
 (defmethod dom:substring-data ((node character-data) offset count)
-  (subseq (slot-value node 'value) offset (+ offset count)))
+  (with-slots (value) node
+    (unless (<= 0 offset (length value))
+      (dom-error :INDEX_SIZE_ERR "offset is invalid"))
+    (let ((end (min (length value) (+ offset count))))
+      (subseq value offset end))))
 
 (defmethod dom:append-data ((node character-data) arg)
   (assert-writeable node)
