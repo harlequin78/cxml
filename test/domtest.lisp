@@ -539,7 +539,8 @@
 (defun assert-have-implementation-attribute (element)
   (let ((attribute (runes:rod-string (dom:get-attribute element "name"))))
     (string-case attribute
-      ("validating")
+      ("validating"
+        (setf cxml::*validate* t))
       (t
         (format t "~&implementationAttribute ~A not supported, skipping test~%"
                 attribute)
@@ -627,7 +628,7 @@
               (incf ntried)
               (with-simple-restart (skip-test "Skip this test")
                 (handler-case
-                    (let ((cxml::*validate* t))
+                    (let ((cxml::*validate* nil))
                       (funcall (compile nil lisp)))
                   (serious-condition (c)
                     (incf nfailed)
@@ -638,7 +639,8 @@
 
 (defun run-test (*directory* href)
   (let* ((test-directory (merge-pathnames "tests/level1/core/" *directory*))
-         (lisp (slurp-test (merge-pathnames href test-directory))))
+         (lisp (slurp-test (merge-pathnames href test-directory)))
+         (cxml::*validate* nil))
     (print lisp)
     (when lisp
       (funcall (compile nil lisp)))))
