@@ -19,7 +19,7 @@
 	       for (keys . forms) in clauses
 	       for test = (etypecase keys
 			    (string `(string= ,key ,keys))
-			    (sequence `(find ,key ,keys :test 'string=))
+			    (sequence `(find ,key ',keys :test 'string=))
 			    ((eql t) t))
 	       collect
 		 `(,test ,@forms))))))
@@ -244,6 +244,7 @@
     ("decrement"	(translate-unary-assignment '- element))
     ("length"		(translate-length element))
     ("load"		(translate-load element))
+    ("nodeType"		(translate-node-type element))
     ("plus"		(translate-binary-assignment '+ element))
     ("try"		(translate-try element))
     ("while"		(translate-while element))
@@ -306,6 +307,25 @@
 (defun translate-fail (element)
   (declare (ignore element))
   `(error "failed"))
+
+(defun translate-node-type (element)
+  ;; XXX Die DOM-Tests erwarten, dass enums auf int gemappt wird.  CXML
+  ;; (wie auch das IDL/Lisp Mapping) machen aber Keywords draus...
+  (with-attributes (|var| |obj|) element
+    (maybe-setf (%intern |var|)
+                `(ecase (dom:node-type ,(%intern |obj|))
+                   (:element                1)
+                   (:attribute              2)
+                   (:text                   3)
+                   (:cdata-section          4)
+                   (:entity-reference       5)
+                   (:entity                 6)
+                   (:processing-instruction 7)
+                   (:comment                8)
+                   (:document               9)
+                   (:document-type          10)
+                   (:document-fragment      11)
+                   (:notation               12)))))
 
 (defun translate-member (element)
   (let* ((name (dom:tag-name element))
@@ -431,7 +451,7 @@
   (catch 'give-up
     (let* ((test (dom:document-element (xml:parse-file pathname)))
            title
-           (variables '())
+           (bindings '())
            (code '()))
       (declare (ignore title))
       (do-child-elements (e test)
@@ -440,14 +460,18 @@
             (let ((title-element (find-child-element "title" e)))
               (setf title (dom:data (dom:first-child title-element)))))
           ("var"
-            (push (%intern (dom:get-attribute e "name")) variables))
+            (push (list (%intern (dom:get-attribute e "name"))
+                        (string-case (dom:get-attribute e "type")
+                          (("byte" "short" "int" "long") 0)
+                          (t nil)))
+                  bindings))
           ("implementationAttribute"
             (assert-have-implementation-attribute e))
           (t
             (push (translate-statement e) code))))
       `(lambda ()
-         (let (,@variables)
-           (declare (ignorable ,@variables))
+         (let (,@bindings)
+           (declare (ignorable ,@(mapcar #'car bindings)))
            ,@(reverse code))))))
 
 (defun load-file (name &optional will-be-modified-p)
