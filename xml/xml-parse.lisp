@@ -2708,7 +2708,7 @@
            :name (make-stream-name
                   :entity-name "main document"
                   :entity-kind :main
-                  :file-name (or (ignore-errors (pathname *standard-output*))
+                  :file-name (or (ignore-errors (pathname stream))
                                  *default-pathname-defaults*))
            :initial-speed 1))
          (zstream (make-zstream :input-stack (list xstream))))
