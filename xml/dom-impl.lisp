@@ -684,7 +684,9 @@
 (defmethod dom:named-node-map-p ((object t)) nil)
 
 
-;; importNode
+;;; IMPORT-NODE
+
+(defvar *clone-not-import* nil)         ;not beautiful, I know.  See below.
 
 (defmethod import-node-internal (class document node deep &rest initargs)
   (let ((result (apply #'make-instance class :owner document initargs)))
@@ -706,7 +708,7 @@
   (let ((result (import-node-internal 'element document node deep
                                       :tag-name (dom:tag-name node))))
     (dolist (attribute (dom:items (dom:attributes node)))
-      (when (dom:specified attribute)
+      (when (or (dom:specified attribute) *clone-not-import*)
         (dom:set-attribute result (dom:name attribute) (dom:value attribute))))
     result))
 
@@ -742,3 +744,16 @@
     ((document document) (node character-data) deep)
   (import-node-internal (class-of node) document node deep
                         :data (dom:data node)))
+
+;;; CLONE-NODE
+;;;
+;;; As far as I can tell, cloneNode is the same as importNode, except
+;;; for one difference involving element attributes: importNode imports
+;;; only specified attributes, cloneNode copies even default values.
+;;;
+;;; Since I don't want to reimplement all of importNode here, we run
+;;; importNode with a special flag...
+
+(defmethod dom:clone-node ((node node) deep)
+  (let ((*clone-not-import* t))
+    (dom:import-node (dom:owner-document node) node deep)))
