@@ -228,13 +228,12 @@
 (defparameter *catalog-dtd*
     (let* ((cxml
             (slot-value (asdf:find-system :cxml) 'asdf::relative-pathname))
-           (dtd
-            (merge-pathnames "catalog.dtd" cxml))
-           (bytes
-            (make-array (file-length dtd) :element-type '(unsigned-byte 8))))
+           (dtd (merge-pathnames "catalog.dtd" cxml)))
       (with-open-file (s dtd :element-type '(unsigned-byte 8))
-        (read-sequence bytes s))
-      bytes))
+        (let ((bytes
+               (make-array (file-length s) :element-type '(unsigned-byte 8))))
+          (read-sequence bytes s)
+          bytes))))
 
 (defun parse-catalog-file/strict (uri)
   (let* ((*catalog* nil)
