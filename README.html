@@ -51,7 +51,7 @@
         href="http://www.knowledgetools.de">knowledgeTools</a>
         (conversion into an independent package; DOM bug fixing; validation)
         and <a href="http://www.headcraft.de/">headcraft</a>
-        (cleanup of External ID handling, DTD caching).
+        (most of the october 2004 release).
       </li>
     </ul>
 
@@ -62,7 +62,7 @@
 
     <h2>Download</h2>
     <p>
-      Get a <a href="http://www.common-lisp.net/project/cxml/download/">tarball</a>.
+      Get a <a href="http://common-lisp.net/project/cxml/download/">tarball</a>.
     </p>
     <p>
       David's tla archive is at <a
@@ -70,6 +70,9 @@
       (Brief tla usage instructions: Unpack the cxml tarball.&nbsp;
       Enter <tt>tla register-archive URL</tt> to turn it into a working
       copy.&nbsp; <tt>tla update</tt> is similar to <tt>cvs up</tt>.)
+      Note that this used to
+      be <tt><strike>www.</strike>common-lisp.net</tt> and is
+      now just <tt>common-lisp.net</tt>.
     </p>
 
     <h1>Contents</h1>
@@ -98,13 +101,14 @@
 
     <a name="changes"/>
     <h2>Recent Changes</h2>
-    <p class="nomargin"><tt>patch-xyz</tt> (2004-xx-yy)</p>
+    <p class="nomargin"><tt>patch-357</tt> (2004-10-10)</p>
     <ul class="nomargin">
       <li>Auto-detect unicode support for better asdf-installability.</li>
       <li>Use the puri library for Sys-ID handling.</li>
       <li>Semi-automatic caching of DTD instances.</li>
       <li>Support user-defined entity resolvers.</li>
       <li>Support for Oasis XML Catalogs.</li>
+      <li>xhtmlgen version of Franz htmlgen.</li>
       <li>Fixes for SBCL's unicode support.</li>
     </ul>
     <p class="nomargin"><tt>patch-306</tt> (2004-09-03)</p>
@@ -183,7 +187,10 @@
       at compile-time which string representation to use.  To override
       the auto-detection, you can set one of the features
       <tt>:rune-is-character</tt> and <tt>:rune-is-octet</tt> before
-      loading <tt>cxml.asd</tt>.
+      loading <tt>cxml.asd</tt>.  (<tt>fixme</tt>: feature
+      <tt>:rune-is-octet</tt> is of course misnamed, since it uses 16bit
+      runes, not 8bit runes.  It will probably be renamed
+      to <tt>:rune-is-integer</tt> at some point.)
     </p>
 
     <p>
@@ -511,6 +518,33 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       (Note that these functions accept both strings and rods, so we
       could write <tt>"foo"</tt> instead of <tt>#"foo"</tt> above.)
    </p>
+
+    <p>
+      <div class="def">Macro XHTML-GENERATOR:WITH-XHTML (sink &rest forms)</div>
+      <div class="def">Macro XHTML-GENERATOR:WRITE-DOCTYPE (sink)</div>
+      Macro <tt>with-xhtml</tt> is a modified version of
+      Franz' <tt>html</tt> Makro which works as a SAX driver for XHTML.
+      It aims to be a plug-in replacement for the <tt>html</tt> macro.
+    </p>
+    <p>
+      <tt>xhtmlgen</tt> is included as <tt>contrib/xhtmlgen.lisp</tt> in
+      the cxml distribution.  Example:
+    </p>
+    <pre>(let ((sink (cxml:make-character-stream-sink *standard-output*)))
+  (sax:start-document sink)
+  (xhtml-generator:write-doctype sink)
+  (xhtml-generator:with-html sink
+    (:html
+     (:head
+      (:title "Titel"))
+     (:body
+      ((:p "style" "font-weight: bold")
+       "Inhalt")
+      (:ul
+       (:li "Eins")
+       (:li "Zwei")
+       (:li "Drei")))))
+  (sax:end-document sink))</pre>
 
     <a name="misc"/>
     <h3>Miscellaneous Utility Functions</h3>
