@@ -10,7 +10,7 @@
            ((equal version "XML1.0")
              (cond
                ((equal (dom:get-attribute test "NAMESPACE") "no")
-                 (warn "~A: test applies to parsers without namespace support, skipping"
+                 (format t "~A: test applies to parsers without namespace support, skipping~%"
                        (dom:get-attribute test "URI"))
                  nil)
                (t
@@ -22,18 +22,36 @@
              (warn "unrecognized RECOMMENDATION value: ~A" version)
              nil)))))
 
+(defun test-pathnames (directory test)
+  (let* ((sub-directory
+          (loop
+              for parent = test then (dom:parent-node parent)
+              for base = (dom:get-attribute parent "xml:base")
+              until base
+              finally (return (merge-pathnames base directory))))
+         (uri (dom:get-attribute test "URI"))
+         (output (dom:get-attribute test "OUTPUT")))
+    (values (merge-pathnames uri sub-directory)
+            (when output (merge-pathnames output sub-directory)))))
+
+(defun serialize-document (document)
+  (map 'vector #'char-code
+       (with-output-to-string (s)
+         (xml:unparse-document document s))))
+
+(defun file-contents (pathname)
+  (with-open-file (s pathname)
+    (let ((result
+           (make-array (file-length s) :element-type '(unsigned-byte 8))))
+      (read-sequence result s )
+      result)))
+
 (defun test-xml-conformance (directory)
   (let ((xmlconf (xml:parse-file (merge-pathnames "xmlconf.xml" directory))))
     (dolist (test (dom:get-elements-by-tag-name xmlconf "TEST"))
       (when (relevant-test-p test)
-        (let* ((uri (dom:get-attribute test "URI"))
-               (base
-                (loop
-                    for parent = test then (dom:parent-node parent)
-                    for base = (dom:get-attribute parent "xml:base")
-                    until base
-                    finally (return base)))
-               (pathname (merge-pathnames uri (merge-pathnames base directory))))
+        (multiple-value-bind (pathname output)
+            (test-pathnames directory test)
           (princ pathname)
           (unless (probe-file pathname)
             (error "file not found: ~A" pathname))
@@ -41,8 +59,22 @@
             (handler-case
                 (progn
                   (mp:with-timeout (60)
-                    (xml:parse-file pathname))
-                  (format t " ok~%"))
+                    (let ((document (xml:parse-file pathname)))
+                      (cond
+                        ((null output)
+                          (format t " ok (output not checked)~%"))
+                        ((equalp (file-contents output)
+                                 (serialize-document document))
+                          (format t " ok~%"))
+                        (t
+                          (let ((error-output
+                                 (make-pathname :type "error" :defaults output)))
+                            (with-open-file (s error-output
+                                             :direction :output
+                                             :if-exists :supersede)
+                              (write-sequence (serialize-document document) s))
+                            (error "well-formed, but output ~S not the expected ~S~%"
+                                   output error-output)))))))
               ((and serious-condition (not excl:interrupt-signal)) (c)
                 (format t " FAILED:~%  ~A~%[~A]~%"
                         c
