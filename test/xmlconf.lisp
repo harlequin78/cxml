@@ -6,6 +6,13 @@
 (defun get-attribute (element name)
   (rod-string (dom:get-attribute element name)))
 
+(defparameter *bad-tests*
+    '(;; TS14
+      ;; http://lists.w3.org/Archives/Public/public-xml-testsuite/2002Mar/0001.html
+      "ibm-valid-P28-ibm28v02.xml"
+      "ibm-valid-P29-ibm29v01.xml"
+      "ibm-valid-P29-ibm29v02.xml"))
+
 (defun relevant-test-p (test)
   (and (equal (get-attribute test "TYPE") "valid")
        (let ((version (get-attribute test "RECOMMENDATION")))
@@ -24,7 +31,8 @@
              nil)
            (t
              (warn "unrecognized RECOMMENDATION value: ~S" version)
-             nil)))))
+             nil)))
+       (not (member (get-attribute test "ID") *bad-tests* :test 'equal))))
 
 (defun test-pathnames (directory test)
   (let* ((sub-directory
