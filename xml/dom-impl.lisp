@@ -471,7 +471,8 @@
     (when (minusp count)
       (dom-error :INDEX_SIZE_ERR "count is negative"))
     (setf count (min count (- (length value) offset)))
-    (let ((new (make-array (- (length value) count) :element-type (type-of value))))
+    (let ((new (make-array (- (length value) count)
+                           :element-type (array-element-type value))))
       (replace new value 
                :start1 0 :end1 offset
                :start2 0 :end2 offset)
