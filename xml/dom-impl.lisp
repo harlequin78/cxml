@@ -284,6 +284,13 @@
   (assert-writeable node)
   (unless (can-adopt-p node new-child)
     (dom-error :HIERARCHY_REQUEST_ERR "~S cannot adopt ~S." node new-child))
+  (when (eq (dom:node-type node) :document)
+    (let ((child-type (dom:node-type new-child)))
+      (when (and (member child-type '(:element :document-type))
+                 (find child-type (dom:child-nodes node) :key #'dom:node-type))
+        (dom-error :HIERARCHY_REQUEST_ERR
+                   "~S cannot adopt a second child of type ~S."
+                   node child-type))))
   (unless (eq (dom:owner-document node) 
               (dom:owner-document new-child))
     (dom-error :WRONG_DOCUMENT_ERR
