@@ -146,12 +146,6 @@
     </p>
 
     <p>
-      <a href="http://www.cliki.net/asdf">ASDF</a> is used for
-      compilation.  The following instructions assume that ASDF has
-      already been loaded.
-    </p>
-
-    <p>
       Optional configuration (skip this unless you know better): CXML
       has full Unicode code support -- even on Lisps without Unicode
       strings.  On non-unicode aware Lisps, <tt>DOMString</tt> is
@@ -163,10 +157,21 @@
     </p>
 
     <p>
+      <a href="http://www.cliki.net/asdf">ASDF</a> is used for
+      compilation.  The following instructions assume that ASDF has
+      already been loaded.
+    </p>
+
+    <p>
+      <b>Prerequisites.</b>
+      CXML required <a href="http://www.cliki.net/Puri">puri</a>.
+    </p>
+
+    <p>
       <b>Compiling and loading CXML.</b>
       Register the .asd file, e.g. by symlinking it:
     </p>
-    <pre>$ ln -sf `pwd`/cxms.asd /path/to/your/registry</pre>
+    <pre>$ ln -sf `pwd`/cxms.asd /path/to/your/registry/</pre>
     <p>Then compile CXML using:</p>
     <pre>* (asdf:operate 'asdf:load-op :cxml)</pre>
 

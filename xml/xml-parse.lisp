@@ -264,7 +264,7 @@
 (defstruct (stream-name (:type list))
   entity-name
   entity-kind
-  file-name)
+  uri)
 
 (defun print-xstream (self sink depth)
   (declare (ignore depth))
@@ -852,13 +852,12 @@
         (split-sequence-if #'whitespacep rod :remove-empty-subseqs t))))
 
 (defun absolute-uri (sysid source-stream)
-  (setq sysid (rod-string sysid))
   (let ((base-sysid
          (dolist (k (zstream-input-stack source-stream))
-           (let ((base-sysid (stream-name-file-name (xstream-name k))))
+           (let ((base-sysid (stream-name-uri (xstream-name k))))
              (when base-sysid (return base-sysid))))))
     (assert (not (null base-sysid)))
-    (merge-sysid sysid base-sysid)))
+    (puri:merge-uris sysid base-sysid)))
 
 (defun absolute-extid (source-stream extid)
   (case (car extid)
@@ -912,7 +911,7 @@
          (setf (xstream-name r)
            (make-stream-name :entity-name entity-name
                              :entity-kind kind
-                             :file-name nil)))
+                             :uri nil)))
         (:EXTERNAL
          (setf r (open-extid (cadr def)))
          (setf (stream-name-entity-name (xstream-name r)) entity-name
@@ -930,7 +929,7 @@
                (:SYSTEM (cadr extid))
                (:PUBLIC (caddr extid)))))
     (make-xstream (open-sysid nam)
-                  :name (make-stream-name :file-name nam)
+                  :name (make-stream-name :uri nam)
                   :initial-speed 1)))
 
 (defun call-with-entity-expansion-as-stream (zstream cont name kind)
@@ -1865,10 +1864,12 @@
     (:EXTERNAL
       (destructuring-bind ((ps lit1 &optional lit2) ndata) (cdr def)
         (if ndata
-            (sax:unparsed-entity-declaration h name lit1 lit2 ndata)
-            (ecase ps
-              (:PUBLIC (sax:external-entity-declaration h kind name lit1 lit2))
-              (:SYSTEM (sax:external-entity-declaration h kind name nil lit1))))))
+            (sax:unparsed-entity-declaration h name lit1 (uri-rod lit2) ndata)
+            (multiple-value-bind (public system)
+                (ecase ps
+                  (:PUBLIC (values lit1 (uri-rod lit2)))
+                  (:SYSTEM (values nil (uri-rod lit1))))
+              (sax:external-entity-declaration h kind name public system)))))
     (:INTERNAL
       (sax:internal-entity-declaration h kind name (cadr def)))))
 
@@ -1917,8 +1918,7 @@
   (multiple-value-bind (cat sem) (read-token input)
     (cond ((and (eq cat :name) (equalp sem '#.(string-rod "SYSTEM")))
            (p/S input)
-           (list :SYSTEM (p/system-literal input))
-           )
+           (list :SYSTEM (p/system-literal input)))
           ((and (eq cat :name) (equalp sem '#.(string-rod "PUBLIC")))
            (let (pub sys)
              (p/S input)
@@ -1927,8 +1927,6 @@
                (p/S input)
                (when (member (peek-token input) '(:\" :\'))
                  (setf sys (p/system-literal input))))
-             (unless (every #'pubid-char-p pub)
-               (error "Illegal pubid: ~S." (rod-string pub)))
              (when (and (not public-only-ok-p)
                         (null sys))
                (error "System identifier needed for this PUBLIC external identifier."))
@@ -1942,7 +1940,7 @@
 ;;  [13]     PubidChar ::= #x20 | #xD | #xA | [a-zA-Z0-9]
 ;;                         | [-'()+,./:=?;!*#@$_%]
 
-(defun p/system-literal (input)
+(defun p/id (input)
   (multiple-value-bind (cat) (read-token input)
     (cond ((member cat '(:\" :\'))
            (let ((delim (if (eq cat :\") #/\" #/\')))
@@ -1958,9 +1956,25 @@
           (t
            (error "Expect either \" or \'.")))))
 
+;; it is important to cache the orginal URI rod, since the re-serialized
+;; uri-string can be different from the one parsed originally.
+(defun uri-rod (uri)
+  (if uri
+      (or (getf (puri:uri-plist uri) 'original-rod)
+          (rod (puri:render-uri uri nil)))
+      nil))
+
+(defun p/system-literal (input)
+  (let* ((rod (p/id input))
+         (result (puri:parse-uri (rod-string rod))))
+    (setf (getf (puri:uri-plist result) 'original-rod) rod)
+    result))
+
 (defun p/pubid-literal (input)
-  ;; xxx check for valid chars
-  (p/system-literal input))
+  (let ((result (p/id input)))
+    (unless (every #'pubid-char-p result)
+      (error "Illegal pubid: ~S." (rod-string result)))
+    result))
 
 
 ;;;;
@@ -2207,9 +2221,9 @@
     (case (car id)
       ;; XXX are these right?
       (:SYSTEM
-        (sax:notation-declaration (handler *ctx*) name nil (cadr id)))
+        (sax:notation-declaration (handler *ctx*) name nil (uri-rod (cadr id))))
       (:PUBLIC
-        (sax:notation-declaration (handler *ctx*) name (normalize-public-id (cadr id)) (caddr id))))
+        (sax:notation-declaration (handler *ctx*) name (normalize-public-id (cadr id)) (uri-rod (caddr id)))))
     (when *validate*
       (define-notation (dtd *ctx*) name id))
     (list :notation-decl name id)))
@@ -2373,8 +2387,8 @@
           (setf extid (p/external-id input t))))
       (p/S? input)
       (ecase (car extid)
-        (:PUBLIC (sax:start-dtd (handler *ctx*) name (cadr extid) (caddr extid)))
-        (:SYSTEM (sax:start-dtd (handler *ctx*) name nil (cadr extid)))
+        (:PUBLIC (sax:start-dtd (handler *ctx*) name (cadr extid) (uri-rod (caddr extid))))
+        (:SYSTEM (sax:start-dtd (handler *ctx*) name nil (uri-rod (cadr extid))))
         ((nil) (sax:start-dtd (handler *ctx*) name nil nil)))
       (when (eq (peek-token input) :\[ )
         (consume-token input)
@@ -2689,17 +2703,86 @@
 ;;;; ---------------------------------------------------------------------------
 ;;;; User interface ;;;;
 
+(defun specific-or (component &optional (alternative nil))
+  (if (eq component :unspecific)
+      alternative
+      component))
+
+(defun string-or (str &optional (alternative nil))
+  (if (equal str "")
+      alternative
+      str))
+
+(defun pathname-to-uri (pathname)
+  (let ((path
+         (append (pathname-directory pathname)
+                 (list
+                  (if (specific-or (pathname-type pathname))
+                      (concatenate 'string
+                        (pathname-name pathname)
+                        "."
+                        (pathname-type pathname))
+                      (pathname-name pathname))))))
+    (if (eq (car path) :relative)
+        (make-instance 'puri:uri
+          :path (puri::render-parsed-path path t))
+        (make-instance 'puri:uri
+          :scheme :file
+          :host (specific-or (pathname-host pathname))
+          :path (puri::render-parsed-path
+                 (list* :absolute
+                        (specific-or (pathname-device pathname) "")
+                        (cdr path))
+                 t)))))
+
+(defun parse-name.type (str)
+  (if str
+      (let ((i (position #\. str :from-end t)))
+        (if i
+            (values (subseq str 0 i) (subseq str (1+ i)))
+            (values str nil)))
+      (values nil nil)))
+
+(defun uri-to-pathname (uri)
+  (let ((scheme (puri:uri-scheme uri))
+        (path (puri:uri-parsed-path uri)))
+    (unless (member scheme '(nil :file))
+      (error "URI scheme ~S not supported" scheme))
+    (if (eq (car path) :relative)
+        (multiple-value-bind (name type)
+            (parse-name.type (car (last path)))
+          (make-pathname :directory (butlast path)
+                         :name name
+                         :type type))
+        (multiple-value-bind (name type)
+            (parse-name.type (car (last (cddr path))))
+          (make-pathname :host (puri:uri-host uri)
+                         :device (string-or (cadr path))
+                         :directory (list* :absolute (butlast (cddr path)))
+                         :name name
+                         :type type)))))
+
 (defun parse-file (filename handler &rest args)
   (with-open-xstream (input filename)
     (setf (xstream-name input)
       (make-stream-name
        :entity-name "main document"
        :entity-kind :main
-       :file-name filename))
+       :uri (pathname-to-uri filename)))
     (let ((zstream (make-zstream :input-stack (list input))))
       (peek-rune input)
       (with-scratch-pads ()
        (apply #'p/document zstream handler args)))))
+
+(defun resolve-synonym-stream (stream)
+  (while (typep stream 'synonym-stream)
+    (setf stream (symbol-value (synonym-stream-symbol stream))))
+  stream)
+
+(defun safe-stream-pathname (stream)
+  (if (typep (resolve-synonym-stream stream) 'file-stream)
+      (pathname stream)
+      nil))
 
 (defun parse-stream (stream handler &rest args)
   (let* ((xstream 
@@ -2708,8 +2791,7 @@
            :name (make-stream-name
                   :entity-name "main document"
                   :entity-kind :main
-                  :file-name (or (ignore-errors (pathname stream))
-                                 *default-pathname-defaults*))
+                  :uri (safe-stream-pathname stream))
            :initial-speed 1))
          (zstream (make-zstream :input-stack (list xstream))))
     (with-scratch-pads ()
@@ -2725,7 +2807,7 @@
           (make-stream-name
            :entity-name "dtd"
            :entity-kind :main
-           :file-name (pathname stream)))
+           :uri (safe-stream-pathname stream)))
     (let ((zstream (make-zstream :input-stack (list input)))
           (*ctx* (make-context :handler nil))
           (*validate* t)
@@ -2826,11 +2908,10 @@
        '(consume-token zstream)) )
    name kind))
 
-(defun merge-sysid (sysid base)
-  (merge-pathnames sysid base))
-
 (defun open-sysid (sysid)
-  (open sysid  :element-type '(unsigned-byte 8) :direction :input))
+  (open (uri-to-pathname sysid)
+        :element-type '(unsigned-byte 8)
+        :direction :input))
 
 
 ;;;;

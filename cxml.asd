@@ -82,7 +82,7 @@
      (:file "unparse"         :depends-on ("xml-parse"))
      (:file "xmls-compat"     :depends-on ("xml-parse"))
      (:file "recoder"         :depends-on ("xml-parse")))
-    :depends-on (:runes))
+    :depends-on (:runes :puri))
 
 (asdf:defsystem :dom
     :default-component-class closure-source-file

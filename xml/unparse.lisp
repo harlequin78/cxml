@@ -437,3 +437,7 @@
   (maybe-emit-start-tag)
   (sax:characters *sink* (rod data))
   data)
+
+(defun rod-to-utf8-string (rod)
+  (with-output-to-string (s)
+    (write-rod rod (cxml:make-character-stream-sink s))))

@@ -69,7 +69,10 @@
          (xmlconf (cxml:parse-file pathname builder))
          (ntried 0)
          (nfailed 0)
-         (nskipped 0))
+         (nskipped 0)
+         ;; XXX someone found it funny to include invalid URIs in the
+         ;; test suite.  And no, in "invalid" not "not-wf".
+         (puri:*strict-parse* nil))
     (dom:do-node-list (test (dom:get-elements-by-tag-name xmlconf "TEST"))
       (let ((description
              (rod-string (dom:data (dom:item (dom:child-nodes test) 0))))
@@ -95,6 +98,7 @@
   class pathname output args
   (handler-case
       (call-next-method)
+    #+(or)
     (serious-condition (c)
       (format t " FAILED:~%  ~A~%[~A]~%" c description)
       nil)))
