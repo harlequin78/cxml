@@ -176,35 +176,6 @@ patch-100
 (See also: patch-58, patch-80, patch-82)
 
 
-String-Handling
-----------------
-patch-4
-    renamed dom to cdom, added string-dom
-patch-38
-    diverse setter nachgetragen
-patch-87
-    public-id und system-id in string-dom aufgenommen
-patch-90
-    notation-name in string-dom aufgenommen
-patch-103
-    target im string-dom ergaenzt
-
-
-Misc.
-----------------
-patch-9
-    print elements with their tag-name
-patch-11
-    print attributes with name and value
-
-patch-10
-    reverted by patch-12
-patch-114
-    reverted by patch-115
-patch-63
-    reverted by patch-134
-
-
 DOM-Builder und SAX-Interface
 ----------------
 patch-57
@@ -215,6 +186,29 @@ patch-97
     CDATA sections bauen
 
 (See also: patch-58, patch-80, patch-82, patch-86, patch-118, patch-120)
+
+
+Misc.
+----------------
+patch-9
+    print elements with their tag-name
+patch-11
+    print attributes with name and value
+
+patch-4 patch-38 patch-87 patch-90 patch-103
+    A wrapper package STRING-DOM around the ordinary DOM presents
+    DOMString as Lisp STRING.  This was a workaround until
+    RUNE-IS-CHARACTER was implemented, but might still be useful on
+    Lisps without Unicode support.
+patch-154
+    STRING-DOM nicht mehr verwenden.  File ist aber noch da.
+
+patch-10
+    reverted by patch-12
+patch-114
+    reverted by patch-115
+patch-63
+    reverted by patch-134
 
 
 domtest.cl

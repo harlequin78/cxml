@@ -70,7 +70,11 @@
      (:file "xml-stream"      :depends-on ("package"))
      (:file "xml-name-rune-p" :depends-on ("package"))
      (:file "xml-parse"       :depends-on ("package" "dom-impl" "sax-handler" "encodings" "xml-stream"))
-     (:file "xml-canonic"     :depends-on ("package" "dompack" "xml-parse"))
-     #+(and allegro ics)
-     (:file "string-dom"      :depends-on ("dom-impl")))
-    :depends-on (:cl-package-aliases :glisp))
+     (:file "xml-canonic"     :depends-on ("package" "dompack" "xml-parse")))
+    :depends-on (:glisp))
+
+(asdf:defsystem :cxml-test
+    :default-component-class closure-source-file
+    :pathname (make-pathname :name nil :type nil :defaults *load-truename*)
+    :components ((:file "domtest") (:file "xmlconf"))
+    :depends-on (:cxml))

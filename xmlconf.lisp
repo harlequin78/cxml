@@ -1,6 +1,5 @@
 (defpackage xmlconf
-  (:use :cl :glisp)
-  (:alias (:cdom :dom)))
+  (:use :cl :glisp))
 (in-package :xmlconf)
 
 (defun get-attribute (element name)

@@ -1,16 +1,21 @@
+;;; A wrapper package STRING-DOM around the ordinary DOM presents
+;;; DOMString as Lisp STRING.  This was a workaround until
+;;; RUNE-IS-CHARACTER was implemented, but might still be useful on
+;;; Lisps without Unicode support.
+
 (defpackage :string-dom
   (:use))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (do-external-symbols (var :cdom)
+  (do-external-symbols (var :dom)
     (let* ((home-package
-            (if (member var '(cdom:data cdom:name cdom:value cdom:tag-name
-                              cdom:node-name cdom:node-value
-                              cdom:substring-data cdom:get-attribute
-                              cdom:set-attribute cdom:public-id cdom:system-id
-                              cdom:notation-name cdom:target))
+            (if (member var '(dom:data dom:name dom:value dom:tag-name
+                              dom:node-name dom:node-value
+                              dom:substring-data dom:get-attribute
+                              dom:set-attribute dom:public-id dom:system-id
+                              dom:notation-name dom:target))
                 :string-dom
-                :cdom))
+                :dom))
            (symbol (intern (symbol-name var) home-package)))
       (import symbol :string-dom)
       (export (list symbol) :string-dom))))
@@ -23,39 +28,39 @@
       nil
       (map 'string #'code-char frob)))
 
-(defun string-dom:data (node)		(rod-to-string (cdom:data node)))
-(defun string-dom:name (node)		(rod-to-string (cdom:name node)))
-(defun string-dom:value (node)		(rod-to-string (cdom:value node)))
-(defun string-dom:tag-name (node)	(rod-to-string (cdom:tag-name node)))
-(defun string-dom:node-name (node)	(rod-to-string (cdom:node-name node)))
-(defun string-dom:node-value (node)	(rod-to-string (cdom:node-value node)))
+(defun string-dom:data (node)		(rod-to-string (dom:data node)))
+(defun string-dom:name (node)		(rod-to-string (dom:name node)))
+(defun string-dom:value (node)		(rod-to-string (dom:value node)))
+(defun string-dom:tag-name (node)	(rod-to-string (dom:tag-name node)))
+(defun string-dom:node-name (node)	(rod-to-string (dom:node-name node)))
+(defun string-dom:node-value (node)	(rod-to-string (dom:node-value node)))
 
 (defun (setf string-dom:data) (newval node)
-  (setf (cdom:data node) newval))
+  (setf (dom:data node) newval))
 
 (defun (setf string-dom:value) (newval node)
-  (setf (cdom:value node) newval))
+  (setf (dom:value node) newval))
 
 (defun (setf string-dom:node-value) (newval node)
-  (setf (cdom:node-value node) newval))
+  (setf (dom:node-value node) newval))
 
 (defun string-dom:substring-data (node offset count)
-  (rod-to-string (cdom:substring-data node offset count)))
+  (rod-to-string (dom:substring-data node offset count)))
 
 (defun string-dom:get-attribute (elt name)
-  (rod-to-string (cdom:get-attribute elt name)))
+  (rod-to-string (dom:get-attribute elt name)))
 
 (defun string-dom:set-attribute (elt name value)
-  (cdom:set-attribute elt (glisp:rod name) (glisp:rod value)))
+  (dom:set-attribute elt (glisp:rod name) (glisp:rod value)))
 
 (defun string-dom:public-id (node)
-  (rod-to-string (cdom:public-id node)))
+  (rod-to-string (dom:public-id node)))
 
 (defun string-dom:system-id (node)
-  (rod-to-string (cdom:system-id node)))
+  (rod-to-string (dom:system-id node)))
 
 (defun string-dom:notation-name (node)
-  (rod-to-string (cdom:notation-name node)))
+  (rod-to-string (dom:notation-name node)))
 
 (defun string-dom:target (node)
-  (rod-to-string (cdom:target node)))
+  (rod-to-string (dom:target node)))

@@ -63,10 +63,10 @@
 
 (defmethod sax:start-element ((handler dom-builder) namespace-uri local-name qname attributes)
   (with-slots (document element-stack) handler
-    (let ((element (cdom:create-element document qname))
+    (let ((element (dom:create-element document qname))
 	  (parent (car element-stack)))
       (dolist (attr attributes)
-	(cdom:set-attribute element (xml::attribute-qname attr) (xml::attribute-value attr)))
+	(dom:set-attribute element (xml::attribute-qname attr) (xml::attribute-value attr)))
       (setf (slot-value element 'dom-impl::parent) parent)
       (fast-push element (slot-value parent 'dom-impl::children))
       (push element element-stack))))
@@ -88,13 +88,13 @@
           ;; (XXX Oder sollte man besser den Parser entsprechend aendern?)
           (dom:append-data last-child data))
         (t
-          (let ((node (cdom:create-text-node document data)))
+          (let ((node (dom:create-text-node document data)))
             (setf (slot-value node 'dom-impl::parent) parent)
             (fast-push node (slot-value (car element-stack) 'dom-impl::children))))))))
 
 (defmethod sax:start-cdata ((handler dom-builder))
   (with-slots (document element-stack) handler
-    (let ((node (cdom:create-cdata-section document #()))
+    (let ((node (dom:create-cdata-section document #""))
           (parent (car element-stack)))
       (setf (slot-value node 'dom-impl::parent) parent)
       (fast-push node (slot-value parent 'dom-impl::children))
@@ -106,14 +106,14 @@
 
 (defmethod sax:processing-instruction ((handler dom-builder) target data)
   (with-slots (document element-stack) handler
-    (let ((node (cdom:create-processing-instruction document target data))
+    (let ((node (dom:create-processing-instruction document target data))
           (parent (car element-stack)))
       (setf (slot-value node 'dom-impl::parent) parent)
       (fast-push node (slot-value (car element-stack) 'dom-impl::children)))))
 
 (defmethod sax:comment ((handler dom-builder) data)
   (with-slots (document element-stack) handler
-    (let ((node (cdom:create-comment document data))
+    (let ((node (dom:create-comment document data))
           (parent (car element-stack)))
       (setf (slot-value node 'dom-impl::parent) parent)
       (fast-push node (slot-value (car element-stack) 'dom-impl::children)))))

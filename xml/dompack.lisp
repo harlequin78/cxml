@@ -1,6 +1,6 @@
 (in-package :cl-user)
 
-(defpackage :cdom
+(defpackage :dom
   (:use)
   (:export
    

@@ -1,6 +1,5 @@
 (defpackage :domtest
-  (:use :cl :xml)
-  (:alias (:string-dom :dom)))
+  (:use :cl :xml))
 (defpackage :domtest-tests
   (:use))
 (in-package :domtest)
@@ -63,6 +62,9 @@
 
 ;;;; spezielle Hilfsfunktionen
 
+(defun tag-name (elt)
+  (glisp:rod-string (dom:tag-name elt)))
+
 (defmacro with-attributes ((&rest attributes) element &body body)
   (let ((e (gensym "element")))
     `(let* ((,e ,element)
@@ -77,7 +79,7 @@
             (lambda (node)
               (if (and (eq (dom:node-type node) :element)
                        (or (null name)
-                           (equal (dom:tag-name node) name)))
+                           (equal (tag-name node) name)))
                   (funcall fn node)
                   '#1#))
             (dom:child-nodes element))))
@@ -91,11 +93,15 @@
     (return child)))
 
 (defun %intern (name)
+  (unless (stringp name)
+    (setf name (glisp:rod-string name)))
   (if (zerop (length name))
       nil
       (intern name :domtest-tests)))
 
 (defun replace-studly-caps (str)
+  (unless (stringp str)
+    (setf str (glisp:rod-string str)))
   ;; s/([A-Z][a-z])/-\1/
   (with-output-to-string (out)
     (with-input-from-string (in str)
@@ -118,6 +124,8 @@
   (map-child-elements 'list #'identity element))
 
 (defun parse-java-literal (str)
+  (unless (stringp str)
+    (setf str (glisp:rod-string str)))
   (cond
     ((zerop (length str)) nil)
     ((equal str "true")
@@ -127,16 +135,17 @@
     ((digit-char-p (char str 0))
       (parse-integer str))
     ((char= (char str 0) #\")
-      (with-output-to-string (out)
-        (with-input-from-string (in str)
-          (read-char in)
-          (for ((c = (read-char in))
-                :until (char= c #\"))
-            (if (char= c #\\)
-                (ecase (read-char in)
-                  ;; ...
-                  (#\n (write-char #\newline out)))
-                (write-char c out))))))
+      (glisp:rod
+       (with-output-to-string (out)
+         (with-input-from-string (in str)
+           (read-char in)
+           (for ((c = (read-char in))
+                 :until (char= c #\"))
+               (if (char= c #\\)
+                   (ecase (read-char in)
+                     ;; ...
+                     (#\n (write-char #\newline out)))
+                   (write-char c out)))))))
     (t
       (%intern str))))
 
@@ -176,7 +185,7 @@
 ;;;; Conditions uebersetzen
 
 (defun translate-condition (element)
-  (string-case (dom:tag-name element)
+  (string-case (tag-name element)
     ("equals" (translate-equals element))
     ("contentType" (translate-content-type element))
     ("hasFeature" (translate-has-feature element))
@@ -197,11 +206,17 @@
       (null (set-exclusive-or (coerce a 'list) (coerce b 'list) :test test))
       (funcall test a b)))
 
+(defun %equal (a b)
+  (or (equal a b) (and (glisp::rodp a) (glisp::rodp b) (glisp:rod= a b))))
+
+(defun %equalp (a b)
+  (or (equalp a b) (and (glisp::rodp a) (glisp::rodp b) (glisp:rod-equal a b))))
+
 (defun translate-equals (element)
   (with-attributes (|actual| |expected| |ignoreCase|) element
     `(equalsp ,(%intern actual)
               ,(parse-java-literal expected)
-              ',(if (parse-java-literal |ignoreCase|) 'string-equal 'equal))))
+              ',(if (parse-java-literal |ignoreCase|) '%equal '%equal))))
 
 (defun translate-same (element)
   (with-attributes (|actual| |expected|) element
@@ -213,7 +228,7 @@
 (defun translate-instance-of (element)
   (with-attributes (|obj| |type|) element
     `(eq (dom:node-type ,(%intern |obj|))
-         ',(string-case |type|
+         ',(string-case (glisp:rod-string |type|)
              ("Document" :document)
              ("DocumentFragment" :document-fragment)
              ("Text" :text)
@@ -246,7 +261,7 @@
        |scheme| |path| |host| |file| |name| |query| |fragment| |isAbsolute|)
       element
     |isAbsolute|
-   `(let ((uri (net.uri:parse-uri ,(%intern |actual|))))
+   `(let ((uri (net.uri:parse-uri (glisp:rod-string ,(%intern |actual|)))))
       (flet ((uri-directory (path)
                (namestring
                 (make-pathname :directory (pathname-directory path))))
@@ -257,10 +272,10 @@
                (pathname-name path))
              (maybe-equal (expected actual)
                (if expected
-                   (equal expected actual)
+                   (%equal (glisp::rod expected) (glisp::rod actual))
                    t)))
-        (and (string-equal ,(parse-java-literal |scheme|)
-                           (net.uri:uri-scheme uri))
+        (and (maybe-equal ,(parse-java-literal |scheme|)
+                          (net.uri:uri-scheme uri))
              (maybe-equal ,(parse-java-literal |host|)
                           (net.uri:uri-host uri))
              (maybe-equal ,(parse-java-literal |path|)
@@ -278,7 +293,7 @@
 ;;;; Statements uebersetzen
 
 (defun translate-statement (element)
-  (string-case (dom:tag-name element)
+  (string-case (tag-name element)
     ("append" (translate-append element))
     ("assertDOMException" (translate-assert-domexception element))
     ("assertEquals"	(translate-assert-equals element))
@@ -354,17 +369,16 @@
 (defun translate-has-feature (element)
   (with-attributes (|var| |feature| |version|) element
     (maybe-setf (%intern |var|)
-                `(and (string-equal ,(parse-java-literal |feature|) "XML")
+                `(and (glisp:rod-equal ,(parse-java-literal |feature|) #"XML")
                       (or (zerop (length ,(parse-java-literal |version|)))
-                          (string-equal ,(parse-java-literal |version|) "1.0"))))))
+                          (glisp:rod-equal ,(parse-java-literal |version|) #"1.0"))))))
 
 (defun translate-fail (element)
   (declare (ignore element))
   `(error "failed"))
 
 (defun translate-node-type (element)
-  ;; XXX Die DOM-Tests erwarten, dass enums auf int gemappt wird.  CXML
-  ;; (wie auch das IDL/Lisp Mapping) machen aber Keywords draus...
+  ;; XXX Das muessten eigentlich ints sein, sind aber Keywords in CXML.
   (with-attributes (|var| |obj|) element
     (maybe-setf (%intern |var|)
                 `(ecase (dom:node-type ,(%intern |obj|))
@@ -383,8 +397,8 @@
 
 (defun translate-member (element)
   (let* ((name (dom:tag-name element))
-         (method (find name *methods* :key #'car :test #'equal))
-         (field (find name *fields* :test #'equal)))
+         (method (find name *methods* :key #'car :test #'glisp:rod=))
+         (field (find name *fields* :test #'glisp:rod=)))
     (cond
       (method (translate-call element method))
       (field (translate-get element field))
@@ -419,7 +433,7 @@
       (child-elements element)
     (let (then else)
       (dolist (r rest)
-        (when (equal (dom:tag-name r) "else")
+        (when (equal (tag-name r) "else")
           (setf else (child-elements r))
           (return))
         (push r then))
@@ -438,17 +452,17 @@
 
 (defun translate-assert-domexception (element)
   (do-child-elements (c element)
-    (unless (equal (dom:tag-name c) "metadata")
+    (unless (equal (tag-name c) "metadata")
       (return
         `(block assert-domexception
            (handler-bind
                ((dom-impl::dom-exception
                  (lambda (c)
                    (when (eq (dom-impl::dom-exception-key c)
-                             ,(intern (dom:tag-name c) :keyword))
+                             ,(intern (tag-name c) :keyword))
                      (return-from assert-domexception)))))
              ,@(translate-body c)
-             (error "expected exception ~A" ,(dom:tag-name c))))))))
+             (error "expected exception ~A" ,(tag-name c))))))))
 
 (defun translate-catch (catch return)
   `(lambda (c)
@@ -456,7 +470,8 @@
         'list
         (lambda (exception)
           `(when (eq (dom-impl::dom-exception-key c)
-                     ,(intern (dom:get-attribute exception "code") :keyword))
+                     ,(intern (glisp:rod-string (dom:get-attribute exception "code"))
+                              :keyword))
              ,@(translate-body exception)
              ,return))
         catch)))
@@ -470,7 +485,7 @@
              '(return-from try))))
        ,@(map-child-elements 'list
                              (lambda (c)
-                               (if (equal (dom:tag-name c) "catch")
+                               (if (equal (tag-name c) "catch")
                                    nil
                                    (translate-statement c)))
                              element))))
@@ -515,11 +530,12 @@
      (make-pathname :name name :type "xml" :defaults test-directory))))
 
 (defun assert-have-implementation-attribute (element)
-  (string-case (dom:get-attribute element "name")
-    (t
-      (format t "~&implementationAttribute ~A not supported, skipping test~%"
-              (dom:get-attribute element "name"))
-      (throw 'give-up nil))))
+  (let ((attribute (glisp:rod-string (dom:get-attribute element "name"))))
+    (string-case attribute
+      (t
+        (format t "~&implementationAttribute ~A not supported, skipping test~%"
+                attribute)
+        (throw 'give-up nil)))))
 
 (defun slurp-test (pathname)
   (unless *fields*
@@ -531,13 +547,14 @@
            (code '()))
       (declare (ignore title))
       (do-child-elements (e test)
-        (string-case (dom:tag-name e)
+        (string-case (tag-name e)
           ("metadata"
             (let ((title-element (find-child-element "title" e)))
               (setf title (dom:data (dom:first-child title-element)))))
           ("var"
             (push (list (%intern (dom:get-attribute e "name"))
-                        (string-case (dom:get-attribute e "type")
+                        (string-case (glisp:rod-string
+                                       (dom:get-attribute e "type"))
                           (("byte" "short" "int" "long") 0)
                           (t nil)))
                   bindings)
@@ -562,6 +579,7 @@
 
 (defun load-file (name &optional will-be-modified-p)
   (declare (ignore will-be-modified-p))
+  (setf name (glisp:rod-string name))
   (let* ((directory (merge-pathnames "tests/level1/core/files/" *directory*))
          (document
           (xml:parse-file
@@ -583,10 +601,12 @@
          (nfailed 0))
     (do-child-elements (member suite)
       (unless
-          (member (dom:get-attribute member "href") *bad-tests* :test 'equal)
+          (member (glisp:rod-string (dom:get-attribute member "href"))
+                  *bad-tests*
+                  :test 'equal)
         (incf n)))
     (do-child-elements (member suite)
-      (let ((href (dom:get-attribute member "href")))
+      (let ((href (glisp:rod-string (dom:get-attribute member "href"))))
         (unless (member href *bad-tests* :test 'equal)
           (format t "~&~D/~D ~A~%" i n href)
           (let ((lisp (slurp-test (merge-pathnames href test-directory))))

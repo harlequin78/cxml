@@ -7,12 +7,7 @@
    #:decode-sequence))
 
 (defpackage :xml
-  (:use 
-   :cl
-   :glisp
-   :encoding)
-  (:alias (:cdom :dom))
-  
+  (:use :cl :glisp :encoding)
   (:export
    ;; xstreams
    #:make-xstream
