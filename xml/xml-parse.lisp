@@ -1921,10 +1921,10 @@
 
 (defun p/document (input handler)
   (let ((*handler* handler)
-	(*namespace-bindings* *default-namespace-bindings*))
+	(*namespace-bindings* *default-namespace-bindings*)
+        (*entities* nil)
+        (*dtd* (make-dtd)))
     (declare (special *namespace-bindings*)) ;forward declaration for DEFVAR
-    (setf *entities* nil)
-    (setf *dtd* (make-dtd))
     (define-default-entities)
     (sax:start-document *handler*)
     ;; document ::= XMLDecl? Misc* (doctypedecl Misc*)? element Misc*
