@@ -188,18 +188,20 @@
     ("same" (translate-same element))
     (t (error "unknown condition: ~A" element))))
 
+(defun equalsp (a b test)
+  (when (typep a 'dom-impl::named-node-map)
+    (setf a (dom:items a)))
+  (when (typep b 'dom-impl::named-node-map)
+    (setf b (dom:items b)))
+  (if (and (typep a 'sequence) (typep b 'sequence))
+      (null (set-exclusive-or (coerce a 'list) (coerce b 'list) :test test))
+      (funcall test a b)))
+
 (defun translate-equals (element)
   (with-attributes (|actual| |expected| |ignoreCase|) element
-    `(let ((a ,(%intern actual))
-           (b ,(parse-java-literal expected))
-           (test ',(if (parse-java-literal |ignoreCase|) 'string-equal 'equal)))
-       (when (typep a 'dom-impl::named-node-map)
-         (setf a (dom:items a)))
-       (when (typep b 'dom-impl::named-node-map)
-         (setf b (dom:items b)))
-       (if (and (listp a) (listp b))
-           (null (set-exclusive-or a b :test test))
-           (funcall test a b)))))
+    `(equalsp ,(%intern actual)
+              ,(parse-java-literal expected)
+              ',(if (parse-java-literal |ignoreCase|) 'string-equal 'equal))))
 
 (defun translate-same (element)
   (with-attributes (|actual| |expected|) element
@@ -504,8 +506,8 @@
     `(let ((collection ,(%intern |collection|)))
        (when (typep collection 'dom-impl::named-node-map)
          (setf collection (dom:items collection)))
-       (dolist (,(%intern |member|) collection)
-       ,@(translate-body element)))))
+       (map nil (lambda (,(%intern |member|)) ,@(translate-body element))
+            collection))))
 
 (defun test (name &optional (directory *directory*))
   (let* ((test-directory (merge-pathnames "tests/level1/core/" directory)))
@@ -547,8 +549,9 @@
                                    (list
                                     ,(parse-java-literal
                                       (dom:data
-                                       (car
-                                        (dom:child-nodes member)))))))
+                                       (dom:item
+                                        (dom:child-nodes member)
+                                        0))))))
                     code)))
           ("implementationAttribute"
             (assert-have-implementation-attribute e))

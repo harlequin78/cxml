@@ -15,6 +15,12 @@
 ;;;
 ;;;   -- David
 
+;;; Now at least the children list isn't reversed anymore, because I changed
+;;; the representation to be an extensible vector.  Still its not clear to
+;;; me whether the DOM Builder should be affected by such changes at all.
+;;;
+;;;   -- David
+
 (in-package :dom-impl)
 
 (export 'dom-builder)
@@ -22,6 +28,9 @@
 (defclass dom-builder ()
   ((document      :initform nil :accessor document)
    (element-stack :initform '() :accessor element-stack)))
+
+(defun fast-push (new-element vector)
+  (vector-push-extend new-element vector (array-dimension vector 0)))
 
 (defmethod sax:start-document ((handler dom-builder))
   (let ((document (make-instance 'dom-impl::document)))
@@ -31,8 +40,6 @@
     (push document (element-stack handler))))
 
 (defmethod sax:end-document ((handler dom-builder))
-  (setf (slot-value (document handler) 'children )
-	(nreverse (slot-value (document handler) 'children)))
   (setf (slot-value (document handler) 'entities) xml::*entities*)
   (let ((doctype (dom:doctype (document handler))))
     (when doctype
@@ -59,13 +66,11 @@
       (dolist (attr attributes)
 	(cdom:set-attribute element (xml::attribute-qname attr) (xml::attribute-value attr)))
       (setf (slot-value element 'dom-impl::parent) parent)
-      (push element (slot-value parent 'dom-impl::children))
+      (fast-push element (slot-value parent 'dom-impl::children))
       (push element element-stack))))
 
 (defmethod sax:end-element ((handler dom-builder) namespace-uri local-name qname)
-  (let ((element (pop (element-stack  handler))))
-    (setf (slot-value element 'dom-impl::children)
-	  (nreverse (slot-value element 'dom-impl::children)))))
+  (pop (element-stack handler)))
 
 (defmethod sax:characters ((handler dom-builder) data)
   (with-slots (document element-stack) handler
@@ -74,14 +79,14 @@
           (setf (dom:data parent) data)
           (let ((node (cdom:create-text-node document data)))
             (setf (slot-value node 'dom-impl::parent) parent)
-            (push node (slot-value (car element-stack) 'dom-impl::children)))))))
+            (fast-push node (slot-value (car element-stack) 'dom-impl::children)))))))
 
 (defmethod sax:start-cdata ((handler dom-builder))
   (with-slots (document element-stack) handler
     (let ((node (cdom:create-cdata-section document #()))
           (parent (car element-stack)))
       (setf (slot-value node 'dom-impl::parent) parent)
-      (push node (slot-value parent 'dom-impl::children))
+      (fast-push node (slot-value parent 'dom-impl::children))
       (push node element-stack))))
 
 (defmethod sax:end-cdata ((handler dom-builder))
@@ -93,14 +98,14 @@
     (let ((node (cdom:create-processing-instruction document target data))
           (parent (car element-stack)))
       (setf (slot-value node 'dom-impl::parent) parent)
-      (push node (slot-value (car element-stack) 'dom-impl::children)))))
+      (fast-push node (slot-value (car element-stack) 'dom-impl::children)))))
 
 (defmethod sax:comment ((handler dom-builder) data)
   (with-slots (document element-stack) handler
     (let ((node (cdom:create-comment document data))
           (parent (car element-stack)))
       (setf (slot-value node 'dom-impl::parent) parent)
-      (push node (slot-value (car element-stack) 'dom-impl::children)))))
+      (fast-push node (slot-value (car element-stack) 'dom-impl::children)))))
 
 (defmethod sax:unparsed-entity-declaration
     ((handler dom-builder) name public-id system-id notation-name)

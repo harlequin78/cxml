@@ -20,7 +20,7 @@
 
 (defclass node ()
   ((parent      :initarg :parent        :initform nil)
-   (children    :initarg :children      :initform nil)
+   (children    :initarg :children      :initform (make-node-list))
    (owner       :initarg :owner         :initform nil)
    (read-only-p :initform nil           :reader read-only-p)
    (map         :initform nil)))
@@ -99,6 +99,43 @@
   (when (read-only-p node)
     (dom-error :NO_MODIFICATION_ALLOWED_ERR "~S is marked read-only." node)))
 
+(defmacro dovector ((var vector &optional resultform) &body body)
+  `(loop
+       for ,var across ,vector do (progn ,@body)
+       ,@(when resultform `(finally (return ,resultform)))))
+
+(defun move (from to from-start to-start length)
+  ;; like (setf (subseq to to-start (+ to-start length))
+  ;;            (subseq from from-start (+ from-start length)))
+  ;; but without creating the garbage
+  (if (< to-start from-start)
+      (loop
+          repeat length
+          for i from from-start
+          for j from to-start
+          do (setf (elt to j) (elt from i)))
+      (loop
+          repeat length
+          for i from (+ from-start length -1) by -1
+          for j from (+ to-start length -1) by -1
+          do (setf (elt to j) (elt from i)))))
+
+(defun adjust-vector-exponentially (vector new-dimension set-fill-pointer-p)
+  (let ((d (array-dimension vector 0)))
+    (when (< d new-dimension)
+      (loop
+	  do (setf d (* 2 d))
+	  while (< d new-dimension))
+      (adjust-array vector d))
+    (when set-fill-pointer-p
+      (setf (fill-pointer vector) new-dimension))))
+
+(defun make-space (vector &optional (n 1))
+  (adjust-vector-exponentially vector (+ (length vector) n) nil))
+
+(defun size (vector)
+  (array-dimension vector 0))
+
 ;; dom-exception
 
 (defun dom-error (key fmt &rest args)
@@ -124,7 +161,7 @@
   'implementation)
 
 (defmethod dom:document-element ((document document))
-  (dolist (k (dom:child-nodes document))
+  (dovector (k (dom:child-nodes document))
     (cond ((typep k 'element)
            (return k)))))
 
@@ -189,17 +226,17 @@
 
 (defmethod get-elements-by-tag-name-internal (node tag-name)
   (setf tag-name (rod tag-name))
-  (let ((result nil))
+  (let ((result (make-node-list)))
     (setf tag-name (rod tag-name))
     (let ((wild-p (rod= tag-name '#.(string-rod "*"))))
       (labels ((walk (n)
-                 (dolist (c (dom:child-nodes n))
+                 (dovector (c (dom:child-nodes n))
                    (when (dom:element-p c)
                      (when (or wild-p (rod= tag-name (dom:node-name c)))
-                       (push c result))
+                       (vector-push-extend c result (size result)))
                      (walk c)))))
         (walk node)))
-    (reverse result)))
+    result))
 
 (defmethod dom:get-elements-by-tag-name ((document document) tag-name)
   (get-elements-by-tag-name-internal document tag-name))
@@ -213,28 +250,31 @@
   (slot-value node 'children))
 
 (defmethod dom:first-child ((node node))
-  (car (slot-value node 'children)))
+  (dom:item (slot-value node 'children) 0))
 
 (defmethod dom:last-child ((node node))
-  (car (last (slot-value node 'children))))
+  (with-slots (children) node
+    (if (plusp (length children))
+        (elt children (1- (length children)))
+        nil)))
 
 (defmethod dom:previous-sibling ((node node))
   (with-slots (parent) node
     (when parent
       (with-slots (children) parent
-        (do ((q children (cdr q)))
-            ((null (cdr q)) nil)
-          (cond ((eq (cadr q) node)
-                 (return (car q)))))))))
+        (let ((index (1- (position node children))))
+          (if (eql index -1)
+              nil
+              (elt children index)))))))
 
 (defmethod dom:next-sibling ((node node))
   (with-slots (parent) node
     (when parent
       (with-slots (children) parent
-        (do ((q children (cdr q)))
-            ((null (cdr q)) nil)
-          (cond ((eq (car q) node)
-                 (return (cadr q)))))))))
+        (let ((index (1+ (position node children))))
+          (if (eql index (length children))
+              nil
+              (elt children index)))))))
 
 (defmethod dom:owner-document ((node node))
   (slot-value node 'owner))
@@ -257,67 +297,64 @@
   (unless (null (slot-value new-child 'parent))
     (dom:remove-child (slot-value new-child 'parent) new-child)))
 
-(defmethod dom:insert-before ((node node) (new-child node) (ref-child t))
+(defmethod dom:insert-before ((node node) (new-child node) ref-child)
   (ensure-valid-insertion-request node new-child)
   (with-slots (children) node
-    (cond ((eq (car children) ref-child)
-           (setf (slot-value new-child 'parent) node)
-           (setf children (cons new-child children)))
-          (t
-           (do ((q children (cdr q)))
-               ((null (cdr q))
-                (cond ((null ref-child)
-                       (setf (slot-value new-child 'parent) node)
-                       (setf (cdr q) (cons new-child nil)))
-                      (t
-                       (dom-error :NOT_FOUND_ERR "~S is no child of ~S."
-                                  ref-child node))))
-             (cond ((eq (cadr q) ref-child)
-                    (setf (slot-value new-child 'parent) node)
-                    (setf (cdr q) (cons new-child (cdr q)))
-                    (return))))))
+    (if ref-child
+        (let ((i (position ref-child children)))
+          (unless i
+            (dom-error :NOT_FOUND_ERR "~S is no child of ~S." ref-child node))
+          (make-space children 1)
+          (move children children i (1+ i) (- (length children) i))
+          (incf (fill-pointer children))
+          (setf (elt children i) new-child))
+        (vector-push-extend new-child children (size children)))
+    (setf (slot-value new-child 'parent) node)
     new-child))
 
 (defmethod dom:insert-before ((node node) (fragment document-fragment) ref-child)
-  (dolist (child (dom:child-nodes fragment))
+  (dovector (child (dom:child-nodes fragment))
     (dom:insert-before node child ref-child))
   fragment)
 
 (defmethod dom:replace-child ((node node) (new-child node) (old-child node))
   (ensure-valid-insertion-request node new-child)
   (with-slots (children) node
-    (do ((q children (cdr q)))
-        ((null q)
-         (dom-error :NOT_FOUND_ERR "~S is no child of ~S." old-child node))
-      (cond ((eq (car q) old-child)
-             (setf (car q) new-child)
-             (setf (slot-value new-child 'parent) node)
-             (setf (slot-value old-child 'parent) nil)
-             (return))))
+    (let ((i (position old-child children)))
+      (unless i
+        (dom-error :NOT_FOUND_ERR "~S is no child of ~S." old-child node))
+      (print children)
+      (setf (elt children i) new-child)
+      (print children)
+      ) 
+    (setf (slot-value new-child 'parent) node)
+    (setf (slot-value old-child 'parent) nil)
     old-child))
 
 (defmethod dom:remove-child ((node node) (old-child node))
   (assert-writeable node)
   (with-slots (children) node
-    (unless (find old-child children)
-      (dom-error :NOT_FOUND_ERR "~A not found in ~A" old-child node))
-    (setf children (remove old-child children))
+    (let ((i (position old-child children)))
+      (unless i
+        (dom-error :NOT_FOUND_ERR "~A not found in ~A" old-child node))
+      (move children children (1+ i) i (- (length children) i 1))
+      (decf (fill-pointer children)))
     (setf (slot-value old-child 'parent) nil)
     old-child))
 
 (defmethod dom:append-child ((node node) (new-child node))
   (ensure-valid-insertion-request node new-child)
   (with-slots (children) node
-    (setf children (nconc children (list new-child)))
+    (vector-push-extend new-child children (size children))
     (setf (slot-value new-child 'parent) node)
     new-child))
 
 (defmethod dom:has-child-nodes ((node node))
-  (not (null (slot-value node 'children))))
+  (plusp (length (slot-value node 'children))))
 
 (defmethod dom:append-child ((node node) (new-child document-fragment))
   (assert-writeable node)
-  (dolist (child (dom:child-nodes new-child))
+  (dovector (child (dom:child-nodes new-child))
     (dom:append-child node child))
   new-child)
 
@@ -446,14 +483,25 @@
 
 ;; dann fehlt noch can-adopt und attribute conventions fuer adoption
 
-;;; NodeList (implementieren wir zwar als Liste, hat aber Methoden)
+;;; NodeList
 
-(defmethod dom:item ((self list) index)
-  (do ((nthcdr self (cdr nthcdr))
-       (i index (1- i)))
-      ((zerop i) (car nthcdr))))
+(defun make-node-list (&optional initial-contents)
+  (if (zerop (length initial-contents))
+      (make-array 1                     ;vector-push-extend wants PLUSP size
+                  :adjustable t
+                  :fill-pointer 0
+                  :initial-contents '(nil))
+      (make-array (length initial-contents)
+                  :adjustable t
+                  :fill-pointer (length initial-contents)
+                  :initial-contents initial-contents)))
 
-(defmethod dom:length ((self list))
+(defmethod dom:item ((self vector) index)
+  (if (< index (length self))
+      (elt self index)
+      nil))
+
+(defmethod dom:length ((self vector))
   (length self))
 
 ;;; NAMED-NODE-MAP
@@ -634,20 +682,28 @@
 (defmethod dom:normalize ((element element))
   (assert-writeable element)
   (labels ((walk (n)
-             (let ((previous nil))
-               (dolist (child (dom:child-nodes n))
-                 (cond
-                   ((not (eq (dom:node-type child) :text))
-                     (setf previous nil))
-                   ((and previous (eq (dom:node-type previous) :text))
-                     (setf (slot-value previous 'value)
-                           (concatenate 'vector
-                             (dom:data previous)
-                             (dom:data child)))
-                     (dom:remove-child n child))
-                   (t
-                     (setf previous child))))) 
-             (mapc #'walk (dom:child-nodes n))))
+             (let ((children (dom:child-nodes n))
+                   (i 0)
+                   (previous nil))
+               ;; careful here, we're modifying the array we are iterating over
+               (while (< i (length children))
+                 (let ((child (elt children i)))
+                   (cond
+                     ((not (eq (dom:node-type child) :text))
+                       (setf previous nil)
+                       (incf i))
+                     ((and previous (eq (dom:node-type previous) :text))
+                       (setf (slot-value previous 'value)
+                             (concatenate 'vector
+                               (dom:data previous)
+                               (dom:data child)))
+                       (dom:remove-child n child)
+                       ;; not (incf i)
+                       )
+                     (t
+                       (setf previous child)
+                       (incf i)))))) 
+             (map nil #'walk (dom:child-nodes n))))
     (walk element))
   (values))
 
@@ -678,12 +734,15 @@
          (entities (or (entities owner) xml::*entities*))
          (children (xml::resolve-entity (dom:name instance) entities)))
     (setf (slot-value instance 'children)
-          (mapcar (lambda (node) (dom:import-node owner node t)) children)))
+          (make-node-list
+           (map 'vector
+             (lambda (node) (dom:import-node owner node t))
+             children))))
   (labels ((walk (n)
              (setf (slot-value n 'read-only-p) t)
              (when (dom:element-p n)
-               (mapc #'walk (dom:items (dom:attributes n))))
-             (mapc #'walk (dom:child-nodes n))))
+               (map nil #'walk (dom:items (dom:attributes n))))
+             (map nil #'walk (dom:child-nodes n))))
     (walk instance)))
 
 ;;; PROCESSING-INSTRUCTION
@@ -769,7 +828,7 @@
 (defmethod import-node-internal (class document node deep &rest initargs)
   (let ((result (apply #'make-instance class :owner document initargs)))
     (when deep
-      (dolist (child (dom:child-nodes node))
+      (dovector (child (dom:child-nodes node))
         (dom:append-child result (dom:import-node document child t))))
     result))
 
