@@ -25,7 +25,7 @@
 
 (defmethod sax:start-document ((handler dom-builder))
   (let ((document (make-instance 'dom-impl::document)))
-    (setf (slot-value document 'dom-impl::owner) document
+    (setf (slot-value document 'dom-impl::owner) nil
 	  (slot-value document 'dom-impl::doc-type) nil)
     (setf (document handler) document)
     (push document (element-stack handler))))
