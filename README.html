@@ -397,11 +397,11 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       Example:
     </p>
     <pre>(with-xml-output (make-octet-stream-sink stream :indentation 2 :canonical nil)
-  (with-element #"foo"
-    (attribute #"xyz" #"abc")
-    (with-element #"bar"
-      (attribute #"blub" #"bla"))
-    (text #"Hi there.")))</pre>
+  (with-element "foo"
+    (attribute "xyz" "abc")
+    (with-element "bar"
+      (attribute "blub" "bla"))
+    (text "Hi there.")))</pre>
    <p>
       Prints this to <tt>stream</tt>, which must be an
       <tt>(unsigned-byte 8)</tt> stream:
@@ -410,6 +410,10 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
   &lt;bar blub="bla"&gt;&lt;/bar&gt;
   Hi there.
 &lt;/foo&gt;</pre>
+   <p>
+      (Note that these functions accept both strings and rods, so we
+      could write <tt>"foo"</tt> instead of <tt>#"foo"</tt> above.)
+   </p>
 
     <a name="misc"/>
     <h3>Miscellaneous utility functions</h3>

@@ -399,8 +399,8 @@
     (sax:end-document *sink*)))
 
 (defmacro with-element (qname &body body)
-  ;; XXX Statt qname soll man in zukunft auch mal (lname uri) angeben koennen.
-  ;; Hat aber Zeit bis DOM 2.
+  ;; XXX Statt qname soll man in zukunft auch mal (lname prefix) angeben
+  ;; koennen.  Hat aber Zeit bis DOM 2.
   (when (listp qname)
     (destructuring-bind (n) qname
       (setf qname n)))
@@ -414,6 +414,7 @@
     (setf *current-element* nil)))
 
 (defun invoke-with-element (fn qname)
+  (setf qname (rod qname))
   (maybe-emit-start-tag)
   (let ((*current-element* (list qname)))
     (multiple-value-prog1
@@ -422,17 +423,17 @@
       (sax:end-element *sink* nil nil qname))))
 
 (defun attribute (name value)
-  (push (sax:make-attribute :qname name :value value)
+  (push (sax:make-attribute :qname (rod name) :value (rod value))
         (cdr *current-element*))
   value)
 
 (defun cdata (data)
   (sax:start-cdata *sink*)
-  (sax:characters *sink* data)
+  (sax:characters *sink* (rod data))
   (sax:end-cdata *sink*)
   data)
 
 (defun text (data)
   (maybe-emit-start-tag)
-  (sax:characters *sink* data)
+  (sax:characters *sink* (rod data))
   data)
