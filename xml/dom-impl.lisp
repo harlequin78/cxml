@@ -9,7 +9,8 @@
 (defclass node ()
   ((parent      :initarg :parent        :initform nil)
    (children    :initarg :children      :initform nil)
-   (owner       :initarg :owner         :initform nil)))
+   (owner       :initarg :owner         :initform nil)
+   (read-only-p :initform nil           :reader read-only-p)))
 
 (defclass document (node)
   ((doc-type    :initarg :doc-type     :reader dom:doctype)
@@ -79,6 +80,11 @@
 
 
 ;;; Implementation
+
+(defun assert-writeable (node)
+  (when (read-only-p node)
+    ;; NO_MODIFICATION_ALLOWED_ERR
+    (error "~S is marked read-only." node)))
 
 ;; document-fragment protocol
 ;; document protocol
@@ -192,6 +198,7 @@
   (slot-value node 'owner))
 
 (defun ensure-valid-insertion-request (node new-child)
+  (assert-writeable node)
   (unless (can-adopt-p node new-child)
     ;; HIERARCHY_REQUEST_ERR
     (error "~S cannot adopt ~S." node new-child))
@@ -252,6 +259,7 @@
     old-child))
 
 (defmethod dom:remove-child ((node node) (old-child node))
+  (assert-writeable node)
   (with-slots (children) node
     (setf children (remove old-child children))
     (setf (slot-value old-child 'parent) nil)
@@ -268,6 +276,7 @@
   (not (null (slot-value node 'children))))
 
 (defmethod dom:append-child ((node node) (new-child document-fragment))
+  (assert-writeable node)
   (dolist (child (dom:child-nodes new-child))
     (dom:append-child node child))
   new-child)
@@ -346,12 +355,15 @@
 (defmethod dom:node-value ((self processing-instruction)) (dom:data self))
 
 (defmethod (setf dom:node-value) (newval (self character-data))
+  (assert-writeable self)
   (setf (dom:data self) newval))
 
 (defmethod (setf dom:node-value) (newval (self attribute))
+  (assert-writeable self)
   (setf (dom:value self) newval))
 
 (defmethod (setf dom:node-value) (newval (self processing-instruction))
+  (assert-writeable self)
   (setf (dom:data self) newval))
 
 ;; attributes
@@ -407,6 +419,7 @@
 ;;; CHARACTER-DATA
 
 (defmethod (setf dom:data) (newval (self character-data))
+  (assert-writeable self)
   (setf newval (rod newval))
   (setf (slot-value newval 'value) newval))
 
@@ -417,12 +430,14 @@
   (subseq (slot-value node 'value) offset (+ offset count)))
 
 (defmethod dom:append-data ((node character-data) arg)
+  (assert-writeable node)
   (setq arg (rod arg))
   (with-slots (value) node
     (setf value (concatenate (type-of value) value arg)))
   (values))
 
 (defmethod dom:delete-data ((node character-data) offset count)
+  (assert-writeable node)
   (with-slots (value) node
     (let ((new (make-array (- (length value) count) :element-type (type-of value))))
       (replace new value 
@@ -435,6 +450,7 @@
   (values))
 
 (defmethod dom:replace-data ((node character-data) offset count arg)
+  (assert-writeable node)
   (setf arg (rod arg))
   (with-slots (value) node
     (replace value arg
@@ -447,6 +463,7 @@
 ;; hmm... value muss noch entities lesen und text-nodes in die hierarchie hängen.
 
 (defmethod (setf dom:value) (new-value (node attribute))
+  (assert-writeable node)
   (setf (slot-value node 'value) (rod new-value)))
 
 ;;; ELEMENT
@@ -455,6 +472,7 @@
   (dom:get-named-item (dom:attributes element) name))
 
 (defmethod dom:set-attribute-node ((element element) (new-attr attribute))
+  (assert-writeable element)
   (dom:set-named-item (dom:attributes element) new-attr))
 
 (defmethod dom:get-attribute ((element element) name)
@@ -464,6 +482,7 @@
       nil)))
 
 (defmethod dom:set-attribute ((element element) name value)
+  (assert-writeable element)
   (with-slots (owner) element
     (dom:set-attribute-node 
      element (make-instance 'attribute 
@@ -474,9 +493,11 @@
     (values)))
 
 (defmethod dom:remove-attribute ((element element) name)
+  (assert-writeable element)
   (dom:remove-attribute-node element (dom:get-attribute-node element name)))
 
 (defmethod dom:remove-attribute-node ((element element) (old-attr attribute))
+  (assert-writeable element)
   (let ((res (dom:remove-named-item (dom:attributes element)
                                     (dom:name old-attr))))
     (if res
@@ -485,9 +506,11 @@
       (error "Attribute not found."))))
 
 (defmethod dom:get-elements-by-tag-name ((element element) name)
+  (assert-writeable element)
   (get-elements-by-tag-name-internal element name))
 
 (defmethod dom:normalize ((element element))
+  (assert-writeable element)
   (labels ((walk (n)
              (let ((previous nil))
                (dolist (child (dom:child-nodes n))
@@ -526,11 +549,18 @@
          (entities (or (entities owner) xml::*entities*))
          (children (xml::resolve-entity (dom:name instance) entities)))
     (setf (slot-value instance 'children)
-          (mapcar (lambda (node) (dom:import-node owner node t)) children))))
+          (mapcar (lambda (node) (dom:import-node owner node t)) children)))
+  (labels ((walk (n)
+             (setf (slot-value n 'read-only-p) t)
+             (when (dom:element-p n)
+               (mapc #'walk (dom:items (dom:attributes n))))
+             (mapc #'walk (dom:child-nodes n))))
+    (walk instance)))
 
 ;;; PROCESSING-INSTRUCTION
 
 (defmethod (setf dom:data) (newval (self processing-instruction))
+  (assert-writeable self)
   (setf newval (rod newval))
   (setf (slot-value newval 'data) newval))
 

@@ -49,7 +49,7 @@
      (:file "encodings-data"  :depends-on ("package" "encodings"))
      (:file "sax-handler")
      (:file "dompack")
-     (:file "dom-impl"        :depends-on ("dompack"))
+     (:file "dom-impl"        :depends-on ("package" "dompack"))
      (:file "dom-builder"     :depends-on ("package" "dom-impl" "sax-handler"))
      (:file "xml-stream"      :depends-on ("package"))
      (:file "xml-name-rune-p" :depends-on ("package"))
