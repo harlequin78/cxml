@@ -207,11 +207,13 @@
 
           `(progn
              (DEFSUBST NAME-RUNE-P (RUNE)
+               (SETF RUNE (RUNE-CODE RUNE))
                (AND (<= 0 RUNE ,*max*)
                     (LOCALLY (DECLARE (OPTIMIZE (SAFETY 0) (SPEED 3)))
                              (= 1 (SBIT ',(predicate-to-bv #'name-rune-p)
                                         (THE FIXNUM RUNE))))))
              (DEFSUBST NAME-START-RUNE-P (RUNE)
+               (SETF RUNE (RUNE-CODE RUNE))
                (AND (<= 0 RUNE ,*MAX*)
                     (LOCALLY (DECLARE (OPTIMIZE (SAFETY 0) (SPEED 3)))
                              (= 1 (SBIT ',(predicate-to-bv #'name-start-rune-p)
