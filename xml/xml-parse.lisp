@@ -991,11 +991,12 @@
           #+(or)
           (when (elmdef-content e)
             (validity-error "(05) Unique Element Type Declaration"))
-          (dolist (ad (elmdef-attributes e))
-            (let ((type (attdef-type ad)))
-              (when (and (listp type) (eq (car type) :NOTATION))
-                (validity-error "(16) No Notation on Empty Element: ~S"
-                                (rod-string element-name))))))
+          (when (eq content-model :EMPTY)
+            (dolist (ad (elmdef-attributes e))
+              (let ((type (attdef-type ad)))
+                (when (and (listp type) (eq (car type) :NOTATION))
+                  (validity-error "(16) No Notation on Empty Element: ~S"
+                                  (rod-string element-name)))))))
         (setf (elmdef-content e) content-model)
         e))))
 
