@@ -212,7 +212,7 @@
 ;;;; (13) Name Token                            VALIDATE-ATTRIBUTE
 ;;;; (14) Notation Attributes                   VALIDATE-ATTRIBUTE, P/ATT-TYPE
 ;;;; (15) One Notation Per Element Type         DEFINE-ATTRIBUTE
-;;;; (16) No Notation on Empty Element
+;;;; (16) No Notation on Empty Element          DEFINE-ELEMENT, -ATTRIBUTE
 ;;;; (17) Enumeration                           VALIDATE-ATTRIBUTE
 ;;;; (18) Required Attribute                    PROCESS-ATTRIBUTES
 ;;;; (19) Attribute Default Legal               DEFINE-ATTRIBUTE
@@ -964,9 +964,15 @@
       ((null content-model)
         e)
       (t
-        #+(or)
-        (when (and *validate* (elmdef-content e))
-          (validity-error "(05) Unique Element Type Declaration"))
+        (when *validate*
+          #+(or)
+          (when (elmdef-content e)
+            (validity-error "(05) Unique Element Type Declaration"))
+          (dolist (ad (elmdef-attributes e))
+            (let ((type (attdef-type ad)))
+              (when (and (listp type) (eq (car type) :NOTATION))
+                (validity-error "(16) No Notation on Empty Element: ~S"
+                                (rod-string element-name))))))
         (setf (elmdef-content e) content-model)
         e))))
 
@@ -993,13 +999,15 @@
                (unless (member default '(:REQUIRED :IMPLIED))
                  (validity-error "(10) ID Attribute Default: ~A"
                                  (rod-string element))))
-             (when *validate*
-               (flet ((notationp (type)
-                        (and (listp type) (eq (car type) :NOTATION))))
-                 (when (and (notationp type)
-                            (find-if #'notationp (elmdef-attributes e)
-                                     :key #'attdef-type))
+             (flet ((notationp (type)
+                      (and (listp type) (eq (car type) :NOTATION))))
+               (when (notationp type)
+                 (when (find-if #'notationp (elmdef-attributes e)
+                                :key #'attdef-type)
                    (validity-error "(15) One Notation Per Element Type: ~S"
+                                   (rod-string element)))
+                 (when (eq (elmdef-content e) :EMPTY)
+                   (validity-error "(16) No Notation on Empty Element: ~S"
                                    (rod-string element))))))
            (push adef (elmdef-attributes e))))
     (when (and *validate* (listp default))
