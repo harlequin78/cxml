@@ -6,7 +6,8 @@
     (let* ((home-package
             (if (member var '(cdom:data cdom:name cdom:value cdom:tag-name
                               cdom:node-name cdom:node-value
-                              cdom:substring-data cdom:get-attribute))
+                              cdom:substring-data cdom:get-attribute
+                              cdom:set-attribute))
                 :string-dom
                 :cdom))
            (symbol (intern (symbol-name var) home-package)))
@@ -33,3 +34,6 @@
 
 (defun string-dom:get-attribute (elt name)
   (rod-to-string (cdom:get-attribute elt name)))
+
+(defun string-dom:set-attribute (elt name value)
+  (cdom:set-attribute elt (glisp:rod name) (glisp:rod value)))
