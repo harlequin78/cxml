@@ -159,7 +159,9 @@
            (write-rune #/space sink)
            (write-rod (dom:data node) sink)
            (write-rod '#.(string-rod "?>") sink)))
-        ((and (dom:cdata-section-p node) (not (canonical sink)))
+        ((and (dom:cdata-section-p node)
+              (not (canonical sink))
+              (not (search #"]]" (dom:data node))))
          (when indentation
            (sink-fresh-line sink))
          (write-rod #"<![CDATA[" sink)
