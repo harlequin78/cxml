@@ -283,7 +283,7 @@
     ("assertSame"	(translate-assert-same element))
     ("assertSize"	(translate-assert-size element))
     ("assertTrue"	(translate-assert-true element))
-    ("assertFalse"	(translate-assert-true element))
+    ("assertFalse"	(translate-assert-false element))
     ("assertURIEquals"	(translate-assert-uri-equals element))
     ("for-each"		(translate-for-each element))
     ("fail"		(translate-fail element))
