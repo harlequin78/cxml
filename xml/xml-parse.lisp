@@ -711,8 +711,12 @@
       (unless (funcall (cdr pair) rod)
         (validity-error "(03) Element Valid: unexpected PCDATA")))))
 
-(defun standalone-check-necessary-p (elmdef)
-  (and *validate* (standalone-p *ctx*) (elmdef-external-p elmdef)))
+(defun standalone-check-necessary-p (def)
+  (and *validate*
+       (standalone-p *ctx*)
+       (etypecase def
+         (elmdef (elmdef-external-p def))
+         (attdef (attdef-external-p def)))))
 
 (defun process-attributes (ctx name attlist)
   (let ((e (find-element name (dtd ctx))))
@@ -727,7 +731,7 @@
                   (validity-error "(18) Required Attribute: ~S not specified"
                                   (rod-string (attdef-name ad)))))
               (t
-                (when (standalone-check-necessary-p e)
+                (when (standalone-check-necessary-p ad)
                   (validity-error "(02) Standalone Document Declaration: missing attribute value"))
                 (push (build-attribute (attdef-name ad)
                                        (cadr (attdef-default ad))
@@ -738,7 +742,7 @@
                  (adef (find-attribute e qname)))
             (when (and adef (not (eq (attdef-type adef) :CDATA)))
               (let ((canon (canon-not-cdata-attval (attribute-value a))))
-                (when (and (standalone-check-necessary-p e)
+                (when (and (standalone-check-necessary-p adef)
                            (not (rod= (attribute-value a) canon)))
                   (validity-error "(02) Standalone Document Declaration: attribute value not normalized"))
                 (setf (attribute-value a) canon)))))
@@ -955,8 +959,10 @@
                 ; :ENTITY, :ENTITIES, :NMTOKEN, :NMTOKENS, or
                 ; (:NOTATION <name>*)
                 ; (:ENUMERATION <name>*)
-  default)      ;default value of attribute:
+  default       ;default value of attribute:
                 ; :REQUIRED, :IMPLIED, (:FIXED content) or (:DEFAULT content)
+  (external-p *markup-declaration-external-p*)
+  )
 
 (defstruct elmdef
   ;; an element definition
@@ -2250,7 +2256,8 @@
       (:S     (consume-token input))
       (:eof   (return))
       ((:|<!ELEMENT| :|<!ATTLIST| :|<!ENTITY| :|<!NOTATION| :PI :COMMENT)
-       (let ((*expand-pe-p* t))
+       (let ((*expand-pe-p* t)
+             (*markup-declaration-external-p* t))
          (p/markup-decl input)))
       ((:PE-REFERENCE)
        (let ((name (nth-value 1 (read-token input))))
@@ -2348,8 +2355,7 @@
         ;; can we make this conditional on *validate*?
         ;; (What about entity references then?)
         (let* ((xi2 (open-extid (absolute-extid input extid)))
-               (zi2 (make-zstream :input-stack (list xi2)))
-               (*markup-declaration-external-p* t))
+               (zi2 (make-zstream :input-stack (list xi2))))
           (p/ext-subset zi2)))
       (sax:end-dtd (handler *ctx*))
       (list :DOCTYPE name extid))))
@@ -2449,7 +2455,11 @@
       (multiple-value-bind (ns-uri prefix local-name) (decode-qname name)
 	(declare (ignore prefix))
 	(let* ((raw-attlist (build-attribute-list-ns attrs))
-               (attlist (process-attributes *ctx* name raw-attlist)))
+               (attlist
+                (remove-if-not (lambda (a)
+                                 (or sax:*include-xmlns-attributes*
+                                     (not (xmlns-attr-p (attribute-qname a)))))
+                               (process-attributes *ctx* name raw-attlist))))
           (cond ((eq cat :ztag)
 		 (sax:start-element (handler *ctx*) ns-uri local-name name attlist)
 		 (sax:end-element (handler *ctx*) ns-uri local-name name))
@@ -3210,9 +3220,7 @@
 (defun build-attribute-list-ns (attr-alist)
   (let (attributes)
     (dolist (pair attr-alist)
-      (when (or (not (xmlns-attr-p (car pair)))
-		sax:*include-xmlns-attributes*)
-	(push (build-attribute (car pair) (cdr pair) t) attributes)))
+      (push (build-attribute (car pair) (cdr pair) t) attributes))
     
     ;; 5.3 Uniqueness of Attributes
     ;; In XML documents conforming to [the xmlns] specification, no
