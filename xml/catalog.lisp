@@ -93,44 +93,6 @@
              (t (write-char c out))))
          (incf i))))))
 
-(defun resolve-extid (public system catalog)
-  (setf public (normalize-public public))
-  (setf system (normalize-uri system))
-  (when (and system (starts-with-p system "urn:publicid:"))
-    (let ((new-public (unwrap-publicid system)))
-      (assert (or (null public) (equal public new-public)))
-      (setf public new-public
-            system nil)))
-  #+(or)
-  (when system
-    (dolist (entry (system-entries file))))
-  (dolist (entry catalog)
-    (destructuring-bind (type from to prefer) entry
-      (case type
-        (:public
-          (when (and (or (eq prefer :public) (null system))
-                     (equal from public))
-            (return to)))
-        (:system
-          (when (equal from system)
-            (return to)))
-        (:rewrite-system
-          (when (starts-with-p system from)
-            (return
-              ;; XXX choose longest match
-              (concatenate 'string
-                to
-                (subseq system 0 (length from))))))
-        (:delegate-public
-          (when (and (or (eq prefer :public) (null system))
-                     (starts-with-p public from))
-            ;; FIXME
-            (resolve-extid public system to)))
-        (:delegate-system
-          (when (starts-with-p system from)
-            ;; FIXME
-            (resolve-extid public system to)))))))
-
 (defun match-exact (key table &optional check-prefer)
   (dolist (pair table)
     (destructuring-bind (from to &optional prefer) pair
@@ -162,6 +124,52 @@
           (push (cons (length from) to) result))))
     (mapcar #'cdr (sort result #'> :key #'car))))
 
+(defun resolve-extid (public system catalog)
+  (when public (setf public (normalize-public public)))
+  (when system (setf system (normalize-uri system)))
+  (when (and system (starts-with-p system "urn:publicid:"))
+    (let ((new-public (unwrap-publicid system)))
+      (assert (or (null public) (equal public new-public)))
+      (setf public new-public
+            system nil)))
+  (let ((files (catalog-main-files catalog))
+        (seen '()))
+    (while files
+      (let ((file (pop files))
+            (delegates nil))
+        (unless (typep file 'entry-file)
+          (setf file (find-catalog-file file catalog)))
+        (unless (member file seen)
+          (push file seen)
+          (when system
+            (let ((result
+                   (or (match-exact system (system-entries file))
+                       (match-prefix/rewrite
+                        system
+                        (rewrite-system-entries file)))))
+              (when result
+                (return result))
+              (setf delegates
+                    (match-prefix/sorted
+                     system
+                     (delegate-system-entries file)))))
+          (when (and public (not delegates))
+            (let* ((check-prefer (and system t))
+                   (result
+                    (match-exact public
+                                 (public-entries file)
+                                 check-prefer)))
+              (when result
+                (return result))
+              (setf delegates
+                    (match-prefix/sorted
+                     public
+                     (delegate-public-entries file)
+                     check-prefer))))
+          (if delegates
+              (setf files delegates)
+              (setf files (append (next-catalog-entries file) files))))))))
+
 (defun resolve-uri (uri catalog)
   (setf uri (normalize-uri uri))
   (when (starts-with-p uri "urn:publicid:")
@@ -177,17 +185,16 @@
           (push file seen)
           (let ((result
                  (or (match-exact uri (uri-entries file))
-                     (match-prefix/rewrite uri (rewrite-uri-entries file))
-                     (let* ((delegate-entries
-                             (delegate-uri-entries file))
-                            (delegates
-                             (match-prefix/sorted uri delegate-entries)))
-                       (when delegates
-                         (setf files delegates))
-                       nil))))
+                     (match-prefix/rewrite uri (rewrite-uri-entries file)))))
             (when result
-              (return result)))
-          (setf files (append (next-catalog-entries file) files)))))))
+              (return result))
+            (let* ((delegate-entries
+                    (delegate-uri-entries file))
+                   (delegates
+                    (match-prefix/sorted uri delegate-entries)))
+              (if delegates
+                  (setf files delegates)
+                  (setf files (append (next-catalog-entries file) files))))))))))
 
 (defun find-catalog-file (uri catalog)
   (setf uri (if (stringp uri) (safe-parse-uri uri) uri))
