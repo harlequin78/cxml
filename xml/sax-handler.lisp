@@ -40,11 +40,9 @@
 ;;   * document-locator/(setf document-locator)
 ;;     (probably implies a handler class with an appropriate slot)
 ;;   * skipped-entity
-;;   * notation-declaration
-;;   * unparsed-entity-declaration
 ;;   * The whole ErrorHandler class, this is better handled using
 ;;     conditions (but isn't yet)
-;;   * The LexicalHandler (start-cdata etc) would be nice
+;;   * The LexicalHandler (start-cdata etc) would be nice  [-- partly done]
 ;;   * The DeclHandler interface (element-decl, attribute-decl...)
 ;;     is useful, but the Java interface sucks.
 ;; o Despite all the namespace-uri etc arguments, namespaces are not
@@ -72,6 +70,8 @@
 	   #:start-dtd
 	   #:end-dtd
            #:unparsed-entity-declaration
+           #:external-entity-declaration
+           #:internal-entity-declaration
            #:notation-declaration
            #:entity-resolver))
 
@@ -248,9 +248,25 @@ other textual content.")
 (defgeneric unparsed-entity-declaration
     (handler name public-id system-id notation-name)
   (:documentation
-   "Called when an entity declaration is seen while parsing a DTD.")
+   "Called when an unparsed entity declaration is seen in a DTD.")
   (:method ((handler t) name public-id system-id notation-name)
     (declare (ignore name public-id system-id notation-name))
+    nil))
+
+(defgeneric external-entity-declaration
+    (handler kind name public-id system-id)
+  (:documentation
+   "Called when a parsed external entity declaration is seen in a DTD.")
+  (:method ((handler t) kind name public-id system-id)
+    (declare (ignore kind name public-id system-id))
+    nil))
+
+(defgeneric internal-entity-declaration
+    (handler kind name value)
+  (:documentation
+   "Called when an internal entity declaration is seen in a DTD.")
+  (:method ((handler t) kind name value)
+    (declare (ignore kind name value))
     nil))
 
 (defgeneric notation-declaration

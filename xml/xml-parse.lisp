@@ -873,15 +873,18 @@
            (absolute-uri (caddr extid) source-stream)))))
 
 (defun define-entity (source-stream name kind def)
-  (when (eq (car def) :EXTERNAL)
-    (setf def
-      (list (car def) (absolute-extid source-stream (cadr def)) (third def))))
   (setf name (intern-name name))
   (let ((table
          (ecase kind
            (:general (dtd-gentities (dtd *ctx*)))
            (:parameter (dtd-pentities (dtd *ctx*))))))
     (unless (gethash name table)
+      (when (handler *ctx*)
+        (report-entity (handler *ctx*) kind name def))
+      (when (eq (car def) :EXTERNAL)
+        (setf def
+              (list (car def)
+                    (absolute-extid source-stream (cadr def)) (third def))))
       (setf (gethash name table)
             (cons *markup-declaration-external-p* def)))))
 
@@ -1854,24 +1857,20 @@
     (p/S input)
     (setf def (p/entity-def input kind))
     (define-entity input name kind def)
-    (when (eq kind :general)
-      ;; XXX wirklich nur :general?
-      ;; XXX ist sax:unparsed-entity-declaration ueberhaupt richtig?
-      ;; Brauchen wir nicht sax:internal- und sax:external-entity-declaration?
-      (ecase (car def)
-        (:EXTERNAL
-          (destructuring-bind (id notation) (cdr def)
-            (ecase (car id)
-              (:PUBLIC
-                (sax:unparsed-entity-declaration
-                 (handler *ctx*) name (second id) (third id) notation))
-              (:SYSTEM
-                (sax:unparsed-entity-declaration
-                 (handler *ctx*) name nil (second id) notation)))))
-        (:INTERNAL
-          (sax:unparsed-entity-declaration (handler *ctx*) name nil nil nil))))
     (p/S? input)
     (expect input :\>)))
+
+(defun report-entity (h kind name def)
+  (ecase (car def)
+    (:EXTERNAL
+      (destructuring-bind ((ps lit1 &optional lit2) ndata) (cdr def)
+        (if ndata
+            (sax:unparsed-entity-declaration h name lit1 lit2 ndata)
+            (ecase ps
+              (:PUBLIC (sax:external-entity-declaration h kind name lit1 lit2))
+              (:SYSTEM (sax:external-entity-declaration h kind name nil lit1))))))
+    (:INTERNAL
+      (sax:internal-entity-declaration h kind name (cadr def)))))
 
 (defun p/entity-def (input kind)
   (multiple-value-bind (cat sem) (peek-token input)
@@ -2427,9 +2426,10 @@
 (declaim (special *default-namespace-bindings*))
 
 (defun p/document (input handler &key validate root)
-  (let ((*ctx* (make-context :handler handler))
+  (let ((*ctx* (make-context))
         (*validate* (and validate t)))
     (define-default-entities)
+    (setf (handler *ctx*) handler)
     (sax:start-document handler)
     ;; document ::= XMLDecl? Misc* (doctypedecl Misc*)? element Misc*
     ;; Misc ::= Comment | PI |  S

@@ -46,7 +46,8 @@
     (setf (slot-value doctype 'dom-impl::owner) document
 	  (slot-value document 'dom-impl::doc-type) doctype)))
 
-(defmethod sax:start-element ((handler dom-builder) namespace-uri local-name qname attributes)
+(defmethod sax:start-element
+    ((handler dom-builder) namespace-uri local-name qname attributes)
   (with-slots (document element-stack) handler
     (let ((element (make-instance 'element 
                      :tag-name qname
@@ -121,13 +122,29 @@
 
 (defmethod sax:unparsed-entity-declaration
     ((handler dom-builder) name public-id system-id notation-name)
+  (set-entity handler name public-id system-id notation-name))
+
+(defmethod sax:external-entity-declaration
+    ((handler dom-builder) kind name public-id system-id)
+  (ecase kind
+    (:general (set-entity handler name public-id system-id nil))
+    (:parameter)))
+
+(defmethod sax:internal-entity-declaration
+    ((handler dom-builder) kind name value)
+  (declare (ignore value))
+  (ecase kind
+    (:general (set-entity handler name nil nil nil))
+    (:parameter)))
+
+(defun set-entity (handler name pid sid notation)
   (dom:set-named-item (dom:entities (dom:doctype (document handler)))
                       (make-instance 'dom-impl::entity
                         :owner (document handler)
                         :name name
-                        :public-id public-id
-                        :system-id system-id
-                        :notation-name notation-name)))
+                        :public-id pid
+                        :system-id sid
+                        :notation-name notation)))
 
 (defmethod sax:notation-declaration
     ((handler dom-builder) name public-id system-id)

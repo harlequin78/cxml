@@ -375,24 +375,34 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       handler class is necessary, because all generic functions have default
       methods which do nothing.&nbsp; SAX functions are:
       <div class="def">Function SAX:START-DOCUMENT (handler)</div>
-      <div class="def">Function SAX:START-ELEMENT (handler namespace-uri local-name qname attributes)</div>
-      <div class="def">Function SAX:START-PREFIX-MAPPING (handler prefix uri)</div>
-      <div class="def">Function SAX:CHARACTERS (handler data)</div>
-      <div class="def">Function SAX:PROCESSING-INSTRUCTION (handler target data)</div>
-      <div class="def">Function SAX:END-PREFIX-MAPPING (handler prefix)</div>
-      <div class="def">Function SAX:END-ELEMENT (handler namespace-uri local-name qname attributes)</div>
       <div class="def">Function SAX:END-DOCUMENT (handler)</div>
+      <br/>
+      <div class="def">Function SAX:START-ELEMENT (handler namespace-uri local-name qname attributes)</div>
+      <div class="def">Function SAX:END-ELEMENT (handler namespace-uri local-name qname)</div>
+      <div class="def">Function SAX:START-PREFIX-MAPPING (handler prefix uri)</div>
+      <div class="def">Function SAX:END-PREFIX-MAPPING (handler prefix)</div>
+      <div class="def">Function SAX:PROCESSING-INSTRUCTION (handler target data)</div>
       <div class="def">Function SAX:COMMENT (handler data)</div>
       <div class="def">Function SAX:START-CDATA (handler)</div>
       <div class="def">Function SAX:END-CDATA (handler)</div>
+      <div class="def">Function SAX:CHARACTERS (handler data)</div>
+      <br/>
       <div class="def">Function SAX:START-DTD (handler name public-id system-id)</div>
       <div class="def">Function SAX:END-DTD (handler)</div>
+      <div class="def">Function SAX:UNPARSED-ENTITY-DECLARATION (handler name public-id system-id notation-name)</div>
+      <div class="def">Function SAX:EXTERNAL-ENTITY-DECLARATION (handler kind name public-id system-id)</div>
+      <div class="def">Function SAX:INTERNAL-ENTITY-DECLARATION (handler kind name value)</div>
+      <div class="def">Function SAX:NOTATION-DECLARATION (handler name public-id system-id)</div>
     </p>
     <p>
-      <i>fixme</i>: For information on these functions refer to the docstrings.
+      <i>fixme</i>: For more information on these functions refer to the docstrings.
     </p>
     <p>
-      <i>fixme</i>: Entity and notation processing isn't quite right yet.
+      The entity declaration methods are similar to Java SAX
+      definitions, but parameter entities are distinguished from
+      general entities not by a <tt>%</tt> prefix to the name, but by
+      the <tt>kind</tt> argument, either <tt>:parameter</tt> or
+      <tt>:general</tt>.
     </p>
 
 
