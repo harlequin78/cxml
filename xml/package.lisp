@@ -11,9 +11,10 @@
                 #+allegro :excl
                 #+cmu :ext
                 #+clisp :gray
-                #-(or sbcl allegro cmu clisp) ...
+                #+openmcl :ccl
+                #-(or sbcl allegro cmu clisp openmcl) ...
                 #:fundamental-binary-input-stream
-                #-clisp #:stream-read-sequence
+                #-(or clisp openmcl) #:stream-read-sequence
                 stream-read-byte)
   (:export
    ;; xstreams
