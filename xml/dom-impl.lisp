@@ -472,7 +472,23 @@
   (error "Not implemented."))
 
 (defmethod dom:normalize ((element element))
-  (error "Not implemented.") )
+  (labels ((walk (n)
+             (let ((previous nil))
+               (dolist (child (dom:child-nodes n))
+                 (cond
+                   ((not (dom:text-node-p child))
+                     (setf previous nil))
+                   ((and previous (dom:text-node-p previous))
+                     (setf (slot-value previous 'data)
+                           (concatenate 'vector
+                             (dom:data previous)
+                             (dom:data child)))
+                     (dom:remove-child n child))
+                   (t
+                     (setf previous child))))) 
+             (mapc #'walk (dom:child-nodes n))))
+    (walk element))
+  (values))
 
 ;;; TEXT
 
