@@ -4,10 +4,14 @@
   <head>
     <title>Closure XML</title>
     <style type="text/css">
-      body { 
+      body {
         color: #000000;
         background-color: #ffffff;
         margin-bottom: 10%;
+        padding-left: 30px;
+      }
+      h1,h2,h3 {
+        margin-left: -30px;
       }
       pre {
         background-color: #eeeeee;
@@ -54,24 +58,44 @@
       is hosted on common-lisp.net.
     </p>
 
-    <p><b>Download</b></p>
+    <h2>Download</h2>
     <p>
       Get a <a href="http://www.common-lisp.net/project/cxml/download/">tarball</a>.
     </p>
     <p>
-      A tla archive is at <a
-      href="http://common-lisp.net/project/cxml/david@knowledgetools.de--cxml/">http://www.common-lisp.net/project/cxml/david@knowledgetools.de--cxml/</a>.<br/>
+      David's tla archive is at <a
+      href="http://common-lisp.net/project/cxml/david@knowledgetools.de--cxml/">http://www.common-lisp.net/project/cxml/david@knowledgetools.de--cxml/</a>.
       (Brief tla usage instructions: Unpack the cxml tarball.&nbsp;
       Enter <tt>tla register-archive URL</tt> to turn it into a working
       copy.&nbsp; <tt>tla update</tt> is similar to <tt>cvs up</tt>.)
     </p>
 
-    <p>
-      <b>Changes</b>
-    </p>
+    <h1>Contents</h1>
+    <ul>
+      <li><a href="#changes">Recent changes</a></li>
+      <li><a href="#modules">CXML modules</a></li>
+      <li><a href="#installation">Installation</a></li>
+      <li><a href="#tests">Tests</a></li>
+      <li><a href="#todo">To do</a></li>
+      <li>
+        <a href="#using">Using CXML</a>
+        <ul>
+          <li><a href="#parser">Parsing and validating</a></li>
+          <li><a href="#serialization">Serialization</a></li>
+          <li><a href="#misc">Miscellaneous utility functions</a></li>
+          <li><a href="#xmls">XMLS compatibility</a></li>
+        </ul>
+      </li>
+      <li><a href="#sax">SAX interface</a></li>
+      <li><a href="#dom">DOM notes</a></li>
+    </ul>
+
+    <a name="changes"/>
+    <h2>Recent changes</h2>
     <p class="nomargin"><tt>patch-xyz</tt> (2004-xx-yy)</p>
     <ul class="nomargin">
       <li>Event-based serialization which does not require DOM documents</li>
+      <li>XMLS compatiblity</li>
       <li>minor bugfixes (thread safety)</li>
     </ul>
     <p class="nomargin"><tt>patch-279</tt> (2004-05-11)</p>
@@ -85,20 +109,8 @@
       <li>The unparse functions support non-canonical output now.</li>
     </ul>
     <p class="nomargin"><tt>patch-191</tt> (2004-03-18)</p>
+    <ul class="nomargin">
       <li>Initial release.</li>
-    </ul>
-
-    <p>
-      <b>Contents</b>
-    </p>
-    <ul>
-      <li><a href="#modules">CXML modules</a></li>
-      <li><a href="#installation">Installation</a></li>
-      <li><a href="#tests">Tests</a></li>
-      <li><a href="#todo">To do</a></li>
-      <li><a href="#using">Using the parser</a></li>
-      <li><a href="#sax">SAX interface</a></li>
-      <li><a href="#dom">DOM notes</a></li>
     </ul>
 
     <a name="modules"/>
@@ -229,7 +241,7 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       </li>
       <li>
         Unless <tt>rune-is-character</tt> is enabled, rod hashing
-        currently uses <tt>equalp</tt> hash tables, which is idiotic.
+        currently uses <tt>equalp</tt> hash tables, which can be very slow.
         (See <tt>%make-rod-hash-table</tt>.)
       </li>
     </ul>
@@ -239,7 +251,10 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     </p>
 
     <a name="using"/>
-    <h2>Using the parser</h2>
+    <h2>Using CXML</h2>
+
+    <a name="parser"/>
+    <h3>Parsing and validating</h3>
     <p>
       <div class="def">Function CXML:PARSE-FILE (pathname handler &key validate root)</div>
       <div class="def">Function CXML:PARSE-STREAM (stream handler &key validate root)</div>
@@ -302,6 +317,8 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     </p>
     <pre>(cxml:parse-file "test.xml" (dom:make-dom-builder))</pre>
 
+    <a name="serialization"/>
+    <h3>Serialization</h3>
     <p>
       <div class="def">Function CXML:UNPARSE-DOCUMENT (document stream &rest keys)</div>
       <div class="def">Function CXML:UNPARSE-DOCUMENT-TO-OCTETS (document &rest keys) => vector</div>
@@ -394,6 +411,8 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
   Hi there.
 &lt;/foo&gt;</pre>
 
+    <a name="misc"/>
+    <h3>Miscellaneous utility functions</h3>
     <p>
       <div class="def">Function CXML:MAKE-VALIDATOR (dtd root)</div>
       Create a SAX handler which validates against a DTD instance.&nbsp;
@@ -412,6 +431,57 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       <div class="def">Function DOM:MAP-DOCUMENT (handler document &key include-xmlns-attributes include-default-values)</div>
       Traverse a DOM document and call SAX functions as if an XML
       representation of the document were processed by a SAX parser.
+    </p>
+
+    <a name="xmls"/>
+    <h3>XMLS compatibility</h3>
+    <p>
+      Like other XML parsers written in Lisp, CXML can work with
+      documents represented as list structures. The specific model
+      implemented by cxml is compatible with the <a
+      href="http://common-lisp.net/project/xmls/">xmls parser</a>.  Xmls
+      list structures are a simpler and faster alternative to full DOM
+      document trees.  They also serve as an example showing how to
+      implement user-defined document models as an independent layer
+      over the the base parser (c.f. <tt>xmls/xmls-compat.lisp</tt> in
+      the cxml distribution).  However, note that the list structures do
+      not include all information available in DOM documents and are
+      sometimes more difficult to work wth since many DOM functions
+      cannot be implemented on them.
+    </p>
+    <p>
+      <div class="def">Function CXML-XMLS:MAKE-XMLS-BUILDER ()</div>
+      Create a SAX handler which builds XMLS list structures.&nbsp;
+      Example:
+    </p>
+    <pre>(cxml:parse-file "test.xml" (cxml-xmls:make-xmls-builder))</pre>
+    <p>
+      <div class="def">Function CXML-XMLS:MAP-NODE (handler node &key include-xmlns-attributes)</div>
+      Traverse an XMLS document/node and call SAX functions as if an XML
+      representation of the document were processed by a SAX parser.
+    </p>
+    <p>
+      Use this function to serialize XMLS data.  For example, we could
+      define a replacement for <tt>xmls:write-xml</tt> like this:
+    </p>
+    <pre>(defun write-xml (stream node &key indent)
+  (let ((sink (cxml:make-character-stream-sink
+               stream :canonical nil :indentation indent)))
+    (cxml-xmls:map-node sink node)))</pre>
+    <p>
+      <div class="def">Function CXML-XMLS:MAKE-NODE (&key name attrs
+      children) => xmls node</div>
+      Build a list node of the form
+      (<em>name</em>&nbsp;((<em>name</em>&nbsp;<em>value</em>)<em>*</em>)&nbsp;<em>child*</em>).
+    </p>
+    <p>
+      <div class="def">Accessor CXML-XMLS:NODE-NAME (node)</div>
+      <div class="def">Accessor CXML-XMLS:NODE-ATTRS (node)</div>
+      <div class="def">Accessor CXML-XMLS:NODE-CHILDREN (node)</div>
+      Accessors for xmls node data.
+    </p>
+    <p>
+      <em>fixme:</em> namespace support.
     </p>
 
     <a name="sax"/>

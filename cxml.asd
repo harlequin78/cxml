@@ -72,7 +72,8 @@
      (:file "xml-name-rune-p" :depends-on ("package"))
      (:file "split-sequence"  :depends-on ("package"))
      (:file "xml-parse"       :depends-on ("package" "sax-handler" "split-sequence" "xml-name-rune-p" "characters"))
-     (:file "characters"      :depends-on ("package")))
+     (:file "characters"      :depends-on ("package"))
+     (:file "xmls-compat"     :depends-on ("xml-parse")))
     :depends-on (:runes))
 
 (asdf:defsystem :dom
