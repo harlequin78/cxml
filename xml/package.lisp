@@ -1,17 +1,17 @@
 (in-package :cl-user)
 
-(defpackage :Encoding
+(defpackage :encoding
   (:use :glisp)
   (:export
    #:find-encoding
    #:decode-sequence))
 
-(defpackage :XML
+(defpackage :xml
   (:use 
    :glisp
    :encoding)
   
-  (:Export
+  (:export
    ;; xstreams
    #:make-xstream
    #:make-rod-xstream

@@ -160,7 +160,7 @@
     (when parent
       (with-slots (children) parent
         (do ((q children (cdr q)))
-            ((null (cdr q)) niL)
+            ((null (cdr q)) nil)
           (cond ((eq (cadr q) node)
                  (return (car q)))))))))
 
@@ -169,7 +169,7 @@
     (when parent
       (with-slots (children) parent
         (do ((q children (cdr q)))
-            ((null (cdr q)) niL)
+            ((null (cdr q)) nil)
           (cond ((eq (car q) node)
                  (return (cadr q)))))))))
 

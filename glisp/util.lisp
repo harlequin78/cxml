@@ -29,7 +29,7 @@
 ;;                        subforms
 ;;
 
-(in-package :GLISP)
+(in-package :glisp)
 
 (defun neq (x y) (not (eq x y)))
 
@@ -122,13 +122,13 @@
                                    x))
                            exprs))))
 
-#+ALLEGRO
+#+allegro
 (defun current-function-name ()
-  (car COMPILER::.FUNCTIONS-DEFINED.))
+  (car compiler::.functions-defined.))
 
-#-ALLEGRO
+#-allegro
 (defun current-function-name ()
-  'ANONYMOUS)
+  'anonymous)
 
 ;;; --------------------------------------------------------------------------------
 ;;;  Multiple values
@@ -140,10 +140,10 @@
          (car xs))
         (t
          (let ((g (gensym)))
-           `(LET ((,g (MULTIPLE-VALUE-LIST ,(car xs))))
-                 (IF (CAR ,g)
-                     (VALUES-LIST ,g)
-                     (MULTIPLE-VALUE-OR ,@(cdr xs))))))))
+           `(let ((,g (multiple-value-list ,(car xs))))
+                 (if (car ,g)
+                     (values-list ,g)
+                     (multiple-value-or ,@(cdr xs))))))))
 
 (defun multiple-value-some (predicate &rest sequences)
   (values-list
@@ -633,15 +633,15 @@ Hmm unter PCL geht das nicht            ;-(
 ;;----------------------------------------------------------------------------------------------------
 
 (defun g/peek-char (&optional (peek-type nil) (source *standard-input*)
-                              (eof-error-p T) eof-value)
-  (cond ((eq peek-type T)
+                              (eof-error-p t) eof-value)
+  (cond ((eq peek-type t)
          (do ((ch (g/read-char source eof-error-p '%the-eof-object%)
                   (g/read-char source eof-error-p '%the-eof-object%)))
              ((or (eq ch '%the-eof-object%)
                   (not (white-space-p ch)))
               (cond ((eq ch '%the-eof-object%) eof-value)
                     (t (g/unread-char ch source) ch)) )))
-        ((eq peek-type NIL)
+        ((eq peek-type nil)
          (let ((ch (g/read-char source eof-error-p '%the-eof-object%)))
            (cond ((eq ch '%the-eof-object%) eof-value)
                  (t (g/unread-char ch source)
@@ -651,7 +651,7 @@ Hmm unter PCL geht das nicht            ;-(
                   (g/read-char source eof-error-p '%the-eof-object%)))
              ((or (eq ch '%the-eof-object%) (eql ch peek-type))
               (cond ((eq ch '%the-eof-object%) eof-value)
-                    (t (g/unread-char ch source) ch)) )) ) ))
+                    (t (g/unread-char ch source) ch)))))))
 
 
 
@@ -756,8 +756,8 @@ Hmm unter PCL geht das nicht            ;-(
   ;; slot accessors have the default name. Note that the structure type must
   ;; been provided.
   (let ((obj-var (make-symbol "OBJ")))
-    `(LET ((,obj-var ,obj))
-       (SYMBOL-MACROLET ,(mapcar (lambda (slot)
+    `(let ((,obj-var ,obj))
+       (symbol-macrolet ,(mapcar (lambda (slot)
                                    (list slot
                                          `(,(intern (concatenate 'string (symbol-name type) "-" (symbol-name slot))
                                                     (symbol-package type))
@@ -818,50 +818,50 @@ Hmm unter PCL geht das nicht            ;-(
          (cond (initial-value?
                 `(LET* ((,$seq ,seq)
                         (,$start ,(or start 0))
-                        (,$end ,(or end `(LENGTH ,$seq)))
+                        (,$end ,(or end `(length ,$seq)))
                         (,$accu ,initial-value))
-                   (DECLARE (TYPE FIXNUM ,$start ,$end))
-                   (DO ((,$i (- ,$end 1) (THE FIXNUM (- ,$i 1))))
+                   (declare (type fixnum ,$start ,$end))
+                   (do ((,$i (- ,$end 1) (the fixnum (- ,$i 1))))
                        ((< ,$i ,$start) ,$accu)
-                     (DECLARE (TYPE FIXNUM ,$i))
-                     (SETF ,$accu (FUNCALL* ,fun (FUNCALL* ,key (AREF ,$seq ,$i)) ,$accu)) )))
-               (t
-                `(LET* ((,$seq ,seq)
-                        (,$start ,(or start 0))
-                        (,$end ,(or end `(LENGTH ,$seq))))
-                   (DECLARE (TYPE FIXNUM ,$start ,$end))
-                   (COND ((= 0 (- ,$end ,$start))
-                          (FUNCALL* ,fun))
-                         (T
-                          (LET ((,$accu (FUNCALL* ,key (AREF ,$seq (- ,$end 1)))))
-                            (DO ((,$i (- ,$end 2) (THE FIXNUM (- ,$i 1))))
-                                ((< ,$i ,$start) ,$accu)
-                              (DECLARE (TYPE FIXNUM ,$i))
-                              (SETF ,$accu (FUNCALL* ,fun (FUNCALL* ,key (AREF ,$seq ,$i)) ,$accu)))))))) ))
-        (t
-         (cond (initial-value?
-                `(LET* ((,$seq ,seq)
-                        (,$start ,(or start 0))
-                        (,$end ,(or end `(LENGTH ,$seq)))
-                        (,$accu ,initial-value))
-                   (DECLARE (TYPE FIXNUM ,$start ,$end))
-                   (DO ((,$i ,$start (THE FIXNUM (+ ,$i 1))))
-                       ((>= ,$i ,$end) ,$accu)
-                     (DECLARE (TYPE FIXNUM ,$i))
-                     (SETF ,$accu (FUNCALL* ,fun ,$accu (FUNCALL* ,key (AREF ,$seq ,$i)))) )))
+                     (declare (type fixnum ,$i))
+                     (setf ,$accu (funcall* ,fun (funcall* ,key (aref ,$seq ,$i)) ,$accu)) )))
                (t
                 `(let* ((,$seq ,seq)
                         (,$start ,(or start 0))
-                        (,$end ,(or end `(LENGTH ,$seq))))
-                   (DECLARE (TYPE FIXNUM ,$start ,$end))
-                   (COND ((= 0 (- ,$end ,$start))
-                          (FUNCALL* ,fun))
-                         (T
-                          (LET ((,$accu (FUNCALL* ,key (AREF ,$seq ,$start))))
-                            (DO ((,$i (+ ,$start 1) (+ ,$i 1)))
+                        (,$end ,(or end `(length ,$seq))))
+                   (declare (type fixnum ,$start ,$end))
+                   (cond ((= 0 (- ,$end ,$start))
+                          (funcall* ,fun))
+                         (t
+                          (let ((,$accu (funcall* ,key (aref ,$seq (- ,$end 1)))))
+                            (do ((,$i (- ,$end 2) (the fixnum (- ,$i 1))))
+                                ((< ,$i ,$start) ,$accu)
+                              (declare (type fixnum ,$i))
+                              (setf ,$accu (funcall* ,fun (funcall* ,key (aref ,$seq ,$i)) ,$accu)))))))) ))
+        (t
+         (cond (initial-value?
+                `(let* ((,$seq ,seq)
+                        (,$start ,(or start 0))
+                        (,$end ,(or end `(length ,$seq)))
+                        (,$accu ,initial-value))
+                   (declare (type fixnum ,$start ,$end))
+                   (do ((,$i ,$start (the fixnum (+ ,$i 1))))
+                       ((>= ,$i ,$end) ,$accu)
+                     (declare (type fixnum ,$i))
+                     (setf ,$accu (funcall* ,fun ,$accu (funcall* ,key (aref ,$seq ,$i)))) )))
+               (t
+                `(let* ((,$seq ,seq)
+                        (,$start ,(or start 0))
+                        (,$end ,(or end `(length ,$seq))))
+                   (declare (type fixnum ,$start ,$end))
+                   (cond ((= 0 (- ,$end ,$start))
+                          (funcall* ,fun))
+                         (t
+                          (let ((,$accu (funcall* ,key (aref ,$seq ,$start))))
+                            (do ((,$i (+ ,$start 1) (+ ,$i 1)))
                                 ((>= ,$i ,$end) ,$accu)
-                              (DECLARE (TYPE FIXNUM ,$i))
-                              (SETF ,$accu (FUNCALL* ,fun ,$accu (FUNCALL* ,key (AREF ,$seq ,$i)))))))))))))))
+                              (declare (type fixnum ,$i))
+                              (setf ,$accu (funcall* ,fun ,$accu (funcall* ,key (aref ,$seq ,$i)))))))))))))))
                          
 (defmacro lreduce* (fun seq &rest rest &key (key '#'identity) from-end start end 
                                             (initial-value nil initial-value?))
@@ -871,19 +871,19 @@ Hmm unter PCL geht das nicht            ;-(
          (cond (initial-value?
                 (let (($accu (make-symbol "accu"))
                       ($k (make-symbol "k")))
-                  `(LET* ((,$accu ,initial-value))
-                     (DOLIST (,$k ,seq ,$accu)
-                        (SETF ,$accu (FUNCALL* ,fun ,$accu (FUNCALL* ,key ,$k)))))))
+                  `(let* ((,$accu ,initial-value))
+                     (dolist (,$k ,seq ,$accu)
+                        (setf ,$accu (funcall* ,fun ,$accu (funcall* ,key ,$k)))))))
                (t
                 (let (($accu (make-symbol "accu"))
                       ($seq (make-symbol "seq"))
                       ($k (make-symbol "k")))
-                  `(LET* ((,$seq ,seq))
-                         (IF (NULL ,$seq)
-                             (FUNCALL* ,fun)
-                             (LET ((,$accu (FUNCALL* ,key (CAR ,$seq))))
-                                  (DOLIST (,$k (CDR ,$seq) ,$accu)
-                                          (SETF ,$accu (FUNCALL* ,fun ,$accu (FUNCALL* ,key ,$k)))))))) ))) ))
+                  `(let* ((,$seq ,seq))
+                         (if (null ,$seq)
+                             (funcall* ,fun)
+                             (let ((,$accu (funcall* ,key (car ,$seq))))
+                                  (dolist (,$k (cdr ,$seq) ,$accu)
+                                          (setf ,$accu (funcall* ,fun ,$accu (funcall* ,key ,$k)))))))) ))) ))
 
 
 ;;; Wenn wir so weiter machen, koennen wir bald gleich unseren eigenen

@@ -90,7 +90,7 @@
    (ipc:open-network-stream :host hostname
                             :port port
                             :element-type '(unsigned-byte 8) 
-                            :class 'EXCL::BIDIRECTIONAL-BINARY-SOCKET-STREAM)
+                            :class 'excl::bidirectional-binary-socket-stream)
    :byte))
 
 (defun glisp::mp/make-lock (&key name)

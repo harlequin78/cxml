@@ -25,8 +25,8 @@
 	    #+(AND :CMU (NOT :PTHREAD))         "dep-cmucl"
 	    #+sbcl                              "dep-sbcl"
 	    #+(AND :CMU :PTHREAD)               "dep-cmucl-dtc"
-	    #+(and allegro allegro-v5.0)        "dep-acl5"
-	    #+(and allegro (not allegro-v5.0))  "dep-acl"
+	    #+(and allegro-version>= (version>= 5.0)) "dep-acl5"
+	    #-(and allegro-version>= (version>= 5.0)) "dep-acl"
 	    #+GCL                               "dep-gcl"
 	    #-(or sbcl CLISP CMU allegro GCL) #.(error "Configure!"))
      (:file "package"
@@ -41,14 +41,14 @@
 (asdf:defsystem :cxml
     :default-component-class closure-source-file
     :pathname (merge-pathnames
-               "cxml/"
+               "xml/"
                (make-pathname :name nil :type nil :defaults *load-truename*))
     :components
     ((:file "package")
      (:file "encodings"       :depends-on ("package"))
      (:file "encodings-data"  :depends-on ("package" "encodings"))
      (:file "sax-handler")
-     (:file "dompack")
+     (:file "dompack"         :depends-on ("package"))
      (:file "dom-impl"        :depends-on ("dompack"))
      (:file "dom-builder"     :depends-on ("dom-impl" "sax-handler"))
      (:file "xml-stream"      :depends-on ("package"))

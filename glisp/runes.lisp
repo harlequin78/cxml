@@ -33,7 +33,7 @@
 ;;                      - Added rune reader
 ;;
 
-(in-package :GLISP)
+(in-package :glisp)
 
 (deftype rune () '(unsigned-byte 16))
 (deftype rod () '(array rune (*)))

@@ -40,7 +40,7 @@
 (defun glisp::read-char-sequence (&rest ap)
   (apply #'read-sequence ap))
 
-#+ALLEGRO-V5.0
+#+(and allegro-version>= (version>= 5.0))
 (defun glisp::open-inet-socket (hostname port)
   (values
    (socket:make-socket :remote-host hostname 
@@ -48,7 +48,7 @@
                        :format :binary)
    :byte))
 
-#-ALLEGRO-V5.0
+#-(and allegro-version>= (version>= 5.0))
 (defun glisp::open-inet-socket (hostname port)
   (values
    (ipc:open-network-stream :host hostname

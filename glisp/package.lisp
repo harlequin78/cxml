@@ -350,7 +350,7 @@
       #+:CLISP                 ,@'(:lisp)
       #+:CMU                   ,@'(:ext)
       #+:sbcl                   ,@'(:sb-gray)
-      #+:ALLEGRO               ,@'(:common-lisp :excl :stream)
+      #+:allegro               ,@'(:common-lisp :excl :stream)
       #+:HARLEQUIN-COMMON-LISP ,@'(:stream)
       #+:OPENMCL               ,@'(:ccl)
       ))
@@ -363,7 +363,7 @@
                         (list sym)
                       nil)))
               packages)
-        (progn (format T "~&There is no ~A in ~A." name packages)
+        (progn (format t "~&There is no ~A in ~A." name packages)
                (finish-output)
                nil)))
 
@@ -377,7 +377,7 @@
                            (cond ((multiple-value-bind (sym2 res) (find-symbol nam :glisp)
                                     (and sym2 (eq res :external)))
                                   ;;
-                                  (format T "~&;; ~S is pacthed." sym) )
+                                  (format t "~&;; ~S is pacthed." sym) )
                                  (t
                                   (setf sym (car sym))
                                   ;; CLISP has no (:import ..) ARG!
@@ -386,17 +386,23 @@
                                           ,(symbol-name sym))
                                         imports))))))
                      res)))
+      (unless (eq 'foo 'FOO)
+        ;; mlisp :-(
+        (macrolet ((fixup (var) `(setf ,var (mapcar #'string-downcase ,var))))
+          (fixup *all-ansi-symbols*)
+          (fixup *gray-symbols*)
+          (fixup *export-from-glisp*)))
       (setf export-ansi (grok *all-ansi-symbols* *packages*))
       (setf export-gray (grok *gray-symbols* *gray-packages*))
       `(progn
-         (defpackage "GLISP" (:use)
+         (defpackage :glisp (:use)
            ,@imports
            (:export
             ,@(mapcar #'symbol-name export-ansi)
             ,@(mapcar #'symbol-name export-gray)
             ,@*export-from-glisp*))
-         (defpackage "GLUSER"
-           (:use "GLISP")) )))
+         (defpackage :gluser
+           (:use :glisp)))))
 
   (defmacro define-glisp-package ()
     (dump-defpackage))
