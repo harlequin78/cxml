@@ -29,6 +29,9 @@
 (defun string-dom:node-name (node)	(rod-to-string (cdom:node-name node)))
 (defun string-dom:node-value (node)	(rod-to-string (cdom:node-value node)))
 
+(defun (setf string-dom:value) (newval node)
+  (setf (cdom:value node) newval))
+
 (defun string-dom:substring-data (node offset count)
   (rod-to-string (cdom:substring-data node offset count)))
 
