@@ -467,7 +467,7 @@
 
 (defun translate-assert-true (element)
   (with-attributes (|actual|) element
-    `(assert ,(if (nullify |actual|)
+    `(assert ,(if |actual|
                   (%intern |actual|)
                   (translate-condition
                    (do-child-elements (c element) (return c)))))))

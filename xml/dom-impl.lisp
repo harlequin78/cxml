@@ -89,8 +89,7 @@
 (defclass named-node-map ()
   ((items         :initarg :items         :reader dom:items
                   :initform nil)
-   (owner         :initarg :owner         :reader dom:owner-document)
-   (read-only-p   :initform nil           :reader read-only-p)))
+   (owner         :initarg :owner         :reader dom:owner-document)))
 
 
 ;;; Implementation
@@ -464,7 +463,6 @@
              (return k))))))
 
 (defmethod dom:set-named-item ((self named-node-map) arg)
-  (assert-writeable self)
   (unless (eq (dom:owner-document self) (dom:owner-document arg))
     (dom-error :WRONG_DOCUMENT_ERR
                "~S cannot adopt ~S, since it was created by a different document."
@@ -481,7 +479,6 @@
                (return k)))))))
 
 (defmethod dom:remove-named-item ((self named-node-map) name)
-  (assert-writeable self)
   (setf name (rod name))
   (with-slots (items) self
     (dolist (k items (dom-error :NOT_FOUND_ERR "~A not found in ~A" name self))
