@@ -247,16 +247,14 @@
     (dom-error :WRONG_DOCUMENT_ERR
                "~S cannot adopt ~S, since it was created by a different document."
                node new-child))
-  (with-slots (children) node
-    (unless (null (slot-value new-child 'parent))
-      (cond ((eq (slot-value new-child 'parent)
-                 node)
-             ;; remove it first
-             (setf children (delete new-child children)))
-            (t
-             ;; otherwise it is an error.
-             (dom-error :GB_INTEGRITY_ERR "~S is already adopted."
-                        new-child)))) ))
+  (do ((n node (dom:parent-node n)))
+      ((null n))
+    (when (eq n new-child)
+      (dom-error :HIERARCHY_REQUEST_ERR
+                 "~S cannot adopt ~S, since that would create a cycle"
+                 node new-child)))
+  (unless (null (slot-value new-child 'parent))
+    (dom:remove-child (slot-value new-child 'parent) new-child)))
 
 (defmethod dom:insert-before ((node node) (new-child node) (ref-child t))
   (ensure-valid-insertion-request node new-child)
