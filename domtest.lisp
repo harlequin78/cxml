@@ -145,6 +145,9 @@
       `(setf ,place ,form)
       form))
 
+(defun nullify (str)
+  (if (zerop (length str)) nil str))
+
 
 ;;;; dom1-interfaces.xml auslesen
 
@@ -338,9 +341,9 @@
 (defun translate-get (call name)
   (with-attributes (|var| |value| |obj|) call
     (cond
-      (|var|                            ;get
+      ((nullify |var|)                  ;get
         (maybe-setf (%intern |var|) `(,(intern-dom name) ,(%intern |obj|))))
-      (|value|                          ;set
+      ((nullify |value|)                ;set
         `(setf (,(intern-dom name) ,(%intern |obj|))
                ,(parse-java-literal |value|)))
       (t
