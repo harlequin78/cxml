@@ -65,10 +65,24 @@
 
 (defmethod sax:characters ((handler dom-builder) data)
   (with-slots (document element-stack) handler
-    (let ((node (cdom:create-text-node document data))
+    (let ((parent (car element-stack)))
+      (if (eq (dom:node-type parent) :cdata-section)
+          (setf (dom:data parent) data)
+          (let ((node (cdom:create-text-node document data)))
+            (setf (slot-value node 'dom-impl::parent) parent)
+            (push node (slot-value (car element-stack) 'dom-impl::children)))))))
+
+(defmethod sax:start-cdata ((handler dom-builder))
+  (with-slots (document element-stack) handler
+    (let ((node (cdom:create-cdata-section document #()))
           (parent (car element-stack)))
       (setf (slot-value node 'dom-impl::parent) parent)
-      (push node (slot-value (car element-stack) 'dom-impl::children)))))
+      (push node (slot-value parent 'dom-impl::children))
+      (push node element-stack))))
+
+(defmethod sax:end-cdata ((handler dom-builder))
+  (let ((node (pop (slot-value handler 'element-stack))))
+    (assert (eq (dom:node-type node) :cdata-section))))
 
 (defmethod sax:processing-instruction ((handler dom-builder) target data)
   (with-slots (document element-stack) handler
