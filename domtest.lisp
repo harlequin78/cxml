@@ -203,7 +203,21 @@
 
 (defun translate-instance-of (element)
   (with-attributes (|obj| |type|) element
-    `(typep ,(%intern |obj|) ',(intern-dom |type|))))
+    `(eq (dom:node-type ,(%intern |obj|))
+         ',(string-case |type|
+             ("Document" :document)
+             ("DocumentFragment" :document-fragment)
+             ("Text" :text)
+             ("Comment" :comment)
+             ("CDATASection" :cdata-section)
+             ("Attr" :attribute)
+             ("Element" :element)
+             ("DocumentType" :document-type)
+             ("Notation" :notation)
+             ("Entity" :entity)
+             ("EntityReference" :entity-reference)
+             ("ProcessingInstruction" :processing-instruction)
+             (t (error "unknown interface: ~A" |type|))))))
 
 (defun translate-is-null (element)
   (with-attributes (|obj|) element
