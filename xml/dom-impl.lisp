@@ -99,6 +99,15 @@
   (when (read-only-p node)
     (dom-error :NO_MODIFICATION_ALLOWED_ERR "~S is marked read-only." node)))
 
+(defun dom:map-node-list (fn nodelist)
+  (dotimes (i (dom:length nodelist))
+    (funcall fn (dom:item nodelist i))))
+
+(defmacro dom:do-node-list ((var nodelist &optional resultform) &body body)
+  `(block nil
+     (dom:map-node-list (lambda (,var) ,@body) ,nodelist)
+     ,resultform))
+
 (defmacro dovector ((var vector &optional resultform) &body body)
   `(loop
        for ,var across ,vector do (progn ,@body)
@@ -284,6 +293,7 @@
   (assert-writeable node)
   (unless (can-adopt-p node new-child)
     (dom-error :HIERARCHY_REQUEST_ERR "~S cannot adopt ~S." node new-child))
+  #+(or)                                ;XXX needs to be moved elsewhere
   (when (eq (dom:node-type node) :document)
     (let ((child-type (dom:node-type new-child)))
       (when (and (member child-type '(:element :document-type))
@@ -291,7 +301,9 @@
         (dom-error :HIERARCHY_REQUEST_ERR
                    "~S cannot adopt a second child of type ~S."
                    node child-type))))
-  (unless (eq (dom:owner-document node) 
+  (unless (eq (if (eq (dom:node-type node) :document)
+                  node
+                  (dom:owner-document node))
               (dom:owner-document new-child))
     (dom-error :WRONG_DOCUMENT_ERR
                "~S cannot adopt ~S, since it was created by a different document."

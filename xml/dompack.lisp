@@ -103,4 +103,6 @@
    #:entity-reference-p
    #:processing-instruction-p
    #:named-node-map-p
-   ))
+
+   #:map-node-list
+   #:do-node-list))

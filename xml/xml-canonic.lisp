@@ -65,7 +65,7 @@
 (defvar *quux*)                         ;!!!BIG HACK!!!
 
 (defun unparse-document (doc sink)
-  (mapc (rcurry #'unparse-node sink) (dom:child-nodes doc)))
+  (map nil (rcurry #'unparse-node sink) (dom:child-nodes doc)))
 
 (defun unparse-node (node sink)
   (cond ((dom:element-p node)
@@ -83,7 +83,7 @@
                (map nil (lambda (c) (unparse-datachar c sink)) (dom:value a)))
              (write-rune #/\" sink)))
          (write-rod '#.(string-rod ">") sink)
-         (dolist (k (dom:child-nodes node))
+         (dom:do-node-list (k (dom:child-nodes node))
            (unparse-node k sink))
          (write-rod '#.(string-rod "</") sink)
          (write-rod (dom:tag-name node) sink)
