@@ -108,4 +108,5 @@
    #:named-node-map-p
 
    #:map-node-list
-   #:do-node-list))
+   #:do-node-list
+   #:make-document))

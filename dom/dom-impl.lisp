@@ -982,3 +982,18 @@
 (defmethod dom:clone-node ((node node) deep)
   (let ((*clone-not-import* t))
     (dom:import-node (dom:owner-document node) node deep)))
+
+
+;;; Erweiterung
+
+(defun dom:make-document (&optional document-element)
+  ;; Um ein neues Dokumentenobject zu erzeugen, parsen wir einfach ein
+  ;; Dummydokument.
+  (let* ((handler (dom:make-dom-builder))
+         (result
+          (progn
+            (sax:start-document handler)
+            (sax:end-document handler))))
+    (when document-element
+      (dom:append-child result (dom:import-node result document-element t)))
+    result))
