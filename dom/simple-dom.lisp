@@ -1,4 +1,4 @@
-(in-package :xml)
+(in-package :cxml)
 
 ;;; Implementation of a simple but faster DOM.
 

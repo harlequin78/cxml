@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: XML; readtable: runes; Encoding: utf-8; -*-
 
-(in-package :xml)
+(in-package :cxml)
 
 #.(funcall 
    (compile 

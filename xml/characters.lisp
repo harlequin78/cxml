@@ -6,7 +6,7 @@
 ;;; schon?).  Vorher sollte man allerdings die Geschwindigkeit der Sache
 ;;; mal untersuchen.
 
-(in-package :xml)
+(in-package :cxml)
 
 (defparameter *base-char-ranges*
     #((#x0041 #x005A) (#x0061 #x007A) (#x00C0 #x00D6) (#x00D8 #x00F6)

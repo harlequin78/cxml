@@ -42,7 +42,7 @@
 (defun serialize-document (document)
   (map 'vector #'char-code
        (with-output-to-string (s)
-         (xml:unparse-document document s))))
+         (cxml:unparse-document document s))))
 
 (defun file-contents (pathname)
   (with-open-file (s pathname :element-type '(unsigned-byte 8))
@@ -54,7 +54,7 @@
 (defun run-all-tests (directory)
   (let* ((pathname (merge-pathnames "xmlconf.xml" directory))
          (builder (dom:make-dom-builder))
-         (xmlconf (xml:parse-file pathname builder))
+         (xmlconf (cxml:parse-file pathname builder))
          (ntried 0)
          (nfailed 0)
          (nskipped 0))
@@ -72,7 +72,7 @@
                   (progn
                     (#+allegro mp:with-timeout #+allegro (60) #-allegro progn
                       (let ((document
-                             (xml:parse-file pathname (dom:make-dom-builder))))
+                             (cxml:parse-file pathname (dom:make-dom-builder))))
                         (cond
                           ((null output)
                             (format t " ok (output not checked)~%"))

@@ -1,5 +1,5 @@
 (defpackage :domtest
-  (:use :cl :xml)
+  (:use :cl :cxml)
   (:export #:run-all-tests))
 (defpackage :domtest-tests
   (:use))
@@ -170,7 +170,7 @@
 (defun read-members ()
   (let* ((pathname (merge-pathnames "patches/dom1-interfaces.xml" *directory*))
          (builder (dom:make-dom-builder))
-         (library (dom:document-element (xml:parse-file pathname builder)))
+         (library (dom:document-element (cxml:parse-file pathname builder)))
          (methods '())
          (fields '()))
     (do-child-elements (interface library :name "interface")
@@ -549,7 +549,7 @@
     (multiple-value-setq (*methods* *fields*) (read-members)))
   (catch 'give-up
     (let* ((builder (dom:make-dom-builder))
-           (test (dom:document-element (xml:parse-file pathname builder)))
+           (test (dom:document-element (cxml:parse-file pathname builder)))
            title
            (bindings '())
            (code '()))
@@ -590,7 +590,7 @@
   (setf name (runes:rod-string name))
   (let* ((directory (merge-pathnames "tests/level1/core/files/" *directory*))
          (document
-          (xml:parse-file
+          (cxml:parse-file
            (make-pathname :name name :type "xml" :defaults directory)
            (dom:make-dom-builder))))
     document))
@@ -599,11 +599,11 @@
     '("hc_elementnormalize2.xml" "hc_nodereplacechildnewchildexists.xml"))
 
 (defun run-all-tests (*directory* &optional verbose)
-  (let* ((xml::*redefinition-warning* nil)
+  (let* ((cxml::*redefinition-warning* nil)
          (test-directory (merge-pathnames "tests/level1/core/" *directory*))
          (all-tests (merge-pathnames "alltests.xml" test-directory))
          (builder (dom:make-dom-builder))
-         (suite (dom:document-element (xml:parse-file all-tests builder)))
+         (suite (dom:document-element (cxml:parse-file all-tests builder)))
          (n 0)
          (i 0)
          (ntried 0)

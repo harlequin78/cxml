@@ -176,7 +176,7 @@
 
 (defmethod dom:create-element ((document document) tag-name)
   (setf tag-name (rod tag-name))
-  (unless (xml::valid-name-p tag-name)
+  (unless (cxml::valid-name-p tag-name)
     (dom-error :INVALID_CHARACTER_ERR "not a name: ~A" (rod-string tag-name)))
   (make-instance 'element 
     :tag-name tag-name
@@ -210,7 +210,7 @@
 (defmethod dom:create-processing-instruction ((document document) target data)
   (setf target (rod target))
   (setf data (rod data))
-  (unless (xml::valid-name-p target)
+  (unless (cxml::valid-name-p target)
     (dom-error :INVALID_CHARACTER_ERR "not a name: ~A" (rod-string target)))
   (make-instance 'processing-instruction
     :owner document
@@ -219,7 +219,7 @@
 
 (defmethod dom:create-attribute ((document document) name)
   (setf name (rod name))
-  (unless (xml::valid-name-p name)
+  (unless (cxml::valid-name-p name)
     (dom-error :INVALID_CHARACTER_ERR "not a name: ~A" (rod-string name)))
   (make-instance 'attribute
     :name name
@@ -228,7 +228,7 @@
 
 (defmethod dom:create-entity-reference ((document document) name)
   (setf name (rod name))
-  (unless (xml::valid-name-p name)
+  (unless (cxml::valid-name-p name)
     (dom-error :INVALID_CHARACTER_ERR "not a name: ~A" (rod-string name)))
   (make-instance 'entity-reference
     :name name
@@ -817,8 +817,8 @@
 
 (defmethod initialize-instance :after ((instance entity-reference) &key)
   (let* ((owner (dom:owner-document instance))
-         (entities (or (entities owner) xml::*entities*))
-         (children (xml::resolve-entity (dom:name instance) entities)))
+         (entities (or (entities owner) cxml::*entities*))
+         (children (cxml::resolve-entity (dom:name instance) entities)))
     (setf (slot-value instance 'children)
           (make-node-list
            (map 'vector

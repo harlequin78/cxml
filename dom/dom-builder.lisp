@@ -41,7 +41,7 @@
     (push document (element-stack handler))))
 
 (defmethod sax:end-document ((handler dom-builder))
-  (setf (slot-value (document handler) 'entities) xml::*entities*)
+  (setf (slot-value (document handler) 'entities) cxml::*entities*)
   (let ((doctype (dom:doctype (document handler))))
     (when doctype
       (setf (slot-value (dom:entities doctype) 'read-only-p) t)
@@ -67,7 +67,7 @@
     (let ((element (dom:create-element document qname))
 	  (parent (car element-stack)))
       (dolist (attr attributes)
-	(dom:set-attribute element (xml::attribute-qname attr) (xml::attribute-value attr)))
+	(dom:set-attribute element (cxml::attribute-qname attr) (cxml::attribute-value attr)))
       (setf (slot-value element 'dom-impl::parent) parent)
       (fast-push element (slot-value parent 'dom-impl::children))
       (push element element-stack))))

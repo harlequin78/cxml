@@ -57,6 +57,11 @@
       href="http://www.common-lisp.net/project/cxml/david@knowledgetools.de--cxml/">http://www.common-lisp.net/project/cxml/david@knowledgetools.de--cxml/</a>.<br/>
       There will also be <a href="http://www.common-lisp.net/project/cxml/download/">tarballs</a>.
     </p>
+    <p>
+      (Brief tla usage instructions: Unpack the cxml tarball.&nbsp;
+      Enter <tt>tla register-archive URL</tt> to turn it into a working
+      copy.&nbsp; <tt>tla update</tt> is similar to <tt>cvs up</tt>.)
+    </p>
 
     <p>
       <b>Contents</b>
@@ -71,6 +76,13 @@
       <li><a href="#dom">DOM notes</a></li>
     </ul>
 
+    <p>
+      <b>Changes</b>
+    </p>
+    <ul>
+      <li>Renamed package <tt>XML</tt> to <tt>CXML</tt>.</li>
+    </ul>
+
     <a name="modules"/>
     <h2>CXML Modules</h2>
     <p>CXML provides three packages:</p>
@@ -79,7 +91,7 @@
         <tt>RUNES</tt>, a portable implementation of Unicode strings.
       </li>
       <li>
-        <tt>XML</tt>, a namespace-aware SAX parser implementing the <a
+        <tt>CXML</tt>, a namespace-aware SAX parser implementing the <a
         href="http://www.w3.org/TR/2000/REC-xml-20001006">XML 1.0
         specification</a>.
       </li> 
@@ -135,7 +147,7 @@ $ cvs co 2001/DOM-Test-Suite</pre>
     <p>Usage and expected output:</p>
     <pre>* (xmlconf:run-all-tests "/path/to/2001/XML-Test-Suite/xmlconf/")
 22/389 tests failed; 1773 tests were skipped
-* (domtest:run-all-tests "/path/to/2001/2001/DOM-Test-Suite/")
+* (domtest:run-all-tests "/path/to/2001/DOM-Test-Suite/")
 0/440 tests failed; 81 tests were skipped</pre>
 
     <p>
@@ -202,10 +214,10 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     <a name="using"/>
     <h2>Using the parser</h2>
     <p>
-      <div class="def">Function XML:PARSE-FILE (pathname handler)</div>
-      <div class="def">Function XML:PARSE-STREAM (stream handler)</div>
-      <div class="def">Function XML:PARSE-OCTETS (octets handler)</div>
-      Parse an XML document.&nbsp; Arguments:
+      <div class="def">Function CXML:PARSE-FILE (pathname handler)</div>
+      <div class="def">Function CXML:PARSE-STREAM (stream handler)</div>
+      <div class="def">Function CXML:PARSE-OCTETS (octets handler)</div>
+      Parse a CXML document.&nbsp; Arguments:
     </p>
     <ul>
       <li><tt>pathname</tt> -- a Common Lisp pathname</li>
@@ -220,11 +232,11 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       <div class="def">Function DOM:MAKE-DOM-BUILDER ()</div>
       Create a SAX handler which builds a DOM document.&nbsp; Example:
     </p>
-    <pre>(xml:parse-file "test.xml" (dom:make-dom-builder))</pre>
+    <pre>(cxml:parse-file "test.xml" (dom:make-dom-builder))</pre>
 
     <p>
-      <div class="def">Function XML:UNPARSE-DOCUMENT (document stream)</div>
-      <div class="def">Function XML:UNPARSE-DOCUMENT-TO-OCTETS (document) => vector</div>
+      <div class="def">Function CXML:UNPARSE-DOCUMENT (document stream)</div>
+      <div class="def">Function CXML:UNPARSE-DOCUMENT-TO-OCTETS (document) => vector</div>
       Serialize a document into <a
       href="http://www.w3.org/TR/2001/REC-xml-c14n-20010315">canonical
       form</a>.
@@ -345,7 +357,7 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     <p>Example:</p>
     <pre>XML(97): (dom:node-type
           (dom:document-element
-           (xml:parse-file "~/test.xml" (dom:make-dom-builder))))
+           (cxml:parse-file "~/test.xml" (dom:make-dom-builder))))
 :ELEMENT</pre>
   </body>
 </html>

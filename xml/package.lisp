@@ -1,6 +1,6 @@
 (in-package :cl-user)
 
-(defpackage :xml
+(defpackage :cxml
   (:use :cl :runes :encoding)
   (:import-from #+sbcl :sb-gray
                 #+allegro :excl

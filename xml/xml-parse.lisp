@@ -193,7 +193,7 @@
 ;; not-wf/sa/128        is false a alarm
 ;;
 
-(in-package :xml)
+(in-package :cxml)
 
 #+allegro
 (setf (excl:named-readtable :runes) *readtable*)
