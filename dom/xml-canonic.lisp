@@ -1,4 +1,4 @@
-;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: XML; readtable: runes; Encoding: utf-8; -*-
+;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: CXML; readtable: runes; Encoding: utf-8; -*-
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: Dump canonic XML according to J.Clark
 ;;;   Created: 1999-09-09
@@ -147,7 +147,8 @@
            (unparse-node k sink))
          (when indentation
            (end-indentation-block sink)
-           (sink-fresh-line sink))
+           (unless (zerop (length (dom:child-nodes node)))
+             (sink-fresh-line sink)))
          (write-rod '#.(string-rod "</") sink)
          (write-rod (dom:tag-name node) sink)
          (write-rod '#.(string-rod ">") sink))
@@ -189,24 +190,27 @@
 (defun unparse-indented-text (data sink)
   (flet ((whitespacep (x)
            (or (rune= x #/U+000A) (rune= x #/U+0020))))
-    (let ((pos 0)
-          (n (length data))
-          (have-newline nil))
-      (while (< pos n)
-        (let ((next (or (position-if #'whitespacep data :start pos) n)))
-          (when (> next (1+ pos))
-            (cond
-              ((not have-newline)
-                (sink-fresh-line sink)
-                (setf have-newline t))
-              ((< (+ (column sink) next (- pos)) (width sink))
-                (write-rune-0 32 sink))
-              (t
-                (sink-fresh-line sink))))
-          (loop
-              for i from pos below next do
-                (unparse-datachar-readable (elt data i) sink))
-          (setf pos (1+ next)))))))
+    (let* ((n (length data))
+           (pos (position-if-not #'whitespacep data))
+           (need-whitespace-p nil))
+      (cond
+        ((zerop n))
+        (pos
+          (sink-fresh-line sink)
+          (while (< pos n)
+            (let* ((w (or (position-if #'whitespacep data :start (1+ pos)) n))
+                   (next (or (position-if-not #'whitespacep data :start w) n)))
+              (when need-whitespace-p
+                (if (< (+ (column sink) w (- pos)) (width sink))
+                    (write-rune-0 32 sink)
+                    (sink-fresh-line sink)))
+              (loop
+                  for i from pos below w do
+                    (unparse-datachar-readable (elt data i) sink))
+              (setf need-whitespace-p (< w n))
+              (setf pos next))))
+        (t
+          (write-rune-0 32 sink))))))
 
 (defun unparse-datachar (c sink)
   (cond ((rune= c #/&) (write-rod '#.(string-rod "&amp;") sink))
