@@ -449,7 +449,9 @@
 ;;; NodeList (implementieren wir zwar als Liste, hat aber Methoden)
 
 (defmethod dom:item ((self list) index)
-  (elt self index))
+  (do ((nthcdr self (cdr nthcdr))
+       (i index (1- i)))
+      ((zerop i) (car nthcdr))))
 
 (defmethod dom:length ((self list))
   (length self))
@@ -495,7 +497,9 @@
 
 (defmethod dom:item ((self named-node-map) index)
   (with-slots (items) self
-    (elt items index)))
+    (do ((nthcdr items (cdr nthcdr))
+         (i index (1- i)))
+        ((zerop i) (car nthcdr)))))
 
 ;;; CHARACTER-DATA
 
