@@ -349,6 +349,20 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     </p>
 
     <p>
+      <div class="def">Function CXML:MAKE-CHARACTER-STREAM-SINK (stream &rest keys) => sink</div>
+      <div class="def">Function CXML:MAKE-OCTET-VECTOR-SINK (&rest keys) => sink</div>
+      Return a handle suitable for event-based XML serialization.
+    </p>
+
+    <p>
+      These function provide the low-level mechanism used by the DOM
+      serialization functions.  To serialize a document without building
+      its DOM tree first, create a sink handle and call SAX functions on that
+      handle.  <tt>sax:end-document</tt> returns the serialized form of
+      the document described by the SAX events.
+    </p>
+
+    <p>
       <div class="def">Function CXML:MAKE-VALIDATOR (dtd root)</div>
       Create a SAX handler which validates against a DTD instance.&nbsp;
       The document's root element must be named <tt>root</tt>.&nbsp; 

@@ -556,6 +556,7 @@
            title
            (bindings '())
            (code '()))
+      (declare (ignorable title))
       (do-child-elements (e test)
         (string-case (tag-name e)
           ("metadata"

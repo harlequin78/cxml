@@ -8,15 +8,20 @@
   (let ((doctype (dom:doctype document)))
     (when doctype
       (sax:start-dtd handler (dom:name doctype) nil nil)
-      (let ((ns (dom:notations doctype)))
+      ;; need notations for canonical mode 2
+      (let* ((ns (dom:notations doctype))
+             (a (make-array (dom:length ns))))
+        ;; get them
         (dotimes (k (dom:length ns))
-          (let ((n (dom:item ns k)))
-            (sax:notation-declaration handler
-                                      (dom:name n)
-                                      (dom:public-id n)
-                                      (dom:system-id n)))
-          ;; fixme: entities!
-          )
+          (setf (elt a k) (dom:item ns k)))
+        ;; sort them 
+        (setf a (sort a #'rod< :key #'dom:name))
+        (loop for n across a do
+              (sax:notation-declaration handler
+                                        (dom:name n)
+                                        (dom:public-id n)
+                                        (dom:system-id n)))
+        ;; fixme: entities!
         (sax:end-dtd handler))))
   (labels ((walk (node)
              (dom:do-node-list (child (dom:child-nodes node))

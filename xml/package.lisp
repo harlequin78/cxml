@@ -41,6 +41,8 @@
    ;; #:parse-string
    #:parse-octets
 
+   #:make-character-stream-sink
+   #:make-octet-sink
    #:unparse-document
    #:unparse-document-to-octets
 

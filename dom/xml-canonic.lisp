@@ -71,7 +71,10 @@
      (width :initform 79 :initarg :width :accessor width)
      (canonical :initform t :initarg :canonical :accessor canonical)
      (indentation :initform nil :initarg :indentation :accessor indentation)
-     (current-indentation :initform 0 :accessor current-indentation)))
+     (notations :initform (make-buffer :element-type t) :accessor notations)
+     (name-for-dtd :accessor name-for-dtd)
+     (previous-notation :initform nil :accessor previous-notation)
+     (stack :initform nil :accessor stack)))
 
 (defmethod initialize-instance :after ((instance sink) &key)
   (when (eq (canonical instance) t)
@@ -91,9 +94,9 @@
 ;; Loesung, aber die einfachste.
 (defgeneric write-octet (octet sink))
 
-(defun make-buffer ()
+(defun make-buffer (&key (element-type '(unsigned-byte 8)))
   (make-array 1
-              :element-type '(unsigned-byte 8)
+              :element-type element-type
               :adjustable t
               :fill-pointer 0))
 
@@ -101,129 +104,166 @@
   (with-slots (column) sink
     (setf column (if (eql octet 10) 0 (1+ column)))))
 
+
+;; vector (octet) sinks
+
+(defun make-octet-vector-sink (&rest initargs)
+  (apply #'make-instance 'vector-sink initargs))
+
 (defmethod write-octet (octet (sink vector-sink))
   (let ((target-vector (slot-value sink 'target-vector)))
     (vector-push-extend octet target-vector (length target-vector))))
 
+(defmethod sax:end-document ((sink vector-sink))
+  (slot-value sink 'target-vector))
+
+(defun unparse-document (doc character-stream &rest initargs)
+  (let ((sink (apply #'make-character-stream-sink character-stream initargs)))
+    (dom:map-document sink doc :include-default-values t)))
+
+
+;; character stream sinks
+
+(defun make-character-stream-sink (character-stream &rest initargs)
+  (apply #'make-instance 'character-stream-sink
+         :target-stream character-stream
+         initargs))
+
 (defmethod write-octet (octet (sink character-stream-sink))
   (write-char (code-char octet) (slot-value sink 'target-stream)))
 
-(defun unparse-document (doc character-stream &rest initargs)
-  (let ((sink (apply #'make-instance 'character-stream-sink
-                     :target-stream character-stream
-                     initargs)))
-    (do-unparse-document doc sink)))
+(defmethod sax:end-document ((sink character-stream-sink))
+  (slot-value sink 'target-stream))
 
 (defun unparse-document-to-octets (doc &rest initargs)
-  (let ((sink (apply #'make-instance 'vector-sink initargs)))
-    (do-unparse-document doc sink)
-    (slot-value sink 'target-vector)))
+  (let ((sink (apply #'make-octet-sink initargs)))
+    (dom:map-document sink doc :include-default-values t)))
 
-(defun do-unparse-document (document sink)
-  (when (and (canonical sink)
-             (>= (canonical sink) 2)
-             (plusp (dom:length (dom:notations (dom:doctype document)))))
-    ;; need a doctype declaration
-    (write-rod #"<!DOCTYPE " sink)
-    (write-rod (dom:tag-name (dom:document-element document)) sink)
-    (write-rod #" [" sink)
-    (write-rune #/U+000A sink)
-    (let* ((ns-map (dom:notations (dom:doctype document)))
-           (ns (make-array (dom:length ns-map))))
-      ;; get them
-      (dotimes (i (dom:length ns-map))
-        (setf (elt ns i) (dom:item ns-map i)))
-      ;; sort them
-      (setf ns (sort ns #'rod< :key #'dom:name))
-      ;; output
-      (dotimes (i (dom:length ns-map))
-        (let ((notation (elt ns i)))
-          (write-rod #"<!NOTATION " sink)
-          (write-rod (dom:name notation) sink)
-          (cond
-            ((zerop (length (dom:public-id notation)))
-              (write-rod #" SYSTEM '" sink)
-              (write-rod (dom:system-id notation) sink)
-              (write-rune #/' sink))
-            ((zerop (length (dom:system-id notation)))
-              (write-rod #" PUBLIC '" sink)
-              (write-rod (dom:public-id notation) sink)
-              (write-rune #/' sink))
-            (t 
-              (write-rod #" PUBLIC '" sink)
-              (write-rod (dom:public-id notation) sink)
-              (write-rod #"' '" sink)
-              (write-rod (dom:system-id notation) sink)
-              (write-rune #/' sink)))
-          (write-rune #/> sink)
-          (write-rune #/U+000A sink))))
+
+;;;; doctype and notations
+
+(defmethod sax:start-dtd ((sink sink) name public-id system-id)
+  (declare (ignore public-id system-id))
+  (setf (name-for-dtd sink) name))
+
+(defmethod sax:notation-declaration ((sink sink) name public-id system-id)
+  (when (and (canonical sink) (>= (canonical sink) 2))
+    (let ((prev (previous-notation sink)))
+      (cond
+        (prev
+          (unless (rod< prev name)
+            (error "misordered notations; cannot unparse canonically")))
+        (t
+          ;; need a doctype declaration
+          (write-rod #"<!DOCTYPE " sink)
+          (write-rod (name-for-dtd sink) sink)
+          (write-rod #" [" sink)
+          (write-rune #/U+000A sink)))
+      (setf (previous-notation sink) name)) 
+    (write-rod #"<!NOTATION " sink)
+    (write-rod name sink)
+    (cond
+      ((zerop (length public-id))
+        (write-rod #" SYSTEM '" sink)
+        (write-rod system-id sink)
+        (write-rune #/' sink))
+      ((zerop (length system-id))
+        (write-rod #" PUBLIC '" sink)
+        (write-rod public-id sink)
+        (write-rune #/' sink))
+      (t 
+        (write-rod #" PUBLIC '" sink)
+        (write-rod public-id sink)
+        (write-rod #"' '" sink)
+        (write-rod system-id sink)
+        (write-rune #/' sink)))
+    (write-rune #/> sink)
+    (write-rune #/U+000A sink)))
+
+(defmethod sax:end-dtd ((sink sink))
+  (when (previous-notation sink)
     (write-rod #"]>" sink)
-    (write-rune #/U+000A sink))
-  (map nil (rcurry #'unparse-node sink) (dom:child-nodes document)))
+    (write-rune #/U+000A sink)))
 
 
-;;;; DOM serialization
+;;;; elements
 
 (defun sink-fresh-line (sink)
   (unless (zerop (column sink))
     (write-rune-0 10 sink)
     (indent sink)))
 
-(defun unparse-node (node sink)
-  (let ((indentation (indentation sink)))
-    (cond
-        ((dom:element-p node)
-         (when indentation
-           (sink-fresh-line sink)
-           (start-indentation-block sink))
-         (write-rune #/< sink)
-         (write-rod (dom:tag-name node) sink)
-         ;; atts
-         (let ((atts (sort (copy-list (dom:items (dom:attributes node)))
-                           #'rod< :key #'dom:name)))
-           (dolist (a atts)
-             (write-rune #/space sink)
-             (write-rod (dom:name a) sink)
-             (write-rune #/= sink)
-             (write-rune #/\" sink)
-             (map nil (lambda (c) (unparse-datachar c sink)) (dom:value a))
-             (write-rune #/\" sink)))
-         (write-rod '#.(string-rod ">") sink)
-         (dom:do-node-list (k (dom:child-nodes node))
-           (unparse-node k sink))
-         (when indentation
-           (end-indentation-block sink)
-           (unless (zerop (length (dom:child-nodes node)))
-             (sink-fresh-line sink)))
-         (write-rod '#.(string-rod "</") sink)
-         (write-rod (dom:tag-name node) sink)
-         (write-rod '#.(string-rod ">") sink))
-        ((dom:processing-instruction-p node)
-         (unless (rod-equal (dom:target node) '#.(string-rod "xml"))
-           (write-rod '#.(string-rod "<?") sink)
-           (write-rod (dom:target node) sink)
-           (write-rune #/space sink)
-           (write-rod (dom:data node) sink)
-           (write-rod '#.(string-rod "?>") sink)))
-        ((and (dom:cdata-section-p node)
-              (not (canonical sink))
-              (not (search #"]]" (dom:data node))))
-         (when indentation
-           (sink-fresh-line sink))
-         (write-rod #"<![CDATA[" sink)
-         ;; XXX signal error if body is unprintable?
-         (map nil (lambda (c) (write-rune c sink)) (dom:data node))
-         (write-rod #"]]>" sink))
-        ((dom:text-node-p node)
-         (if indentation
-             (unparse-indented-text (dom:data node) sink)
-             (map nil (if (canonical sink)
-                          (lambda (c) (unparse-datachar c sink))
-                          (lambda (c) (unparse-datachar-readable c sink)))
-                  (dom:data node))))
-        ((dom:comment-p node))
-        (t
-         (error "Oops in unparse: ~S." node)))))
+(defmethod sax:start-element
+    ((sink sink) namespace-uri local-name qname attributes)
+  (declare (ignore namespace-uri local-name))
+  (when (stack sink)
+    (incf (cdr (first (stack sink)))))
+  (push (cons qname 0) (stack sink))
+  (when (indentation sink)
+    (sink-fresh-line sink)
+    (start-indentation-block sink))
+  (write-rune #/< sink)
+  (write-rod qname sink)
+  (let ((atts (sort (copy-list attributes) #'rod< :key #'sax:attribute-qname)))
+    (dolist (a atts)
+      (write-rune #/space sink)
+      (write-rod (sax:attribute-qname a) sink)
+      (write-rune #/= sink)
+      (write-rune #/\" sink)
+      (map nil (lambda (c) (unparse-datachar c sink)) (sax:attribute-value a))
+      (write-rune #/\" sink)))
+  (write-rod '#.(string-rod ">") sink))
+
+(defmethod sax:end-element
+    ((sink sink) namespace-uri local-name qname)
+  (declare (ignore namespace-uri local-name))
+  (let ((cons (pop (stack sink))))
+    (unless (consp cons)
+      (error "output does not nest: not in an element"))
+    (unless (rod= (car cons) qname)
+      (error "output does not nest: expected ~A but got ~A"
+             (rod qname) (rod (car cons))))
+    (when (indentation sink)
+      (end-indentation-block sink)
+      (unless (zerop (cdr cons))
+        (sink-fresh-line sink))))
+  (write-rod '#.(string-rod "</") sink)
+  (write-rod qname sink)
+  (write-rod '#.(string-rod ">") sink))
+
+(defmethod sax:processing-instruction ((sink sink) target data)
+  (unless (rod-equal target '#.(string-rod "xml"))
+    (write-rod '#.(string-rod "<?") sink)
+    (write-rod target sink)
+    (write-rune #/space sink)
+    (write-rod data sink)
+    (write-rod '#.(string-rod "?>") sink)))
+
+(defmethod sax:start-cdata ((sink sink))
+  (push :cdata (stack sink)))
+
+(defmethod sax:characters ((sink sink) data)
+  (cond
+    ((and (eq (car (stack sink)) :cdata)
+          (not (canonical sink))
+          (not (search #"]]" data)))
+      (when (indentation sink)
+        (sink-fresh-line sink))
+      (write-rod #"<![CDATA[" sink)
+      ;; XXX signal error if body is unprintable?
+      (map nil (lambda (c) (write-rune c sink)) data)
+      (write-rod #"]]>" sink))
+    (t
+      (if (indentation sink)
+          (unparse-indented-text data sink)
+          (map nil (if (canonical sink)
+                       (lambda (c) (unparse-datachar c sink))
+                       (lambda (c) (unparse-datachar-readable c sink)))
+               data)))))
+
+(defmethod sax:end-cdata ((sink sink))
+  (unless (eq (pop (stack sink)) :cdata)
+    (error "output does not nest: not in a cdata section")))
 
 (defun indent (sink)
   (dotimes (x (current-indentation sink))
