@@ -113,7 +113,9 @@
         ;; erweitern, sonst ist das Dokument nicht normalisiert.
         ;; (XXX Oder sollte man besser den Parser entsprechend aendern?)
         (setf (car (node-children parent))
-              (concatenate (type-of prev) prev data))
+              (concatenate `(vector ,(array-element-type prev))
+                           prev
+                           data))
         (push data (node-children parent)))))
 
 
