@@ -112,11 +112,9 @@
 ;;
 ;; o provide for a faster DOM
 ;;
-;; o parse document should get passed a document instance, so that a user
-;;   could pass his own DOM implementation
-;;
 ;; o morph zstream into a context object and thus also get rid of
 ;;   special variables. Put the current DTD there too.
+;;   [mostly done]
 
 ;; o the *scratch-pad* hack should become something much more
 ;;   reentrant, we could either define a system-wide resource
@@ -134,6 +132,7 @@
 ;;   (or proof, that our circle detection is enough).
 ;;
 ;; o element definitions (with att definitions in the elements)
+;;   [das haben wir doch, oder?]
 ;;
 ;; o store entities in the DTD
 ;;
@@ -143,13 +142,15 @@
 ;;    - UCS-2  in RODs
 ;;    - UTF-16 in RODs
 ;;    - UCS-4  in vectoren
+;;   [habe ich eigentlich nicht vor--david]
 ;;
 ;; o xstreams auslagern, documententieren und dann auch in SGML und
 ;;   CSS parser verwenden. (halt alles was zeichen liest).
+::   [ausgelagert sind sie; dokumentiert "so la la"; die Reintegration
+;;   is Closure ist ein ganz anderes Thema]
 ;;
 ;; o merge node representation with SGML module
-;; 
-;; o namespaces (this will get ugly).
+;;   [???]
 ;; 
 ;; o validation
 ;;
@@ -179,6 +180,7 @@
 ;;
 ;; o does the user need the distinction between "&#20;" and " " ?
 ;;   That is literal and 'quoted' white space.
+;;   [verstehe ich nicht --david]
 ;;
 ;; o on an option merge CDATA section;
 ;;

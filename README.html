@@ -201,7 +201,7 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
         href="http://www.w3.org/TR/2001/REC-xml-c14n-20010315">Canonical
         XML</a> right now.&nbsp; In the future we want support for:
         Including doctype declarations in the output, <strike>ordinary output
-        with less entity noise</strike> (done), <strike>optional
+        with less character reference noise</strike> (done), <strike>optional
         indentation</strike> (done), user-specified encoding, etc.
       </li>
       <li>
@@ -211,6 +211,10 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
         Validation!
       </li>
     </ul>
+    <p>
+      (Compare also with Gilbert Baumann's older TODO list in
+      <tt>xml-parse.lisp</tt>.)
+    </p>
 
     <a name="using"/>
     <h2>Using the parser</h2>
