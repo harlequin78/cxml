@@ -448,7 +448,7 @@
 (defmethod (setf dom:data) (newval (self character-data))
   (assert-writeable self)
   (setf newval (rod newval))
-  (setf (slot-value newval 'value) newval))
+  (setf (slot-value self 'value) newval))
 
 (defmethod dom:length ((node character-data))
   (length (slot-value node 'value)))
