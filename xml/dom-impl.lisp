@@ -37,7 +37,6 @@
 
 (defclass attribute (node)
   ((name        :initarg :name          :reader dom:name)
-   (value       :initarg :value         :reader dom:value)
    (specified-p :initarg :specified-p   :reader dom:specified)))
 
 (defmethod print-object ((object attribute) stream)
@@ -215,7 +214,6 @@
     (dom-error :INVALID_CHARACTER_ERR "not a name: ~A" (rod-string name)))
   (make-instance 'attribute
     :name name
-    :value ""
     :specified-p t
     :owner document))
 
@@ -632,12 +630,80 @@
   (values))
 
 ;;; ATTR
+;;;
+;;; An attribute value can be read and set as a string using DOM:VALUE
+;;; or frobbed by changing the attribute's children!
+;;;
+;;; We store the value in a TEXT node and access this node's DATA slot
+;;; when asked for our VALUE -- until the user changes the child nodes,
+;;; in which case we have to compute VALUE by traversing the children.
 
-;; hmm... value muss noch entities lesen und text-nodes in die hierarchie hängen.
+(defmethod dom:value ((node attribute))
+  (with-slots (children) node
+    (cond
+      ((zerop (length children))
+        #.(rod-string ""))
+      ((and (eql (length children) 1)
+            (eq (dom:node-type (elt children 0)) :text))
+        ;; we have as single TEXT-NODE child, just return its DATA
+        (dom:data (elt children 0)))
+      (t
+        ;; traverse children to compute value
+        (attribute-to-string node)))))
 
 (defmethod (setf dom:value) (new-value (node attribute))
   (assert-writeable node)
-  (setf (slot-value node 'value) (rod new-value)))
+  (let ((rod (rod new-value)))
+    (with-slots (children owner) node
+      (cond
+        ((and (eql (length children) 1)
+              (eq (dom:node-type (elt children 0)) :text))
+          ;; change TEXT-NODE child
+          (setf (dom:data (elt children 0)) rod))
+        (t
+          ;; remove children, add new TEXT-NODE child
+          (while (plusp (length children))
+            (dom:remove-child node (dom:last-child node)))
+          (dom:append-child node (dom:create-text-node owner rod))))))
+  new-value)
+
+(defun attribute-to-string (attribute)
+  (let ((stream (make-rod-stream)))
+    (flet ((doit ()
+             (dovector (child (dom:child-nodes attribute))
+               (write-attribute-child child stream))))
+      (doit)
+      (initialize-rod-stream stream)
+      (doit))
+    (rod-stream-buf stream)))
+
+(defmethod write-attribute-child ((node node) stream)
+  (write-rod (dom:node-value node) stream))
+
+(defmethod write-attribute-child ((node entity-reference) stream)
+  (dovector (child (dom:child-nodes node))
+    (write-attribute-child child stream)))
+
+;;; ROD-STREAM als Ersatz fuer MAKE-STRING-OUTPUT-STREAM zu verwenden,
+;;; nur dass der Buffer statische Groesse hat.  Solange er NIL ist,
+;;; zaehlt der Stream nur die Runen.  Dann ruft man INITIALIZE-ROD-STREAM
+;;; auf, um den Buffer zu erzeugen und die Position zurueckzusetzen, und
+;;; schreibt alles abermals.  Dann ist der Buffer gefuellt.
+(defstruct rod-stream
+  (buf nil)
+  (position 0))
+
+(defun write-rod (rod rod-stream)
+  (let ((buf (rod-stream-buf rod-stream)))
+    (when buf
+      (move rod buf 0 (rod-stream-position rod-stream) (length rod)))
+    (incf (rod-stream-position rod-stream) (length rod)))
+  rod)
+
+(defun initialize-rod-stream (stream)
+  (setf (rod-stream-buf stream) (make-rod (rod-stream-position stream)))
+  (setf (rod-stream-position stream) 0)
+  stream)
 
 ;;; ELEMENT
 
@@ -652,7 +718,7 @@
   (let ((a (dom:get-attribute-node element name)))
     (if a
         (dom:value a)
-        #())))
+        #.(string-rod ""))))
 
 (defmethod dom:set-attribute ((element element) name value)
   (assert-writeable element)
@@ -833,9 +899,7 @@
 
 (defmethod dom:import-node ((document document) (node attribute) deep)
   (declare (ignore deep))
-  (import-node-internal 'attribute document node t
-                        :name (dom:name node)
-                        :value (dom:value node)))
+  (import-node-internal 'attribute document node t :name (dom:name node)))
 
 (defmethod dom:import-node ((document document) (node document-fragment) deep)
   (import-node-internal 'document-fragment document node deep))
@@ -883,7 +947,7 @@
 (defmethod dom:import-node
     ((document document) (node character-data) deep)
   (import-node-internal (class-of node) document node deep
-                        :data (dom:data node)))
+                        :data (copy-seq (dom:data node))))
 
 ;;; CLONE-NODE
 ;;;
