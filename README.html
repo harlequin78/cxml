@@ -362,7 +362,7 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     </p>
 
     <p>
-      <div class="def">Macro CXML:WITH-XML-OUTPUT ((&rest options) &body body) => vector</div>
+      <div class="def">Macro CXML:WITH-XML-OUTPUT (sink &body body) => vector</div>
       <div class="def">Macro CXML:WITH-ELEMENT (qname &body body) => result</div>
       <div class="def">Function CXML:ATTRIBUTE (name value) => value</div>
       <div class="def">Function CXML:TEXT (data) => data</div>
@@ -372,12 +372,20 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     <p>
       Example:
     </p>
-    <pre>(with-xml-output (:indentation 2 :canonical nil)
+    <pre>(with-xml-output (make-octet-stream-sink stream :indentation 2 :canonical nil)
   (with-element #"foo"
     (attribute #"xyz" #"abc")
     (with-element #"bar"
       (attribute #"blub" #"bla"))
-    (text #"Hi there.")))</pre>
+    (text #"Hi there.")))
+   <p>
+      Prints this to <tt>stream</tt>, which must be an
+      <tt>(unsigned-byte 8)</tt> stream:
+   </p>
+   <pre>&lt;foo xyz="abc"&gt;
+  &lt;bar blub="bla"&gt;&lt;/bar&gt;
+  Hi there.
+&lt;/foo&gt;</pre>
 
     <p>
       <div class="def">Function CXML:MAKE-VALIDATOR (dtd root)</div>

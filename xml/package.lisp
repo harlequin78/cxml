@@ -43,6 +43,7 @@
 
    #:make-character-stream-sink
    #:make-octet-vector-sink
+   #:make-octet-stream-sink
    #:unparse-document
    #:unparse-document-to-octets
 

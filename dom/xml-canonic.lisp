@@ -85,12 +85,6 @@
   (when (and (canonical instance) (indentation instance))
     (error "Cannot indent XML in canonical mode")))
 
-(defclass vector-sink (sink)
-    ((target-vector :initform (make-buffer))))
-
-(defclass character-stream-sink (sink)
-    ((target-stream :initarg :target-stream)))
-
 ;; WRITE-OCTET als generisch zu machen ist vielleicht nicht die schnellste
 ;; Loesung, aber die einfachste.
 (defgeneric write-octet (octet sink))
@@ -108,6 +102,9 @@
 
 ;; vector (octet) sinks
 
+(defclass vector-sink (sink)
+    ((target-vector :initform (make-buffer))))
+
 (defun make-octet-vector-sink (&rest initargs)
   (apply #'make-instance 'vector-sink initargs))
 
@@ -118,12 +115,15 @@
 (defmethod sax:end-document ((sink vector-sink))
   (slot-value sink 'target-vector))
 
-(defun unparse-document (doc character-stream &rest initargs)
-  (let ((sink (apply #'make-character-stream-sink character-stream initargs)))
+(defun unparse-document-to-octets (doc &rest initargs)
+  (let ((sink (apply #'make-octet-vector-sink initargs)))
     (dom:map-document sink doc :include-default-values t)))
 
 
 ;; character stream sinks
+
+(defclass character-stream-sink (sink)
+    ((target-stream :initarg :target-stream)))
 
 (defun make-character-stream-sink (character-stream &rest initargs)
   (apply #'make-instance 'character-stream-sink
@@ -136,9 +136,26 @@
 (defmethod sax:end-document ((sink character-stream-sink))
   (slot-value sink 'target-stream))
 
-(defun unparse-document-to-octets (doc &rest initargs)
-  (let ((sink (apply #'make-octet-vector-sink initargs)))
+(defun unparse-document (doc character-stream &rest initargs)
+  (let ((sink (apply #'make-character-stream-sink character-stream initargs)))
     (dom:map-document sink doc :include-default-values t)))
+
+
+;; octet stream sinks
+
+(defclass octet-stream-sink (sink)
+    ((target-stream :initarg :target-stream)))
+
+(defun make-octet-stream-sink (octet-stream &rest initargs)
+  (apply #'make-instance 'octet-stream-sink
+         :target-stream octet-stream
+         initargs))
+
+(defmethod write-octet (octet (sink octet-stream-sink))
+  (write-byte octet (slot-value sink 'target-stream)))
+
+(defmethod sax:end-document ((sink octet-stream-sink))
+  (slot-value sink 'target-stream))
 
 
 ;;;; doctype and notations
@@ -377,11 +394,11 @@
 (defvar *current-element*)
 (defvar *sink*)
 
-(defmacro with-xml-output ((&rest options) &body body)
-  `(invoke-with-xml-output (lambda () ,@body) ,@options))
+(defmacro with-xml-output (sink &body body)
+  `(invoke-with-xml-output (lambda () ,@body) ,sink))
 
-(defun invoke-with-xml-output (fn &rest options)
-  (let ((*sink* (apply #'make-octet-vector-sink options))
+(defun invoke-with-xml-output (fn sink)
+  (let ((*sink* sink)
         (*current-element* nil))
     (sax:start-document *sink*)
     (funcall fn)
