@@ -473,21 +473,22 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
                stream :canonical nil :indentation indent)))
     (cxml-xmls:map-node sink node)))</pre>
     <p>
-      <div class="def">Function CXML-XMLS:MAKE-NODE (&key name attrs
+      <div class="def">Function CXML-XMLS:MAKE-NODE (&key name ns attrs
       children) => xmls node</div>
       Build a list node of the form
       (<em>name</em>&nbsp;((<em>name</em>&nbsp;<em>value</em>)<em>*</em>)&nbsp;<em>child*</em>).
     </p>
     <p>
-      <tt>name</tt> can also be a cons of local name and namespace prefix.
+      The node list's <tt>car</tt> can also be a cons of local <tt>name</tt>
+      and namespace prefix <tt>ns</tt>.
       <em>fixme:</em> It is unclear to me how namespaces are meant to
       work in xmls, since xmls documentation differs from how xmls
-      actually works in current releases.  Usually application need to
-      know both the namespace prefix <em>and</em> the namespace uri.  We
+      actually works in current releases.  Usually applications need to
+      know both the namespace prefix <em>and</em> the namespace URI.  We
       currently follow the xmls <em>implementation</em> and use the
       namespace prefix instead of following its <em>documentation</em> which
       shows the URI.  We do not follow xmls in munging xmlns attribute
-      values.  Attributes themselved have namespaces and it is not clear
+      values.  Attributes themselves have namespaces and it is not clear
       to me how that works in xmls.
     </p>
     <p>
