@@ -48,6 +48,7 @@
 
 (defmethod sax:start-element
     ((handler dom-builder) namespace-uri local-name qname attributes)
+  (declare (ignore namespace-uri local-name))
   (with-slots (document element-stack) handler
     (let ((element (make-instance 'element 
                      :tag-name qname
@@ -74,6 +75,7 @@
       (push element element-stack))))
 
 (defmethod sax:end-element ((handler dom-builder) namespace-uri local-name qname)
+  (declare (ignore namespace-uri local-name qname))
   (pop (element-stack handler)))
 
 (defmethod sax:characters ((handler dom-builder) data)

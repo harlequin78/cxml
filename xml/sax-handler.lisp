@@ -43,10 +43,6 @@
 ;;   * The whole ErrorHandler class, this is better handled using
 ;;     conditions (but isn't yet)
 ;;   * The LexicalHandler (start-cdata etc) would be nice  [-- partly done]
-;; o Despite all the namespace-uri etc arguments, namespaces are not
-;;   really supported yet, the xml parser always passes nil. This will
-;;   hopefully change Real Soon Now, and I didn't want to have to
-;;   rewrite the interface then
 
 (defpackage :sax
   (:use :common-lisp)

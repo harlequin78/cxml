@@ -114,7 +114,7 @@
 ;;
 ;; o morph zstream into a context object and thus also get rid of
 ;;   special variables. Put the current DTD there too.
-;;   [mostly done]
+;;   [partly done]
 
 ;; o the *scratch-pad* hack should become something much more
 ;;   reentrant, we could either define a system-wide resource
