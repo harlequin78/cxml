@@ -181,6 +181,7 @@
     ("isNull" (translate-is-null element))
     ("not" (translate-is-null element))
     ("notNull" (translate-not-null element))
+    ("or" (translate-or element))
     ("same" (translate-same element))
     (t (error "unknown condition: ~A" element))))
 
@@ -200,6 +201,9 @@
 (defun translate-same (element)
   (with-attributes (|actual| |expected|) element
     `(eql ,(%intern actual) ,(parse-java-literal expected))))
+
+(defun translate-or (element)
+  `(or ,@(map-child-elements 'list #'translate-condition element)))
 
 (defun translate-instance-of (element)
   (with-attributes (|obj| |type|) element
@@ -460,7 +464,10 @@
 
 (defun translate-assert-true (element)
   (with-attributes (|actual|) element
-    `(assert ,(%intern |actual|))))
+    `(assert ,(if |actual|
+                  (%intern |actual|)
+                  (translate-condition
+                   (do-child-elements (c element) (return c)))))))
 
 (defun translate-assert-false (element)
   (with-attributes (|actual|) element
