@@ -590,7 +590,7 @@
   (assert-writeable node)
   (setq arg (rod arg))
   (with-slots (value) node
-    (setf value (concatenate (type-of value) value arg)))
+    (setf value (concatenate 'rod value arg)))
   (values))
 
 (defmethod dom:delete-data ((node character-data) offset count)
