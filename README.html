@@ -94,6 +94,11 @@
 
     <a name="changes"/>
     <h2>Recent Changes</h2>
+    <p class="nomargin"><tt>patch-xyz</tt> (2004-xx-yy)</p>
+    <ul class="nomargin">
+      <li>Use the puri library for Sys-ID handling.</li>
+      <li>Auto-detect unicode support for better asdf-installability.</li>
+    </ul>
     <p class="nomargin"><tt>patch-306</tt> (2004-09-03)</p>
     <ul class="nomargin">
       <li>Event-based serialization which does not require DOM documents</li>
@@ -105,7 +110,7 @@
       <li>Validation</li>
       <li>bugfixes; XHTML DTD parses again; corrected SAX entity handling</li>
     </ul>
-    <p class="nomargin"><tt>patch-204</tt> (buggy release)</p>
+    <p class="nomargin"><tt>patch-204</tt></p>
     <ul class="nomargin">
       <li>Renamed package <tt>XML</tt> to <tt>CXML</tt>.</li>
       <li>The unparse functions support non-canonical output now.</li>
@@ -581,6 +586,10 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
         handler will only see ordinary Lisp strings.
       </li>
     </ul>
+    <p>
+      Note that the recoder approach does <em>not</em> work with the DOM
+      builder, since DOM is specified to use UTF-16.
+    </p>
     <p>
       <div class="def">Function CXML:MAKE-RECODER (chained-handler &optional recoder-fn)</div>
       Return a SAX handler which passes all events on to

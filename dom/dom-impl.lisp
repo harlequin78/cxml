@@ -818,7 +818,7 @@
                        (incf i))
                      ((and previous (eq (dom:node-type previous) :text))
                        (setf (slot-value previous 'value)
-                             (concatenate 'vector
+                             (concatenate 'rod
                                (dom:data previous)
                                (dom:data child)))
                        (dom:remove-child n child)

@@ -859,15 +859,15 @@
     (assert (not (null base-sysid)))
     (puri:merge-uris sysid base-sysid)))
 
+(defstruct extid
+  (public nil :type (or puri:uri null))
+  (system (error "missing argument") :type rod))
+
 (defun absolute-extid (source-stream extid)
-  (case (car extid)
-    (:SYSTEM
-     (list (car extid)
-           (absolute-uri (cadr extid) source-stream)))
-    (:PUBLIC
-     (list (car extid)
-           (cadr extid)
-           (absolute-uri (caddr extid) source-stream)))))
+  (let ((sysid (extid-system extid))
+        (result (copy-extid extid)))
+    (setf (extid-system result) (absolute-uri sysid source-stream))
+    result))
 
 (defun define-entity (source-stream name kind def)
   (setf name (intern-name name))
@@ -925,11 +925,9 @@
     (car def)))
 
 (defun open-extid (extid)
-  (let ((nam (ecase (car extid)
-               (:SYSTEM (cadr extid))
-               (:PUBLIC (caddr extid)))))
-    (make-xstream (open-sysid nam)
-                  :name (make-stream-name :uri nam)
+  (let ((sysid (extid-system extid)))
+    (make-xstream (open-sysid sysid)
+                  :name (make-stream-name :uri sysid)
                   :initial-speed 1)))
 
 (defun call-with-entity-expansion-as-stream (zstream cont name kind)
@@ -1862,14 +1860,18 @@
 (defun report-entity (h kind name def)
   (ecase (car def)
     (:EXTERNAL
-      (destructuring-bind ((ps lit1 &optional lit2) ndata) (cdr def)
+      (destructuring-bind (extid ndata) (cdr def)
         (if ndata
-            (sax:unparsed-entity-declaration h name lit1 (uri-rod lit2) ndata)
-            (multiple-value-bind (public system)
-                (ecase ps
-                  (:PUBLIC (values lit1 (uri-rod lit2)))
-                  (:SYSTEM (values nil (uri-rod lit1))))
-              (sax:external-entity-declaration h kind name public system)))))
+            (sax:unparsed-entity-declaration h
+                                             name
+                                             (extid-public extid)
+                                             (uri-rod (extid-system extid))
+                                             ndata)
+            (sax:external-entity-declaration h
+                                             kind
+                                             name
+                                             (extid-public extid)
+                                             (uri-rod (extid-system extid))))))
     (:INTERNAL
       (sax:internal-entity-declaration h kind name (cadr def)))))
 
@@ -1918,7 +1920,7 @@
   (multiple-value-bind (cat sem) (read-token input)
     (cond ((and (eq cat :name) (equalp sem '#.(string-rod "SYSTEM")))
            (p/S input)
-           (list :SYSTEM (p/system-literal input)))
+           (make-extid :system (p/system-literal input)))
           ((and (eq cat :name) (equalp sem '#.(string-rod "PUBLIC")))
            (let (pub sys)
              (p/S input)
@@ -1930,7 +1932,7 @@
              (when (and (not public-only-ok-p)
                         (null sys))
                (error "System identifier needed for this PUBLIC external identifier."))
-             (list :PUBLIC pub sys)))
+             (make-extid :public pub :system sys)))
           (t
            (error "Expected external-id: ~S / ~S." cat sem)))))
 
@@ -2218,12 +2220,12 @@
     (setf id (p/external-id input t))
     (p/S? input)
     (expect input :\>)
-    (case (car id)
-      ;; XXX are these right?
-      (:SYSTEM
-        (sax:notation-declaration (handler *ctx*) name nil (uri-rod (cadr id))))
-      (:PUBLIC
-        (sax:notation-declaration (handler *ctx*) name (normalize-public-id (cadr id)) (uri-rod (caddr id)))))
+    (sax:notation-declaration (handler *ctx*)
+                              name
+                              (if (extid-public id)
+                                  (normalize-public-id (extid-public id))
+                                  nil)
+                              (uri-rod (extid-system id)))
     (when *validate*
       (define-notation (dtd *ctx*) name id))
     (list :notation-decl name id)))
@@ -2373,8 +2375,10 @@
     (error "Trailing garbage - ~S." (peek-token input))))
 
 (defun p/doctype-decl (input)
-  (let ((*expand-pe-p* nil))
-    (let (name extid)
+  (let ()
+    (let ((*expand-pe-p* nil)
+          (internal-subset-p nil)
+          name extid)
       (expect input :|<!DOCTYPE|)
       (p/S input)
       (setq name (p/name input))
@@ -2386,11 +2390,12 @@
                     (eq (peek-token input) :\> ))
           (setf extid (p/external-id input t))))
       (p/S? input)
-      (ecase (car extid)
-        (:PUBLIC (sax:start-dtd (handler *ctx*) name (cadr extid) (uri-rod (caddr extid))))
-        (:SYSTEM (sax:start-dtd (handler *ctx*) name nil (uri-rod (cadr extid))))
-        ((nil) (sax:start-dtd (handler *ctx*) name nil nil)))
+      (sax:start-dtd (handler *ctx*)
+                     name
+                     (and extid (extid-public extid))
+                     (and extid (uri-rod (extid-system extid))))
       (when (eq (peek-token input) :\[ )
+        (setf internal-subset-p t)
         (consume-token input)
         (while (progn (p/S? input)
                       (not (eq (peek-token input) :\] )))
@@ -2405,8 +2410,8 @@
                                         (p/ext-subset-decl input)))
                                      (unless (eq :eof (peek-token input))
                                        (error "Trailing garbage.")))))
-            (let ((*expand-pe-p* t))
-              (p/markup-decl input))))
+              (let ((*expand-pe-p* t))
+                (p/markup-decl input))))
         (consume-token input)
         (p/S? input))
       (expect input :>)
