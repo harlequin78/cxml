@@ -98,7 +98,6 @@
   class pathname output args
   (handler-case
       (call-next-method)
-    #+(or)
     (serious-condition (c)
       (format t " FAILED:~%  ~A~%[~A]~%" c description)
       nil)))
