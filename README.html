@@ -65,34 +65,35 @@
     <p>
       David's tla archive is at <a
       href="http://common-lisp.net/project/cxml/david@knowledgetools.de--cxml/">http://www.common-lisp.net/project/cxml/david@knowledgetools.de--cxml/</a>.
-      (Brief tla usage instructions: Unpack the cxml tarball.&nbsp;
+      (Brief tla usage instructions: Unpack the cxml tarball.&amp;nbsp;
       Enter <tt>tla register-archive URL</tt> to turn it into a working
-      copy.&nbsp; <tt>tla update</tt> is similar to <tt>cvs up</tt>.)
+      copy.&amp;nbsp; <tt>tla update</tt> is similar to <tt>cvs up</tt>.)
     </p>
 
     <h1>Contents</h1>
     <ul>
-      <li><a href="#changes">Recent changes</a></li>
-      <li><a href="#modules">CXML modules</a></li>
+      <li><a href="#changes">Recent Changes</a></li>
+      <li><a href="#modules">CXML Modules</a></li>
       <li><a href="#installation">Installation</a></li>
       <li><a href="#tests">Tests</a></li>
-      <li><a href="#todo">To do</a></li>
+      <li><a href="#todo">To Do</a></li>
       <li>
         <a href="#using">Using CXML</a>
         <ul>
-          <li><a href="#parser">Parsing and validating</a></li>
+          <li><a href="#quickstart">Quick-Start Example</a></li>
+          <li><a href="#parser">Parsing and Validating</a></li>
           <li><a href="#serialization">Serialization</a></li>
-          <li><a href="#misc">Miscellaneous utility functions</a></li>
-          <li><a href="#xmls">XMLS compatibility</a></li>
-          <li><a href="#rods">Dealing with rods</a></li>
+          <li><a href="#misc">Miscellaneous Utility Functions</a></li>
+          <li><a href="#xmls">XMLS Compatibility</a></li>
+          <li><a href="#rods">Dealing with Rods</a></li>
         </ul>
       </li>
-      <li><a href="#sax">SAX interface</a></li>
-      <li><a href="#dom">DOM notes</a></li>
+      <li><a href="#sax">SAX Interface</a></li>
+      <li><a href="#dom">DOM Notes</a></li>
     </ul>
 
     <a name="changes"/>
-    <h2>Recent changes</h2>
+    <h2>Recent Changes</h2>
     <p class="nomargin"><tt>patch-306</tt> (2004-09-03)</p>
     <ul class="nomargin">
       <li>Event-based serialization which does not require DOM documents</li>
@@ -138,9 +139,9 @@
     <h2>Installation</h2>
     <p>
       CXML is written in Common Lisp and should be portable to all
-      Common Lisp implementations.&nbsp; Currently assumed to work are
+      Common Lisp implementations.&amp;nbsp; Currently assumed to work are
       ACL, SBCL, CMUCL, and CLISP, though development is done on
-      ACL.&nbsp; (CLISP needs some <tt>-E</tt> option teaching it to
+      ACL.&amp;nbsp; (CLISP needs some <tt>-E</tt> option teaching it to
       accept non-ASCII source files.)
     </p>
 
@@ -189,32 +190,32 @@ $ cvs co 2001/DOM-Test-Suite</pre>
 
     <p>
       <b>fixme</b> My parser does not understand the current testsuite
-      anymore.&nbsp; To fix this problem, revert the affected files
+      anymore.&amp;nbsp; To fix this problem, revert the affected files
       manually after check-out:
     </p>
 
     <pre>$ cd 2001/XML-Test-Suite/xmlconf/
-xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
+xmltest$ patch -p0 -R &amp;lt;/path/to/cxml/test/xmlconf-base.diff</pre>
 
     <p>
       The log message for the changes reads "<i>Removed unnecessary
-      xml:base attribute</i>".&nbsp; If I understand correctly, only
-      DOM&nbsp;3 parsers provide the baseURI attribute necessary for
-      understanding <tt>xmlconf.xml</tt> now.&nbsp; We don't have that
+      xml:base attribute</i>".&amp;nbsp; If I understand correctly, only
+      DOM&amp;nbsp;3 parsers provide the baseURI attribute necessary for
+      understanding <tt>xmlconf.xml</tt> now.&amp;nbsp; We don't have that
       yet.
     </p>
 
     <a name="todo"/>
-    <h2>To do</h2>
+    <h2>To Do</h2>
     <ul>
       <li>
-        <strike>David's changes might have affected performance.&nbsp; Some
+        <strike>David's changes might have affected performance.&amp;nbsp; Some
         benchmarking needs to be done here.</strike> (The actual parser
         seems to be faster than xmls -- good enough for me.)
       </li>
       <li>
-        DOM in general is pretty heavyweight.&nbsp; There is/was a
-        "simple-dom" which should be faster.&nbsp; This might be worth
+        DOM in general is pretty heavyweight.&amp;nbsp; There is/was a
+        "simple-dom" which should be faster.&amp;nbsp; This might be worth
         reviving.
       </li>
       <li>
@@ -224,7 +225,7 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       <li>
         <strike>The serializer supports only <a
         href="http://www.w3.org/TR/2001/REC-xml-c14n-20010315">Canonical
-        XML</a> right now.</strike>&nbsp; In the future we want support for:
+        XML</a> right now.</strike>&amp;nbsp; In the future we want support for:
         <strike>Including doctype declarations in the output</strike>
         (done), <strike>ordinary output with less character reference
         noise</strike> (done), <strike>optional indentation</strike>
@@ -253,13 +254,52 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     <a name="using"/>
     <h2>Using CXML</h2>
 
-    <a name="parser"/>
-    <h3>Parsing and validating</h3>
+    <a name="quickstart"/>
+    <h3>Quick-Start Example</h3>
+
     <p>
-      <div class="def">Function CXML:PARSE-FILE (pathname handler &key validate root)</div>
-      <div class="def">Function CXML:PARSE-STREAM (stream handler &key validate root)</div>
-      <div class="def">Function CXML:PARSE-OCTETS (octets handler &key validate root)</div>
-      Parse a CXML document.&nbsp;
+      Make sure to <a href="#installation">install and load</a> cxml first.
+    </p>
+
+    <p>Create a test file called <tt>example.xml</tt>:</p>
+    <pre>* (with-open-file (s "example.xml" :direction :output)
+    (write-string "&lt;test a='b'&gt;&lt;child/&gt;&lt;/test>" s))</pre>
+
+    <p>Parse <tt>example.xml</tt> into a DOM tree (<a href="#parser">read
+    more</a>):</p>
+    <pre>* (cxml:parse-file "example.xml" (dom:make-dom-builder))
+#&lt;DOM-IMPL::DOCUMENT @ #x72206172>
+;; save result for later:
+* (defparameter *example* *)
+*EXAMPLE*</pre>
+
+    <p>Inspect the DOM tree (<a href="#dom">read more</a>):</p>
+    <pre>* (dom:document-element *example*)
+#&lt;DOM-IMPL::ELEMENT test @ #x722b6ba2&gt;
+* (dom:tag-name (dom:document-element *example*))
+"test"
+* (dom:child-nodes (dom:document-element *example*))
+#(#&lt;DOM-IMPL::ELEMENT child @ #x722b6d8a&gt;)
+* (dom:get-attribute (dom:document-element *example*) "a")
+"b"</pre>
+
+    <p>Serialize the DOM document back into a stream (<a
+    href="#serialization">read more</a>):</p>
+    <pre>(cxml:unparse-document *example* *standard-output*)
+&lt;test a="b"&gt;&lt;child&gt;&lt;/child>&lt;/test></pre>
+
+    <p>As an alternative to DOM, parse into xmls-compatible list
+    structure (<a href="#xmls">read more</a>):</p>
+    <pre>* (cxml:parse-file "example.xml" (cxml-xmls:make-xmls-builder))
+("test" (("a" "b")) ("child" NIL))</pre>
+
+    <a name="parser"/>
+    <h3>Parsing and Validating</h3>
+    <p>
+      <div class="def">Function CXML:PARSE-FILE (pathname handler &amp;key validate root)</div>
+      <div class="def">Function CXML:PARSE-STREAM (stream handler &amp;key validate root)</div>
+      <div class="def">Function CXML:PARSE-OCTETS (octets handler &amp;key validate root)</div>
+      Parse an XML document.&amp;nbsp;
       Return values from this function depend on the SAX handler used.<br/>
       Arguments:
     </p>
@@ -275,7 +315,7 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     </p>
     <ul>
       <li><tt>validate</tt> -- <tt>t</tt>, <tt>nil</tt>, or a DTD
-        instance.&nbsp; Defaults to <tt>nil</tt>.</li>
+        instance.&amp;nbsp; Defaults to <tt>nil</tt>.</li>
       <li><tt>root</tt> -- <tt>nil</tt> or the expected root element
         name as a <tt>rod</tt>.</li>
     </ul>
@@ -293,7 +333,7 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     </ul>
     <p>
       When validating, argument <tt>root</tt> can be used to override the
-      name given in the DOCTYPE declaration.&nbsp; This is useful
+      name given in the DOCTYPE declaration.&amp;nbsp; This is useful
       together with a caller-specified DTD instance.
     </p>
 
@@ -313,15 +353,15 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
 
     <p>
       <div class="def">Function DOM:MAKE-DOM-BUILDER ()</div>
-      Create a SAX handler which builds a DOM document.&nbsp; Example:
+      Create a SAX handler which builds a DOM document.&amp;nbsp; Example:
     </p>
     <pre>(cxml:parse-file "test.xml" (dom:make-dom-builder))</pre>
 
     <a name="serialization"/>
     <h3>Serialization</h3>
     <p>
-      <div class="def">Function CXML:UNPARSE-DOCUMENT (document stream &rest keys)</div>
-      <div class="def">Function CXML:UNPARSE-DOCUMENT-TO-OCTETS (document &rest keys) => vector</div>
+      <div class="def">Function CXML:UNPARSE-DOCUMENT (document stream &amp;rest keys)</div>
+      <div class="def">Function CXML:UNPARSE-DOCUMENT-TO-OCTETS (document &amp;rest keys) => vector</div>
       Serialize a DOM document object.
     </p>
     <ul>
@@ -358,23 +398,23 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     </ul>
     <p>
       With an <tt>indentation</tt> level, pretty-print the XML by
-      inserting additional whitespace.&nbsp; Note that indentation
+      inserting additional whitespace.&amp;nbsp; Note that indentation
       changes the document model and should only be used if whitespace
       does not matter to the application.
     </p>
     <p>
       <tt>unparse-document-to-octets</tt> returns an <tt>(unsigned-byte
       8)</tt> array, whereas <tt>unparse-document</tt> writes
-      characters.&nbsp; <tt>unparse-document</tt> is useful together
-      with <tt>with-output-to-string</tt>.&nbsp; However, note that the
+      characters.&amp;nbsp; <tt>unparse-document</tt> is useful together
+      with <tt>with-output-to-string</tt>.&amp;nbsp; However, note that the
       resulting document in both cases is UTF-8 encoded, so the
       characters written by <tt>unparse-document</tt> are really UTF-8
       bytes encoded as characters.
     </p>
 
     <p>
-      <div class="def">Function CXML:MAKE-CHARACTER-STREAM-SINK (stream &rest keys) => sink</div>
-      <div class="def">Function CXML:MAKE-OCTET-VECTOR-SINK (&rest keys) => sink</div>
+      <div class="def">Function CXML:MAKE-CHARACTER-STREAM-SINK (stream &amp;rest keys) => sink</div>
+      <div class="def">Function CXML:MAKE-OCTET-VECTOR-SINK (&amp;rest keys) => sink</div>
       Return a handle suitable for event-based XML serialization.
     </p>
     <p>
@@ -386,8 +426,8 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     </p>
 
     <p>
-      <div class="def">Macro CXML:WITH-XML-OUTPUT (sink &body body) => vector</div>
-      <div class="def">Macro CXML:WITH-ELEMENT (qname &body body) => result</div>
+      <div class="def">Macro CXML:WITH-XML-OUTPUT (sink &amp;body body) => vector</div>
+      <div class="def">Macro CXML:WITH-ELEMENT (qname &amp;body body) => result</div>
       <div class="def">Function CXML:ATTRIBUTE (name value) => value</div>
       <div class="def">Function CXML:TEXT (data) => data</div>
       <div class="def">Function CXML:CDATA (data) => data</div>
@@ -406,21 +446,21 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       Prints this to <tt>stream</tt>, which must be an
       <tt>(unsigned-byte 8)</tt> stream:
    </p>
-   <pre>&lt;foo xyz="abc"&gt;
-  &lt;bar blub="bla"&gt;&lt;/bar&gt;
+   <pre>&amp;lt;foo xyz="abc"&amp;gt;
+  &amp;lt;bar blub="bla"&amp;gt;&amp;lt;/bar&amp;gt;
   Hi there.
-&lt;/foo&gt;</pre>
+&amp;lt;/foo&amp;gt;</pre>
    <p>
       (Note that these functions accept both strings and rods, so we
       could write <tt>"foo"</tt> instead of <tt>#"foo"</tt> above.)
    </p>
 
     <a name="misc"/>
-    <h3>Miscellaneous utility functions</h3>
+    <h3>Miscellaneous Utility Functions</h3>
     <p>
       <div class="def">Function CXML:MAKE-VALIDATOR (dtd root)</div>
-      Create a SAX handler which validates against a DTD instance.&nbsp;
-      The document's root element must be named <tt>root</tt>.&nbsp; 
+      Create a SAX handler which validates against a DTD instance.&amp;nbsp;
+      The document's root element must be named <tt>root</tt>.&amp;nbsp; 
       Used with <tt>dom:map-document</tt>, this validates a document
       object as if by re-reading it with a validating parser, except
       that declarations recorded in the document instance are completely
@@ -432,13 +472,13 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
   (dom:map-document (cxml:make-validator x #"foo") d))</pre>
 
     <p>
-      <div class="def">Function DOM:MAP-DOCUMENT (handler document &key include-xmlns-attributes include-default-values)</div>
+      <div class="def">Function DOM:MAP-DOCUMENT (handler document &amp;key include-xmlns-attributes include-default-values)</div>
       Traverse a DOM document and call SAX functions as if an XML
       representation of the document were processed by a SAX parser.
     </p>
 
     <a name="xmls"/>
-    <h3>XMLS compatibility</h3>
+    <h3>XMLS Compatibility</h3>
     <p>
       Like other XML parsers written in Lisp, CXML can work with
       documents represented as list structures. The specific model
@@ -455,12 +495,12 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     </p>
     <p>
       <div class="def">Function CXML-XMLS:MAKE-XMLS-BUILDER ()</div>
-      Create a SAX handler which builds XMLS list structures.&nbsp;
+      Create a SAX handler which builds XMLS list structures.&amp;nbsp;
       Example:
     </p>
     <pre>(cxml:parse-file "test.xml" (cxml-xmls:make-xmls-builder))</pre>
     <p>
-      <div class="def">Function CXML-XMLS:MAP-NODE (handler node &key include-xmlns-attributes)</div>
+      <div class="def">Function CXML-XMLS:MAP-NODE (handler node &amp;key include-xmlns-attributes)</div>
       Traverse an XMLS document/node and call SAX functions as if an XML
       representation of the document were processed by a SAX parser.
     </p>
@@ -468,15 +508,15 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       Use this function to serialize XMLS data.  For example, we could
       define a replacement for <tt>xmls:write-xml</tt> like this:
     </p>
-    <pre>(defun write-xml (stream node &key indent)
+    <pre>(defun write-xml (stream node &amp;key indent)
   (let ((sink (cxml:make-character-stream-sink
                stream :canonical nil :indentation indent)))
     (cxml-xmls:map-node sink node)))</pre>
     <p>
-      <div class="def">Function CXML-XMLS:MAKE-NODE (&key name ns attrs
+      <div class="def">Function CXML-XMLS:MAKE-NODE (&amp;key name ns attrs
       children) => xmls node</div>
       Build a list node of the form
-      (<em>name</em>&nbsp;((<em>name</em>&nbsp;<em>value</em>)<em>*</em>)&nbsp;<em>child*</em>).
+      (<em>name</em>&amp;nbsp;((<em>name</em>&amp;nbsp;<em>value</em>)<em>*</em>)&amp;nbsp;<em>child*</em>).
     </p>
     <p>
       The node list's <tt>car</tt> can also be a cons of local <tt>name</tt>
@@ -502,7 +542,7 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     </p>
 
     <a name="rods"/>
-    <h3>Dealing with rods</h3>
+    <h3>Dealing with Rods</h3>
     <p>
       As explained above, the XML parser handles character encoding and
       uses 16bit strings internally.  Instead of using characters and strings
@@ -534,7 +574,7 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       </li>
     </ul>
     <p>
-      <div class="def">Function CXML:MAKE-RECODER (chained-handler &optional recoder-fn)</div>
+      <div class="def">Function CXML:MAKE-RECODER (chained-handler &amp;optional recoder-fn)</div>
       Return a SAX handler which passes all events on to
       <tt>chained-handler</tt> after converting all strings and rods
       using <tt>recoder-fn</tt>, a function of one argument which
@@ -543,21 +583,21 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     <p>
       <b>Example.</b> In a Lisp which ordinarily would use octet vector rods:
     </p>
-    <pre>CL-USER(14): (cxml:parse-string "&lt;test/&gt;" (cxml-xmls:make-xmls-builder))
+    <pre>CL-USER(14): (cxml:parse-string "&amp;lt;test/&amp;gt;" (cxml-xmls:make-xmls-builder))
 (#(116 101 115 116) NIL)</pre>
     <p>
       Use a SAX recoder to get strings instead::
     </p>
-    <pre>CL-USER(17): (parse-string "&lt;test/&gt;" (cxml:make-recoder (cxml-xmls:make-xmls-builder)))
+    <pre>CL-USER(17): (parse-string "&amp;lt;test/&amp;gt;" (cxml:make-recoder (cxml-xmls:make-xmls-builder)))
 ("test" NIL)</pre>
 
     <a name="sax"/>
-    <h2>SAX interface</h2>
+    <h2>SAX Interface</h2>
     <p>
       A SAX handler is an arbitrary objects that implements some of the
-      generic functions in the SAX package.&nbsp; Note that no default
+      generic functions in the SAX package.&amp;nbsp; Note that no default
       handler class is necessary, because all generic functions have default
-      methods which do nothing.&nbsp; SAX functions are:
+      methods which do nothing.&amp;nbsp; SAX functions are:
       <div class="def">Function SAX:START-DOCUMENT (handler)</div>
       <div class="def">Function SAX:END-DOCUMENT (handler)</div>
       <br/>
@@ -607,13 +647,13 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
     <a name="dom"/>
     <h2>DOM Notes</h2>
     <p>
-      CXML implements the DOM Level 1 Core interfaces.&nbsp; Explaining
+      CXML implements the DOM Level 1 Core interfaces.&amp;nbsp; Explaining
       DOM is better left to the <a
       href="http://www.w3.org/TR/REC-DOM-Level-1/level-one-core.html">specification</a>,
       so please refer to the official W3C documents for DOM.
     </p>
     <p>
-      However, there is no "standard" DOM mapping for Lisp.&nbsp; DOM
+      However, there is no "standard" DOM mapping for Lisp.&amp;nbsp; DOM
       is <a
       href="http://www.w3.org/TR/REC-DOM-Level-1/idl-definitions.html">specified
       in CORBA IDL</a>, but it refrains from using object-oriented IDL
@@ -630,12 +670,12 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
       </li>
       <li>
         DOM functions have proper required arguments, not a huge
-        <tt>&rest</tt> lambda list.
+        <tt>&amp;rest</tt> lambda list.
       </li>
       <li>
         Although most IDL interfaces are implemented as CLOS classes by
         CXML, the Lisp types of DOM objects is not documented and cannot
-        be relied upon.&nbsp; A node's type can be determined using
+        be relied upon.&amp;nbsp; A node's type can be determined using
         <tt>dom:node-type</tt> instead.
       </li>
       <li>
@@ -643,32 +683,32 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
         an <tt>(unsigned-byte 16)</tt> array type or a string type.
       </li>
       <li>
-        The IDL/Lisp mapping maps CORBA enums to Lisp keywords.&nbsp;
-        Unfortunately, the DOM IDL does not use enums.&nbsp; Instead,
+        The IDL/Lisp mapping maps CORBA enums to Lisp keywords.&amp;nbsp;
+        Unfortunately, the DOM IDL does not use enums.&amp;nbsp; Instead,
         both exception types and node types are defined integer
-        constants.&nbsp; CXML chooses to ignore this definition and uses
+        constants.&amp;nbsp; CXML chooses to ignore this definition and uses
         keywords instead.
       </li>
       <li>
-        DOM uses StudlyCaps.&nbsp; Lisp programmers don't.&nbsp; We
+        DOM uses StudlyCaps.&amp;nbsp; Lisp programmers don't.&amp;nbsp; We
         insert <tt>#\-</tt> before every upper case letter preceded by a
         lower case letter and before every upper case letter which is
         followed by a lower case letter, but preceded by a capital
-        letter.&nbsp; This algorithms leads to the natural Lisp spelling
+        letter.&amp;nbsp; This algorithms leads to the natural Lisp spelling
         of DOM function names.
       </li>
       <li>
         Implementation note: DOM's <tt>NodeList</tt> does not
-        necessarily map to a native "sequence" type.&nbsp; (For example,
-        node lists are objects in Java, not arrays.)&nbsp;
+        necessarily map to a native "sequence" type.&amp;nbsp; (For example,
+        node lists are objects in Java, not arrays.)&amp;nbsp;
         <tt>NodeList</tt> is specified to reflect changes done after a
-        node list was created, so node lists cannot be Lisp lists.&nbsp;
+        node list was created, so node lists cannot be Lisp lists.&amp;nbsp;
         (A node list could be implemented as a CLOS object pointing to
-        said list though.)&nbsp; Instead, CXML currently implements node
-        lists as adjustable vectors.&nbsp; Note that code which relies on
+        said list though.)&amp;nbsp; Instead, CXML currently implements node
+        lists as adjustable vectors.&amp;nbsp; Note that code which relies on
         this implementation and uses Lisp sequence functions
         instead of sticking to <tt>dom:item</tt> and <tt>dom:length</tt>
-        is not portable.&nbsp; As a compromise, you can use our
+        is not portable.&amp;nbsp; As a compromise, you can use our
         extensions <tt>dom:map-node-list</tt> or
         <tt>dom:do-node-list</tt>, which can be implemented portably.
       </li>
