@@ -66,7 +66,11 @@
 ;;;; SINK: a rune output "stream"
 
 (defclass sink ()
-    ((high-surrogate :initform nil)))
+    ((high-surrogate :initform nil)
+     (column :initform 0 :accessor column)
+     (width :initform 79 :initarg :width :accessor width)
+     (indentation :initform nil :initarg :indentation :accessor indentation)
+     (current-indentation :initform 0 :accessor current-indentation)))
 
 (defclass vector-sink (sink)
     ((target-vector :initform (make-buffer))))
@@ -84,6 +88,10 @@
               :adjustable t
               :fill-pointer 0))
 
+(defmethod write-octet :after (octet sink)
+  (with-slots (column) sink
+    (setf column (if (eql octet 10) 0 (1+ column)))))
+
 (defmethod write-octet (octet (sink vector-sink))
   (let ((target-vector (slot-value sink 'target-vector)))
     (vector-push-extend octet target-vector (length target-vector))))
@@ -91,21 +99,32 @@
 (defmethod write-octet (octet (sink character-stream-sink))
   (write-char (code-char octet) (slot-value sink 'target-stream)))
 
-(defun unparse-document (doc character-stream)
-  (let ((sink (make-instance 'character-stream-sink
-                :target-stream character-stream)))
+(defun unparse-document (doc character-stream &rest initargs)
+  (let ((sink (apply #'make-instance 'character-stream-sink
+                     :target-stream character-stream
+                     initargs)))
     (map nil (rcurry #'unparse-node sink) (dom:child-nodes doc))))
 
-(defun unparse-document-to-octets (doc)
-  (let ((sink (make-instance 'vector-sink)))
+(defun unparse-document-to-octets (doc &rest initargs)
+  (let ((sink (apply #'make-instance 'vector-sink initargs)))
     (map nil (rcurry #'unparse-node sink) (dom:child-nodes doc))
     (slot-value sink 'target-vector)))
 
 
 ;;;; DOM serialization
 
+(defun sink-fresh-line (sink)
+  (unless (zerop (column sink))
+    (write-rune-0 10 sink)
+    (indent sink)))
+
 (defun unparse-node (node sink)
-  (cond ((dom:element-p node)
+  (let ((indentation (indentation sink)))
+    (cond
+        ((dom:element-p node)
+         (when indentation
+           (sink-fresh-line sink)
+           (start-indentation-block sink))
          (write-rune #/< sink)
          (write-rod (dom:tag-name node) sink)
          ;; atts
@@ -121,6 +140,9 @@
          (write-rod '#.(string-rod ">") sink)
          (dom:do-node-list (k (dom:child-nodes node))
            (unparse-node k sink))
+         (when indentation
+           (end-indentation-block sink)
+           (sink-fresh-line sink))
          (write-rod '#.(string-rod "</") sink)
          (write-rod (dom:tag-name node) sink)
          (write-rod '#.(string-rod ">") sink))
@@ -132,11 +154,44 @@
            (write-rod (dom:data node) sink)
            (write-rod '#.(string-rod "?>") sink) ))
         ((dom:text-node-p node)
-         (map nil (lambda (c) (unparse-datachar c sink))
-              (dom:data node)))
+         (if indentation
+             (unparse-indented-text (dom:data node) sink)
+             (map nil (lambda (c) (unparse-datachar c sink)) (dom:data node))))
         ((dom:comment-p node))
         (t
-         (error "Oops in unparse: ~S." node))))
+         (error "Oops in unparse: ~S." node)))))
+
+(defun indent (sink)
+  (dotimes (x (current-indentation sink))
+    (write-rune-0 32 sink)))
+
+(defun start-indentation-block (sink)
+  (incf (current-indentation sink) (indentation sink)))
+
+(defun end-indentation-block (sink)
+  (decf (current-indentation sink) (indentation sink)))
+
+(defun unparse-indented-text (data sink)
+  (flet ((whitespacep (x)
+           (or (rune= x #/U+000A) (rune= x #/U+0020))))
+    (let ((pos 0)
+          (n (length data))
+          (have-newline nil))
+      (while (< pos n)
+        (let ((next (or (position-if #'whitespacep data :start pos) n)))
+          (when (> next (1+ pos))
+            (cond
+              ((not have-newline)
+                (sink-fresh-line sink)
+                (setf have-newline t))
+              ((< (+ (column sink) next (- pos)) (width sink))
+                (write-rune-0 32 sink))
+              (t
+                (sink-fresh-line sink)))
+            (loop
+                for i from pos below next do
+                  (unparse-datachar-readable (elt data i) sink)))
+          (setf pos (1+ next)))))))
 
 (defun unparse-datachar (c sink)
   (cond ((rune= c #/&) (write-rod '#.(string-rod "&amp;") sink))
@@ -148,6 +203,14 @@
         ((rune= c #/U+000D) (write-rod '#.(string-rod "&#13;") sink))
         (t
          (write-rune c sink))))
+
+(defun unparse-datachar-readable (c sink)
+  (cond ((rune= c #/&) (write-rod '#.(string-rod "&amp;") sink))
+        ((rune= c #/<) (write-rod '#.(string-rod "&lt;") sink))
+        ((rune= c #/>) (write-rod '#.(string-rod "&gt;") sink))
+        ((rune= c #/\") (write-rod '#.(string-rod "&quot;") sink))
+        (t
+          (write-rune c sink))))
 
 
 ;;;; UTF-8 output for SINKs
