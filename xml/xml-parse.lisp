@@ -1572,8 +1572,11 @@
       ;; XXX was ist mit notation-name?
       (ecase (car def)
         (:EXTERNAL
-          ;; XXX hier fehlen public-id und system-id
-          (sax:unparsed-entity-declaration *handler* name nil nil nil))
+          (let ((id (second def)))
+            (ecase (car id)
+              (:PUBLIC
+                (sax:unparsed-entity-declaration
+                 *handler* name (second id) (third id) nil)))))
         (:INTERNAL
           (sax:unparsed-entity-declaration *handler* name nil nil nil))))
     (p/S? input)
