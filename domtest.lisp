@@ -464,6 +464,8 @@
            (bindings '())
            (code '()))
       (declare (ignore title))
+      ;; XXX Muesste der Parser nicht ein normalisiertes Dokument liefern?
+      (dom:normalize test)
       (do-child-elements (e test)
         (string-case (dom:tag-name e)
           ("metadata"
@@ -495,9 +497,13 @@
 
 (defun load-file (name &optional will-be-modified-p)
   (declare (ignore will-be-modified-p))
-  (let ((directory (merge-pathnames "tests/level1/core/files/" *directory*)))
-    (xml:parse-file
-     (make-pathname :name name :type "xml" :defaults directory))))
+  (let* ((directory (merge-pathnames "tests/level1/core/files/" *directory*))
+         (document
+          (xml:parse-file
+           (make-pathname :name name :type "xml" :defaults directory))))
+    ;; XXX Muesste der Parser nicht ein normalisiertes Dokument liefern?
+    (dom:normalize (dom:document-element document))
+    document))
 
 (defun test2 (&optional verbose)
   (let* ((test-directory (merge-pathnames "tests/level1/core/" *directory*))
@@ -519,11 +525,12 @@
             (print lisp))
           (when lisp
             (incf ntried)
-            (handler-case
-                (funcall (compile nil lisp))
-              (serious-condition (c)
-                (incf nfailed)
-                (warn "test failed: ~A" c)))))
+            (with-simple-restart (skip-test "Skip this test")
+              (handler-case
+                  (funcall (compile nil lisp))
+                (serious-condition (c)
+                  (incf nfailed)
+                  (warn "test failed: ~A" c))))))
       (incf i)))
     (format t "~&~D/~D tests failed; ~D test~:P were skipped"
             nfailed ntried (- n ntried))))
@@ -532,7 +539,8 @@
   (let* ((test-directory (merge-pathnames "tests/level1/core/" *directory*))
          (lisp (slurp-test (merge-pathnames href test-directory))))
     (print lisp)
-    (funcall (compile nil lisp))))
+    (when lisp
+      (funcall (compile nil lisp)))))
 
 #+(or)
 (test "attrname")
