@@ -140,7 +140,7 @@
     (let ((wild-p (rod= tag-name '#.(string-rod "*"))))
       (labels ((tag-name-eq (a b)
                  ;; XXX ist das richtig?  TAG-NAME-EQ war undefiniert
-                 (rod= a b))
+                 (rod-equal a b))
                (walk (n)
                  (when (and (dom:element-p n)
                             (or wild-p (tag-name-eq tag-name (dom:node-name n))))
