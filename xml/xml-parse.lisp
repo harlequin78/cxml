@@ -194,15 +194,15 @@
 ;;
 
 ;;;; Validity constraints:
-;;;; (00) Root Element Type			like (03), c.f. MAKE-ROOT-MODEL
+;;;; (00) Root Element Type                     like (03), c.f. MAKE-ROOT-MODEL
 ;;;; (01) Proper Declaration/PE Nesting
 ;;;; (02) Standalone Document Declaration
-;;;; (03) Element Valid                         VALIDATE-***
-;;;; (04) Attribute Value Type
+;;;; (03) Element Valid                         VALIDATE-*-ELEMENT, -CHARACTERS
+;;;; (04) Attribute Value Type                  VALIDATE-ATTRIBUTES
 ;;;; (05) Unique Element Type Declaration       DEFINE-ELEMENT
 ;;;; (06) Proper Group/PE Nesting
 ;;;; (07) No Duplicate Types
-;;;; (08) ID
+;;;; (08) ID                                    VALIDATE-ATTRIBUTES
 ;;;; (09) One ID per Element Type
 ;;;; (10) ID Attribute Default
 ;;;; (11) IDREF
@@ -239,7 +239,8 @@
   (namespace-bindings *default-namespace-bindings*)
   (entities nil)
   (dtd (make-dtd))
-  model-stack)
+  model-stack
+  (id-table (make-hash-table :test 'equalp)))
 
 (defvar *expand-pe-p*)
 
@@ -676,7 +677,7 @@
       (let ((e (find-element name (dtd ctx))))
         (unless e
           (validity-error "(03) Element Valid: no definition for ~A"
-                          (rod-string (elmdef-name e))))
+                          (rod-string name)))
         (maybe-compile-cspec e)
         (push (copy-cons (elmdef-compiled-cspec e)) (model-stack ctx))))))
 
@@ -695,6 +696,27 @@
     (let ((pair (car (model-stack ctx))))
       (unless (funcall (cdr pair) rod)
         (validity-error "(03) Element Valid: unexpected PCDATA")))))
+
+(defun validate-attributes (ctx name attlist)
+  (let ((e (find-element name (dtd ctx))))
+    (unless e
+      (validity-error "(xy) Attribute Value Type: no definition for element ~A"
+                      (rod-string name)))
+    (dolist (a attlist)
+      (let* ((qname (attribute-qname a))
+             (adef (find-attribute e qname)))
+        (unless adef
+          (validity-error "(04) Attribute Value Type: no definition ~A"
+                          (rod-string qname)))
+        (case (attdef-type adef)
+          (:ID
+            (let ((value (attribute-value a)))
+              (unless (valid-name-p value)
+                (validity-error "(08) ID: not a name: ~S" (rod-string value)))
+              (when (gethash value (id-table ctx))
+                (validity-error "(08) ID: ~S not unique" (rod-string value)))
+              (setf (gethash value (id-table ctx)) t)))
+          )))))
 
 (defun absolute-uri (sysid source-stream)
   (setq sysid (rod-string sysid))
@@ -2236,6 +2258,8 @@
       (multiple-value-bind (ns-uri prefix local-name) (decode-qname name)
 	(declare (ignore prefix))
 	(let ((attlist (build-attribute-list-ns attrs)))
+          (when *validate*
+            (validate-attributes *ctx* name attlist))
 	  (cond ((eq cat :ztag)
 		 (sax:start-element (handler *ctx*) ns-uri local-name name attlist)
 		 (sax:end-element (handler *ctx*) ns-uri local-name name))
