@@ -53,7 +53,7 @@
      (:file "dom-builder"     :depends-on ("package" "dom-impl" "sax-handler"))
      (:file "xml-stream"      :depends-on ("package"))
      (:file "xml-name-rune-p" :depends-on ("package"))
-     (:file "xml-parse"       :depends-on ("package" "dom-impl" "sax-handler"))
+     (:file "xml-parse"       :depends-on ("package" "dom-impl" "sax-handler" "encodings"))
      (:file "xml-canonic"     :depends-on ("package" "dompack" "xml-parse"))
      #+(and allegro ics)
      (:file "string-dom"      :depends-on ("dom-impl")))
