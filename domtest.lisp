@@ -314,9 +314,9 @@
 (defun translate-has-feature (element)
   (with-attributes (|var| |feature| |version|) element
     (maybe-setf (%intern |var|)
-                `(and (equal ,(parse-java-literal |feature|) "XML")
+                `(and (string-equal ,(parse-java-literal |feature|) "XML")
                       (or (zerop (length ,(parse-java-literal |version|)))
-                          (equal ,(parse-java-literal |version|) "1.0"))))))
+                          (string-equal ,(parse-java-literal |version|) "1.0"))))))
 
 (defun translate-fail (element)
   (declare (ignore element))
