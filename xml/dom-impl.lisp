@@ -18,7 +18,7 @@
   ())
 
 (defclass character-data (node)
-  ((data        :initarg :data          :reader dom:data)))
+  ((value       :initarg :data          :reader dom:data)))
 
 (defclass attribute (node)
   ((name        :initarg :name          :reader dom:name)
@@ -481,7 +481,7 @@
                    ((not (dom:text-node-p child))
                      (setf previous nil))
                    ((and previous (dom:text-node-p previous))
-                     (setf (slot-value previous 'data)
+                     (setf (slot-value previous 'value)
                            (concatenate 'vector
                              (dom:data previous)
                              (dom:data child)))
