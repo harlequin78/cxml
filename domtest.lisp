@@ -462,6 +462,12 @@
     (format t "~&~D/~D tests failed; ~D test~:P were skipped"
             nfailed ntried (- n ntried))))
 
+(defun run-test (href)
+  (let* ((test-directory (merge-pathnames "tests/level1/core/" *directory*))
+         (lisp (slurp-test (merge-pathnames href test-directory))))
+    (print lisp)
+    (funcall (compile nil lisp))))
+
 #+(or)
 (test "attrname")
 
