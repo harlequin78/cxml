@@ -73,11 +73,12 @@
   (car (base-stack handler)))
 
 (defun get-attribute/lname (name attributes)
-  (member name attributes
-          :key (lambda (a)
-                 (or (sax:attribute-local-name a)
-                     (sax:attribute-qname a)))
-          :test #'rod=))
+  (let ((a (find name attributes
+                 :key (lambda (a)
+                        (or (sax:attribute-local-name a)
+                            (sax:attribute-qname a)))
+                 :test #'rod=)))
+    (and a (sax:attribute-value a))))
 
 (defmethod sax:start-element ((handler catalog-parser) uri lname qname attrs)
   (declare (ignore uri))
@@ -88,64 +89,54 @@
         (prefer-stack handler))
   (push (string-or (get-attribute/lname #"base" attrs) (base handler))
         (base-stack handler))
-  (cond
-    ((rod= lname #"public")
-      (push (list :public
-                  (get-attribute/lname #"publicId" attrs)
-                  (puri:merge-uris
-                   (puri:parse-uri (get-attribute/lname #"uri" attrs))
-                   (base handler)))
-            (entries handler)))
-    ((rod= lname #"system")
-      (push (list :system
-                  (get-attribute/lname #"systemId" attrs)
-                  (puri:merge-uris
-                   (puri:parse-uri (get-attribute/lname #"uri" attrs))
-                   (base handler)))
-            (entries handler)))
-    ((rod= lname #"uri")
-      (push (list :uri
-                  (get-attribute/lname #"name" attrs)
-                  (puri:merge-uris
-                   (puri:parse-uri (get-attribute/lname #"uri" attrs))
-                   (base handler)))
-            (entries handler)))
-    ((rod= lname #"rewriteSystem")
-      (push (list :rewrite-system
-                  (get-attribute/lname #"systemIdStartString" attrs)
-                  (get-attribute/lname #"rewritePrefix" attrs))
-            (entries handler)))
-    ((rod= lname #"rewriteURI")
-      (push (list :rewrite-uri
-                  (get-attribute/lname #"uriStartString" attrs)
-                  (get-attribute/lname #"rewritePrefix" attrs))
-            (entries handler)))
-    ((rod= lname #"delegatePublic")
-      (push (list :delegate-public
-                  (get-attribute/lname #"publicIdStartString" attrs)
-                  (puri:merge-uris
-                   (puri:parse-uri (get-attribute/lname #"catalog" attrs))
-                   (base handler)))
-            (entries handler)))
-    ((rod= lname #"delegateSystem")
-      (push (list :delegate-system
-                  (get-attribute/lname #"systemIdStartString" attrs)
-                  (puri:merge-uris
-                   (puri:parse-uri (get-attribute/lname #"catalog" attrs))
-                   (base handler)))
-            (entries handler)))
-    ((rod= lname #"delegateURI")
-      (push (list :delegate-uri
-                  (get-attribute/lname #"uriStartString" attrs)
-                  (puri:merge-uris
-                   (puri:parse-uri (get-attribute/lname #"catalog" attrs))
-                   (base handler)))
-            (entries handler)))
-    ((rod= lname #"nextCatalog")
-      (push (puri:merge-uris
-             (puri:parse-uri (get-attribute/lname #"catalog" attrs))
-             (base handler))
-            (next handler)))))
+  (flet ((geturi (lname)
+           (puri:merge-uris
+            (puri:parse-uri (rod-string (get-attribute/lname lname attrs)))
+            (base handler))))
+    (cond
+      ((rod= lname #"public")
+        (push (list :public
+                    (get-attribute/lname #"publicId" attrs)
+                    (geturi #"uri"))
+              (entries handler)))
+      ((rod= lname #"system")
+        (push (list :system
+                    (get-attribute/lname #"systemId" attrs)
+                    (geturi #"uri"))
+              (entries handler)))
+      ((rod= lname #"uri")
+        (push (list :uri
+                    (get-attribute/lname #"name" attrs)
+                    (geturi #"uri"))
+              (entries handler)))
+      ((rod= lname #"rewriteSystem")
+        (push (list :rewrite-system
+                    (get-attribute/lname #"systemIdStartString" attrs)
+                    (get-attribute/lname #"rewritePrefix" attrs))
+              (entries handler)))
+      ((rod= lname #"rewriteURI")
+        (push (list :rewrite-uri
+                    (get-attribute/lname #"uriStartString" attrs)
+                    (get-attribute/lname #"rewritePrefix" attrs))
+              (entries handler)))
+      ((rod= lname #"delegatePublic")
+        (push (list :delegate-public
+                    (get-attribute/lname #"publicIdStartString" attrs)
+                    (geturi #"catalog"))
+              (entries handler)))
+      ((rod= lname #"delegateSystem")
+        (push (list :delegate-system
+                    (get-attribute/lname #"systemIdStartString" attrs)
+                    (geturi #"catalog"))
+              (entries handler)))
+      ((rod= lname #"delegateURI")
+        (push (list :delegate-uri
+                    (get-attribute/lname #"uriStartString" attrs)
+                    (geturi #"catalog"))
+              (entries handler)))
+      ((rod= lname #"nextCatalog")
+        (push (geturi #"catalog")
+              (next handler))))))
 
 (defmethod sax:end-element ((handler catalog-parser) uri lname qname)
   (declare (ignore uri lname qname))
