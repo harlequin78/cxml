@@ -2246,9 +2246,11 @@
 
 (defmethod stream-read-byte ((stream octet-input-stream))
   (with-slots (octets pos) stream
-    (prog1
-        (elt octets pos)
-      (incf pos))))
+    (if (>= pos (length octets))
+        :eof
+        (prog1
+            (elt octets pos)
+          (incf pos)))))
 
 (defmethod stream-read-sequence ((stream octet-input-stream) sequence
                                  &optional (start 0) (end (length sequence)))
