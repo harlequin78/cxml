@@ -986,7 +986,7 @@
 
 ;;; Erweiterung
 
-(defun dom:make-document (&optional document-element)
+(defun dom:create-document (&optional document-element)
   ;; Um ein neues Dokumentenobject zu erzeugen, parsen wir einfach ein
   ;; Dummydokument.
   (let* ((handler (dom:make-dom-builder))
