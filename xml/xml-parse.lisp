@@ -2587,16 +2587,17 @@
            (unless (eq (peek-token input) :eof)
              (error "Trailing garbage. - ~S" (peek-token input)))))))))
 
-;;; XXX FIXME
+;;; XXX FIXME FIXME FIXME
 (defun resolve-entity (name entities)
   (if (assoc (list :general name) entities :test #'equalp) ;XXX
-      (let ((*handler* (funcall (find-symbol "make-dom-builder" :dom)))
+      (let ((*handler* (funcall (find-symbol (symbol-name '#:make-dom-builder) :dom)))
             (*namespace-bindings* *default-namespace-bindings*)
             (*entities* entities)
             (*dtd* (make-dtd)))
         (sax:start-document *handler*)
         (ff (rod name))
-        (funcall (find-symbol "child-nodes" :dom) (sax:end-document *handler*)))
+        (funcall (find-symbol (symbol-name '#:child-nodes) :dom)
+                 (sax:end-document *handler*)))
       nil))
 
 (defun read-att-value-2 (input)
