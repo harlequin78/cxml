@@ -81,7 +81,8 @@
      (:file "dom-impl"        :depends-on ("package"))
      (:file "dom-builder"     :depends-on ("dom-impl"))
      (:file "xml-canonic"     :depends-on ("package"))
-     (:file "simple-dom"      :depends-on ("package")))
+     (:file "simple-dom"      :depends-on ("package"))
+     (:file "dom-sax"         :depends-on ("package")))
     :depends-on (:xml))
 
 (asdf:defsystem :cxml-test
