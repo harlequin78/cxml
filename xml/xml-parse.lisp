@@ -1820,15 +1820,15 @@
   ;; /* VC: Fixed Attribute Default */
   (multiple-value-bind (cat sem) (peek-token input)
     (cond ((eq cat :|#REQUIRED|) 
-           (consume-token input) :required)
+           (consume-token input) :REQUIRED)
           ((eq cat :|#IMPLIED|)  
-           (consume-token input) :implied)
+           (consume-token input) :IMPLIED)
           ((eq cat :|#FIXED|)
            (consume-token input)
            (p/S input)
-           (list :fixed (p/att-value input)))
+           (list :FIXED (p/att-value input)))
           ((or (eq cat :\') (eq cat :\"))
-           (list :default (p/att-value input)))
+           (list :DEFAULT (p/att-value input)))
           (t
            (error "p/default-decl: ~S ~S." cat sem)) )))
 ;;;;
@@ -2131,7 +2131,7 @@
              (cond ((eq cat :name) 
                     (consume-token input) 
                     (cond ((rod= sem '#.(string-rod "EMPTY"))
-                           :empty)
+                           :EMPTY)
                           ((rod= sem '#.(string-rod "ANY"))
                            :ANY)
                           (t
