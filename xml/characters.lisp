@@ -16,6 +16,7 @@
 (defun rune-name-char-p (rune)
   (or (rune-in-range-p rune *base-char-ranges*)
       (rune-in-range-p rune *ideographic-ranges*)
+      (rune-in-range-p rune *digit-ranges*)
       (eql rune #.(char-code #\.))
       (eql rune #.(char-code #\-))
       (eql rune #.(char-code #\_))
