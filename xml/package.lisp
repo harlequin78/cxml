@@ -2,6 +2,14 @@
 
 (defpackage :xml
   (:use :cl :runes :encoding)
+  (:import-from #+sbcl :sb-gray
+                #+allegro :excl
+                #+cmu :ext
+                #+clisp :gray
+                #-(or sbcl allegro cmu clisp) ...
+                #:fundamental-binary-input-stream
+                #:stream-read-sequence
+                stream-read-byte)
   (:export
    ;; xstreams
    #:make-xstream
@@ -31,5 +39,6 @@
    #:parse-stream
    ;; XXX encoding is mis-handled by parse-string, don't export it
    ;; #:parse-string
+   #:parse-octets
 
    #:unparse-document))

@@ -15,6 +15,10 @@
         padding: 1em;
         margin-right: 10%;
       }
+      .def {
+        background-color: #ddddff;
+        font-weight: bold;
+      }
     </style>
   </head>
   <body>
@@ -48,6 +52,7 @@
       <li><a href="#installation">Installation</a></li>
       <li><a href="#tests">Tests</a></li>
       <li><a href="#todo">To do</a></li>
+      <li><a href="#using">Using the parser</a></li>
     </ul>
 
     <a name="modules"/>
@@ -66,7 +71,7 @@
         <tt>DOM</tt>, an implementation of the <a
         href="http://www.w3.org/TR/REC-DOM-Level-1/level-one-core.html">DOM
         Level 1 Core</a> interfaces.
-      </li> 
+      </li>
     </ul>
 
     <a name="installation"/>
@@ -170,8 +175,34 @@ xmltest$ patch -p0 -R &lt;/path/to/cxml/test/xmlconf-base.diff</pre>
         with less entity noise, optional indentation, etc.
       </li>
       <li>
+        There are still thread-safety issues.
+      </li>
+      <li>
         Validation!
       </li>
     </ul>
+
+    <a name="using"/>
+    <h2>Using the parser</h2>
+    <p>
+      <div class="def">Function XML:PARSE-FILE (pathname handler)</div>
+      <div class="def">Function XML:PARSE-STREAM (stream handler)</div>
+      <div class="def">Function XML:PARSE-OCTETS (octets handler)</div>
+      Parse an XML document.&nbsp; Arguments:
+    </p>
+    <ul>
+      <li><tt>pathname</tt> -- a Common Lisp pathname</li>
+      <li><tt>stream</tt> -- a Common Lisp stream with element-type
+        <tt>(unsigned-byte 8)</tt></li>
+      <li><tt>octets</tt> -- an <tt>(unsigned-byte 8)</tt> array</li>
+      <li><tt>handler</tt> -- a SAX handler</li>
+    </ul>
+    <p>Return values from this function depend on the SAX handler used.</p>
+
+    <p>
+      <div class="def">Function DOM:MAKE-DOM-BUILDER ()</div>
+      Create a SAX handler which builds a DOM document.&nbsp; Example:
+    </p>
+    <pre>(xml:parse-file "test.xml" (dom:make-dom-builder))</pre>
   </body>
 </html>

@@ -2240,6 +2240,32 @@
   ;; XXX encoding is mis-handled by this kind of stream
   (make-rod-xstream (string-rod string)))
 
+(defclass octet-input-stream (fundamental-binary-input-stream)
+    ((octets :initarg :octets)
+     (pos :initform 0)))
+
+(defmethod stream-read-byte ((stream octet-input-stream))
+  (with-slots (octets pos) stream
+    (prog1
+        (elt octets pos)
+      (incf pos))))
+
+(defmethod stream-read-sequence ((stream octet-input-stream) sequence
+                                 &optional (start 0) (end (length sequence)))
+  (with-slots (octets pos) stream
+    (let* ((length (min (- end start) (- (length octets) pos)))
+           (end1 (+ start length))
+           (end2 (+ pos length)))
+      (replace sequence octets :start1 start :end1 end1 :start2 pos :end2 end2)
+      (setf pos end2)
+      end1)))
+
+(defun make-octet-input-stream (octets)
+  (make-instance 'octet-input-stream :octets octets))
+
+(defun parse-octets (octets handler)
+  (parse-stream (make-octet-input-stream octets) handler))
+
 ;;;;
 
 #+allegro
