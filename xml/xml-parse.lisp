@@ -2932,7 +2932,8 @@
   stream)
 
 (defun safe-stream-sysid (stream)
-  (if (typep (resolve-synonym-stream stream) 'file-stream)
+  (if (and (typep (resolve-synonym-stream stream) 'file-stream)
+           (pathname stream))
       (pathname-to-uri (pathname stream))
       nil))
 
@@ -2947,11 +2948,11 @@
           :initial-speed 1)))
     (apply #'parse-xstream xstream handler args)))
 
-(defun parse-dtd-file (filename)
+(defun parse-dtd-file (filename &optional handler)
   (with-open-file (s filename :element-type '(unsigned-byte 8))
-    (parse-dtd-stream s)))
+    (parse-dtd-stream s handler)))
 
-(defun parse-dtd-stream (stream)
+(defun parse-dtd-stream (stream &optional handler)
   (let ((input (make-xstream stream)))
     (setf (xstream-name input)
           (make-stream-name
@@ -2959,7 +2960,7 @@
            :entity-kind :main
            :uri (safe-stream-sysid stream)))
     (let ((zstream (make-zstream :input-stack (list input)))
-          (*ctx* (make-context :handler nil))
+          (*ctx* (make-context :handler handler))
           (*validate* t)
           (*data-behaviour* :DTD))
       (with-scratch-pads ()
